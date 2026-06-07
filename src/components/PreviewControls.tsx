@@ -5,6 +5,7 @@ import { PREVIEW_PRESETS, getPresetById, getSettingsForPreset, describeSourceRep
 import type {
   AutoIntensityId,
   PreviewSettings,
+  PreviewRenderResult,
   PreviewStatus,
   SourceRepairLevel,
   SourceAnalysisResult
@@ -19,6 +20,7 @@ interface PreviewControlsProps {
   previewRevision: number;
   previewRenderedAt: string | null;
   sourceAnalysis: SourceAnalysisResult | null;
+  previewResult: PreviewRenderResult | null;
   errorMessage: string | null;
   onSettingsChange: (settings: PreviewSettings) => void;
   onRenderPreview: () => void;
@@ -59,6 +61,7 @@ export function PreviewControls({
   previewRevision,
   previewRenderedAt,
   sourceAnalysis,
+  previewResult,
   errorMessage,
   onSettingsChange,
   onRenderPreview
@@ -138,18 +141,22 @@ export function PreviewControls({
         <div>
           <span>Plan auto</span>
           <strong>{autoPlan?.profileLabel ?? "Analyse"}</strong>
+          <small>Objectif indicatif, ajusté par sécurité au rendu.</small>
         </div>
         <div>
-          <span>Plage LUFS</span>
-          <strong>{autoPlan ? `${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : `${settings.targetLufsEstimate.toFixed(1)}`}</strong>
+          <span>{previewResult ? "Résultat LUFS" : "Objectif LUFS"}</span>
+          <strong>{previewResult ? `${previewResult.afterMetrics.estimatedLufs.toFixed(1)}` : autoPlan ? `${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : `${settings.targetLufsEstimate.toFixed(1)}`}</strong>
+          <small>{previewResult && autoPlan ? `Objectif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : "Plage prévue avant rendu"}</small>
         </div>
         <div>
-          <span>Headroom</span>
-          <strong>{autoPlan ? `${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : `${Math.abs(settings.maxPeakDb).toFixed(1)} dB`}</strong>
+          <span>{previewResult ? "Headroom obtenu" : "Headroom prévu"}</span>
+          <strong>{previewResult ? `${(previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb).toFixed(1)} dB` : autoPlan ? `${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : `${Math.abs(settings.maxPeakDb).toFixed(1)} dB`}</strong>
+          <small>{previewResult && autoPlan ? `Plage ${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : "Plage dynamique selon source"}</small>
         </div>
         <div>
           <span>Anti-fatigue</span>
           <strong>{settings.antiFatigue ? "Activé" : "Off"}</strong>
+          <small>{settings.antiFatigue ? "AI Shimmer Control actif" : "Désactivé"}</small>
         </div>
       </div>
 

@@ -1,17 +1,16 @@
-# PAXLAB Browser Engine - dev08.1 Dynamic Targeting
+# PAXLAB Browser Engine - dev08.3 Target Reality
 
 Application Vite / React / TypeScript pour traitement audio local dans le navigateur.
 
-## Dev08.1
+## Dev08.3
 
-- Dynamic Targeting : la cible n’est plus un chiffre unique, mais une plage loudness + headroom selon le fichier.
-- Orientation automatique : Prudent / Équilibré / Impact.
-- Option Aigus fatigants : AI Shimmer Control pour calmer les brillances IA agressives.
-- Rapport plus honnête : cible atteinte, rendu prudent, cible partielle ou sécurité prioritaire.
-- Auto Engine V3.1 : meilleure cohérence entre cible prévue et résultat obtenu.
-- Calibration loudness supplémentaire après rendu, avec limiteur de sécurité.
-- Waveform min/max centrée conservée.
-- A/B instantané conservé.
+- Séparation claire entre objectif indicatif, résultat obtenu et sécurité audio.
+- L’UI n’affiche plus une plage LUFS comme si elle était garantie.
+- Le panneau Rendu local affiche le résultat LUFS et le headroom réellement obtenus après génération.
+- Le Smart Repair parle d’objectif indicatif plutôt que de promesse de cible fixe.
+- Le dashboard explique quand le rendu est contrôlé : headroom respecté mais loudness volontairement plus prudent pour éviter d’écraser.
+- Headroom final et headroom actif moyen conservés.
+- Mode Impact et option Aigus fatigants conservés.
 - Export WAV local conservé.
 - Aucun upload serveur.
 - Aucune API externe.

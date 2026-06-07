@@ -277,10 +277,10 @@ export default function App() {
     <main className="app-shell control-room-shell">
       <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev08.2 Metering Fix</p>
+          <p className="version">PAXLAB Browser Engine - dev08.3 Target Reality</p>
           <h1>PAXLAB Instant Control Room</h1>
           <p className="hero-text">
-            Auto Engine V3.2 : headroom final stable, headroom actif moyen, waveform enveloppe fiable, mode impact et anti-fatigue conservés.
+            Auto Engine V3.3 : objectif indicatif, résultat obtenu et écart cible affichés clairement, sans promettre une cible impossible.
           </p>
         </div>
 
@@ -358,6 +358,7 @@ export default function App() {
             previewRevision={previewRevision}
             previewRenderedAt={previewRenderedAt}
             sourceAnalysis={sourceAnalysis}
+            previewResult={previewResult}
             errorMessage={previewErrorMessage}
             onSettingsChange={setPreviewSettings}
             onRenderPreview={() => void handleRenderPreview()}
@@ -390,11 +391,11 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev08.2</p>
-          <h2>Metering stable, waveform fiable et contrôles manuels clarifiés</h2>
+          <p className="eyebrow">Statut dev08.3</p>
+          <h2>Target Reality : objectif, résultat et sécurité enfin séparés</h2>
         </div>
         <p>
-          Cette version stabilise la lecture du headroom : headroom final, moyenne active hors silences, waveform centrée en enveloppe et slider headroom plus lisible en mode expert.
+          Cette version sépare clairement l’objectif automatique, le résultat réellement obtenu et les limites de sécurité. Un rendu peut être bon même si la cible loudness haute n’est pas atteinte.
         </p>
         <p className="honest-note">
           Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.

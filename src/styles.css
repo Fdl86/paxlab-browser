@@ -576,3 +576,11 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
     grid-template-columns: 1fr;
   }
 }
+
+.control-room-summary small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted-2);
+  font-size: 0.72rem;
+  line-height: 1.28;
+}

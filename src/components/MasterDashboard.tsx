@@ -59,6 +59,14 @@ function calibrationStatus(
     };
   }
 
+  if (lufsMissing > 1.3 && headroomInRange) {
+    return {
+      label: "Rendu contrôlé",
+      tone: "neutral",
+      detail: `Headroom respecté, mais loudness plus bas de ${lufsMissing.toFixed(1)} LUFS pour éviter d’écraser.`
+    };
+  }
+
   if (lufsMissing > 1.3 || headroomExcess > 1.4) {
     return {
       label: "Cible partielle",
@@ -85,8 +93,9 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
     : null;
   const activeHeadroom = activeMetrics ? Math.max(0, -activeMetrics.approxTruePeakDb) : null;
   const renderedHeadroomSummary = previewResult?.report.loudness.headroomSummary ?? null;
-  const calibration = previewResult && plan && activeHeadroom !== null
-    ? calibrationStatus(previewResult.afterMetrics.estimatedLufs, activeHeadroom, plan)
+  const calibrationHeadroom = renderedHeadroomSummary?.finalHeadroomDb ?? activeHeadroom;
+  const calibration = previewResult && plan && calibrationHeadroom !== null
+    ? calibrationStatus(previewResult.afterMetrics.estimatedLufs, calibrationHeadroom, plan)
     : null;
   const lufsDeltaToTarget = previewResult && plan ? previewResult.afterMetrics.estimatedLufs - plan.targetLufsEstimate : null;
   const headroomDeltaToRange = previewResult && plan && activeHeadroom !== null
@@ -101,7 +110,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
     <section className="panel dashboard-panel auto-engine-panel calibration-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Auto Engine V3.2</p>
+          <p className="eyebrow">Auto Engine V3.3</p>
           <h2>Dynamic Targeting</h2>
         </div>
         <span className="status-pill">{previewResult ? calibration?.label ?? "Preview analysée" : "Plan auto"}</span>
@@ -123,9 +132,9 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
               <small>{plan.reason}</small>
             </div>
             <div>
-              <span>Plage loudness</span>
+              <span>Objectif loudness</span>
               <strong>{formatLufsRange(plan)}</strong>
-              <small>Cible centrale {formatLufs(plan.targetLufsEstimate)}</small>
+              <small>Objectif initial {formatLufs(plan.targetLufsEstimate)}</small>
             </div>
             <div>
               <span>Plage headroom</span>
@@ -177,7 +186,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
           {previewResult && sourceMetrics && activeHeadroom !== null && (
             <div className="dashboard-delta auto-delta premium-delta">
               <span>Gain obtenu : {formatSigned(previewResult.report.loudness.gainAppliedDb)}</span>
-              <span>Écart cible : {lufsDeltaToTarget !== null ? formatSigned(lufsDeltaToTarget, "LUFS") : "-"}</span>
+              <span>Écart objectif : {lufsDeltaToTarget !== null ? formatSigned(lufsDeltaToTarget, "LUFS") : "-"}</span>
               <span>Headroom final : {(renderedHeadroomSummary?.finalHeadroomDb ?? activeHeadroom).toFixed(1)} dB / plage {formatHeadroomRange(plan)}</span>
               <span>Headroom actif : {renderedHeadroomSummary ? `${renderedHeadroomSummary.activeAverageHeadroomDb.toFixed(1)} dB moy. (${renderedHeadroomSummary.activeMinHeadroomDb.toFixed(1)}-${renderedHeadroomSummary.activeMaxHeadroomDb.toFixed(1)})` : "-"}</span>
               <span>Écart headroom : {headroomDeltaToRange !== null ? formatSigned(headroomDeltaToRange) : "-"}</span>

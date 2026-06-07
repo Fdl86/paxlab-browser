@@ -43,8 +43,8 @@ export function buildAdvisor(
 
   moves.push({
     id: "auto-plan",
-    title: `${plan.profileLabel} : ${plan.targetLufsEstimate.toFixed(1)} LUFS est.`,
-    detail: `Plage headroom ${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB, ceiling ${plan.ceilingDb.toFixed(1)} dBTP est., lift prévu ${plan.expectedLiftDb >= 0 ? "+" : ""}${plan.expectedLiftDb.toFixed(1)} dB.`,
+    title: `Objectif indicatif : ${plan.profileLabel}`,
+    detail: `LUFS visé ${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)}, headroom ${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB. Le résultat réel peut rester plus prudent si le peak ou la dynamique l’imposent.`,
     severity: "info"
   });
 
@@ -138,7 +138,7 @@ export function buildAdvisor(
     ? "Recommandation : lift auto avec réparation forte et aigus très doux."
     : moves.some((move) => move.id === "clean")
       ? "Recommandation : traitement léger, source déjà assez propre."
-      : `Recommandation : ${plan.profileLabel.toLowerCase()}, cible ${plan.targetLufsEstimate.toFixed(1)} LUFS est.`;
+      : `Recommandation : ${plan.profileLabel.toLowerCase()}, objectif indicatif ${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS est.`;
 
   return {
     summary,

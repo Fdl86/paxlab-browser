@@ -94,9 +94,9 @@ export function SessionStatusPanel({
           </div>
 
           <div className="session-card">
-            <span>Cible / Headroom</span>
-            <strong>{plan ? `${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS` : formatLufs(target)}</strong>
-            <small>{plan ? `Headroom ${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB` : `Ceiling ${ceiling.toFixed(1)} dBTP est.`}</small>
+            <span>{previewResult ? "Résultat / Objectif" : "Objectif / Headroom"}</span>
+            <strong>{previewResult ? formatLufs(previewResult.afterMetrics.estimatedLufs) : plan ? `${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS` : formatLufs(target)}</strong>
+            <small>{previewResult && plan ? `Objectif indicatif ${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS` : plan ? `Headroom ${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB` : `Ceiling ${ceiling.toFixed(1)} dBTP est.`}</small>
           </div>
 
           <div className={hasPendingChanges ? "session-card warning-session-card" : "session-card success-session-card"}>
