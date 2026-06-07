@@ -286,7 +286,7 @@ export default function App() {
     <main className="app-shell ux-shell">
       <header className="ux-hero-wow">
         <div className="ux-hero-copy">
-          <p className="version">PAXLAB Browser Engine - dev09 Wow UX</p>
+          <p className="version">PAXLAB Browser Engine - dev09.1 Wow UX</p>
           <h1>PAXLAB Master Room</h1>
           <p className="hero-text">
             Un workflow simple : importe un morceau, choisis le rendu, génère une Preview Master, compare en A/B et exporte en WAV. Traitement local, sans upload serveur.

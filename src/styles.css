@@ -637,7 +637,7 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   }
 }
 
-/* DEV 09 - Wow UX compact refresh */
+/* DEV 09.1 - Wow UX scroll fix */
 .ux-shell {
   width: min(1460px, calc(100% - 28px));
   padding: 22px 0 34px;
@@ -803,6 +803,12 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
 .ux-action-zone {
   display: grid;
   gap: 14px;
+  align-content: start;
+}
+
+.ux-action-zone > .panel {
+  position: relative;
+  z-index: 0;
 }
 
 .ux-history-row {
@@ -1001,8 +1007,8 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
 }
 
 .ux-shell .controls-panel {
-  position: sticky;
-  top: 14px;
+  position: relative;
+  z-index: 1;
   border-color: rgba(212, 175, 55, 0.32);
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(212, 175, 55, 0.04);
 }
@@ -1089,7 +1095,7 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   }
 
   .ux-shell .controls-panel {
-    position: static;
+    position: relative;
   }
 
   .ux-details-grid,

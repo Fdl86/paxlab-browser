@@ -1,4 +1,4 @@
-# PAXLAB Browser Engine - dev08.3 Target Reality
+# PAXLAB Browser Engine - dev09.1 Wow UX Scroll Fix
 
 Application Vite / React / TypeScript pour traitement audio local dans le navigateur.
 
