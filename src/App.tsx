@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { analyzeSource } from "./audio/advancedAnalysis";
+import { buildSettingsFromAnalysis } from "./audio/autoTarget";
 import { decodeAudioFile } from "./audio/decodeAudio";
 import { renderPreviewMaster } from "./audio/renderPreviewMaster";
 import { useABAudioPlayer } from "./audio/useABAudioPlayer";
@@ -13,16 +14,13 @@ import type {
   PreviewStatus,
   SourceAnalysisResult
 } from "./audio/types";
-import { ABComparePanel } from "./components/ABComparePanel";
 import { AudioInfoPanel } from "./components/AudioInfoPanel";
-import { ListeningZonesPanel } from "./components/ListeningZonesPanel";
 import { MasterDashboard } from "./components/MasterDashboard";
 import { MetricsPanel } from "./components/MetricsPanel";
-import { PlayerPanel } from "./components/PlayerPanel";
+import { RealtimeMonitorPanel } from "./components/RealtimeMonitorPanel";
 import { PreviewControls } from "./components/PreviewControls";
 import { ProcessingReportPanel } from "./components/ProcessingReportPanel";
 import { UploadPanel } from "./components/UploadPanel";
-import { WaveformPanel } from "./components/WaveformPanel";
 
 function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings): boolean {
   if (!left) {
@@ -34,6 +32,7 @@ function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings):
     left.highTreatment === right.highTreatment &&
     left.intensity === right.intensity &&
     left.targetRmsDb === right.targetRmsDb &&
+    left.targetLufsEstimate === right.targetLufsEstimate &&
     left.maxPeakDb === right.maxPeakDb &&
     left.stereoWidth === right.stereoWidth &&
     left.density === right.density
@@ -152,6 +151,7 @@ export default function App() {
         }
 
         setSourceAnalysis(result);
+        setPreviewSettings(buildSettingsFromAnalysis(result.metrics));
         setAnalysisStatus("ready");
       } catch (error) {
         if (!isCurrentAudio) {
@@ -202,10 +202,10 @@ export default function App() {
     <main className="app-shell">
       <header className="hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev03 XXL</p>
+          <p className="version">PAXLAB Browser Engine - dev04 Realtime</p>
           <h1>PAXLAB Browser Engine</h1>
           <p className="hero-text">
-            Moteur navigateur local pour importer un fichier audio IA, analyser les zones à vérifier,
+            Moteur navigateur local pour importer un fichier audio IA, analyser le fichier,
             générer une Preview Master en mémoire, puis comparer Original / Preview Master en A/B.
           </p>
         </div>
@@ -237,7 +237,7 @@ export default function App() {
 
       {analysisStatus === "running" && (
         <p className="message message-info standalone-message">
-          Analyse locale en cours : waveform, spectre, stéréo et zones d’écoute suggérées.
+          Analyse locale en cours : niveau, spectre, stéréo et cible automatique.
         </p>
       )}
 
@@ -247,7 +247,24 @@ export default function App() {
 
       <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} />
 
-      <div className="layout three-columns">
+      <RealtimeMonitorPanel
+        fileName={selectedFile?.name ?? null}
+        originalBuffer={decodedAudio?.audioBuffer ?? null}
+        previewBuffer={previewResult?.buffer ?? null}
+        activeSource={player.activeSource}
+        currentTime={player.currentTime}
+        duration={player.duration}
+        isPlaying={player.isPlaying}
+        canUsePreview={player.canPlayPreview}
+        previewStatus={previewStatus}
+        meter={player.meter}
+        onPlayPause={() => void player.playPause()}
+        onStop={player.stop}
+        onSeek={player.seek}
+        onSwitchSource={(source) => void player.switchSource(source)}
+      />
+
+      <div className="layout two-columns wide-second">
         <PreviewControls
           settings={previewSettings}
           previewStatus={previewStatus}
@@ -259,35 +276,6 @@ export default function App() {
           onRenderPreview={() => void handleRenderPreview()}
         />
 
-        <PlayerPanel
-          activeSource={player.activeSource}
-          currentTime={player.currentTime}
-          duration={player.duration}
-          isPlaying={player.isPlaying}
-          canPlay={player.canPlayOriginal}
-          onPlayPause={() => void player.playPause()}
-          onSeek={player.seek}
-        />
-
-        <ABComparePanel
-          activeSource={player.activeSource}
-          canUsePreview={player.canPlayPreview}
-          previewStatus={previewStatus}
-          onSwitchSource={(source) => void player.switchSource(source)}
-        />
-      </div>
-
-      <WaveformPanel
-        originalBuffer={decodedAudio?.audioBuffer ?? null}
-        previewBuffer={previewResult?.buffer ?? null}
-        activeSource={player.activeSource}
-        currentTime={player.currentTime}
-        duration={player.duration}
-        onSeek={player.seek}
-      />
-
-      <div className="layout two-columns wide-second">
-        <ListeningZonesPanel analysis={sourceAnalysis} onSeek={player.seek} />
         <ProcessingReportPanel result={previewResult} />
       </div>
 
@@ -295,14 +283,12 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev03 XXL</p>
-          <h2>Équivalent DEV 38, version navigateur</h2>
+          <p className="eyebrow">Statut dev04</p>
+          <h2>Monitoring temps réel et A/B propre</h2>
         </div>
 
         <p>
-          Cette version reprend l’esprit de la V0.6 Streamlit : dashboard, zones d’écoute,
-          Preview Master automatique, anti-fizz, de-click léger, contrôle stéréo, densité,
-          niveau cible estimé et lecteur A/B synchronisé.
+          Cette version recentre l’outil sur le cœur utile : lecture A/B claire, waveform, monitoring dynamique pendant l’écoute, cible automatique issue de l’analyse et rendu Preview Master local.
         </p>
 
         <p className="honest-note">

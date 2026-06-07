@@ -35,22 +35,34 @@ export function PreviewControls({
 
   function handlePresetChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextPresetId = event.target.value as PreviewSettings["presetId"];
-    onSettingsChange(getSettingsForPreset(nextPresetId));
+    const nextPresetSettings = getSettingsForPreset(nextPresetId);
+
+    onSettingsChange({
+      ...nextPresetSettings,
+      targetRmsDb: settings.targetRmsDb,
+      targetLufsEstimate: settings.targetLufsEstimate
+    });
   }
 
   return (
     <section className="panel controls-panel">
       <div className="panel-heading">
         <p className="eyebrow">Preview Master locale</p>
-        <h2>Chaîne automatique V0.6</h2>
+        <h2>Chaîne automatique V0.7</h2>
       </div>
 
       <div className="chain-badges">
-        <span>-13 estimé</span>
+        <span>Cible auto : {settings.targetLufsEstimate.toFixed(1)} LUFS est.</span>
         <span>Anti-fizz</span>
         <span>De-click</span>
         <span>EQ M/S</span>
-        <span>Limiteur</span>
+        <span>Limiteur sécurité</span>
+      </div>
+
+      <div className="auto-target-card">
+        <span>Cible calculée depuis l’analyse</span>
+        <strong>{settings.targetLufsEstimate.toFixed(1)} LUFS estimé</strong>
+        <p>Conversion interne : {settings.targetRmsDb.toFixed(1)} dB RMS simple. La valeur s’adapte au niveau, aux aigus et à la dynamique du fichier source.</p>
       </div>
 
       <div className="control-group">
@@ -104,29 +116,6 @@ export function PreviewControls({
             })
           }
         />
-      </div>
-
-      <div className="slider-row">
-        <div>
-          <label htmlFor="targetRms">Niveau cible indicatif</label>
-          <span>{settings.targetRmsDb.toFixed(1)} dB RMS simple</span>
-        </div>
-        <input
-          id="targetRms"
-          type="range"
-          min="-16"
-          max="-12"
-          step="0.5"
-          value={settings.targetRmsDb}
-          onChange={(event) =>
-            updateSettings({
-              targetRmsDb: Number(event.target.value)
-            })
-          }
-        />
-        <p className="control-help">
-          Repère pratique proche -13 estimé. Ce n’est pas une mesure LUFS officielle.
-        </p>
       </div>
 
       <div className="slider-row">

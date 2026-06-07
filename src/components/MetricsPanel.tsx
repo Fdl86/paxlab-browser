@@ -107,7 +107,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
           <div className="render-summary">
             <span>Rendu local : {(result.renderTimeMs / 1000).toFixed(2)} s</span>
             <span>{describeHighTreatment(result.settings.highTreatment)}</span>
-            <span>Cible indicative : {result.settings.targetRmsDb.toFixed(1)} dB RMS simple</span>
+            <span>Cible auto : {result.settings.targetLufsEstimate.toFixed(1)} LUFS est. / {result.settings.targetRmsDb.toFixed(1)} dB RMS simple</span>
           </div>
 
           <p className="message message-info">

@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.3.1-dev03-hotfix-deploy",
+  "version": "0.4.0-dev04-realtime",
   "type": "module",
   "scripts": {
     "dev": "vite",

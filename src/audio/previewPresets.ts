@@ -11,6 +11,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       highTreatment: "soft",
       intensity: 66,
       targetRmsDb: -13,
+      targetLufsEstimate: -13,
       maxPeakDb: -1.2,
       stereoWidth: 100,
       density: 44
@@ -26,6 +27,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       highTreatment: "verySoft",
       intensity: 76,
       targetRmsDb: -13.5,
+      targetLufsEstimate: -13.5,
       maxPeakDb: -1.2,
       stereoWidth: 98,
       density: 36
@@ -41,6 +43,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       highTreatment: "neutral",
       intensity: 52,
       targetRmsDb: -13,
+      targetLufsEstimate: -13,
       maxPeakDb: -1.1,
       stereoWidth: 100,
       density: 30
@@ -56,6 +59,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       highTreatment: "soft",
       intensity: 61,
       targetRmsDb: -13,
+      targetLufsEstimate: -13,
       maxPeakDb: -1,
       stereoWidth: 102,
       density: 52
@@ -71,6 +75,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       highTreatment: "open",
       intensity: 44,
       targetRmsDb: -13,
+      targetLufsEstimate: -13,
       maxPeakDb: -1.1,
       stereoWidth: 104,
       density: 24

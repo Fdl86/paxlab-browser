@@ -49,6 +49,10 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.report.tone.antiFizzReductionDb.toFixed(1)} dB approx.</strong>
             </div>
             <div className="report-card">
+              <span>Cible auto</span>
+              <strong>{result.report.loudness.targetLufsEstimate.toFixed(1)} LUFS est.</strong>
+            </div>
+            <div className="report-card">
               <span>Limiter</span>
               <strong>{result.report.loudness.limiterActive ? "Actif" : "Inactif"}</strong>
             </div>

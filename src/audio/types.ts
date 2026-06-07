@@ -103,6 +103,7 @@ export interface PreviewSettings {
   highTreatment: HighTreatmentId;
   intensity: number;
   targetRmsDb: number;
+  targetLufsEstimate: number;
   maxPeakDb: number;
   stereoWidth: number;
   density: number;
@@ -155,4 +156,15 @@ export interface PreviewRenderResult {
   renderTimeMs: number;
   settings: PreviewSettings;
   report: ProcessingReport;
+}
+
+export interface RealtimeMeterState {
+  instantPeakDb: number;
+  outputDb: number;
+  shortTermLufsEstimate: number;
+  integratedLufsEstimate: number;
+  peakHoldDb: number;
+  headroomDb: number;
+  clipping: boolean;
+  status: "silent" | "good" | "hot" | "clipping";
 }

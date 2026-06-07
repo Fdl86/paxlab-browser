@@ -17,13 +17,14 @@ function formatPercent(value: number): string {
 export function MasterDashboard({ sourceAnalysis, previewResult }: MasterDashboardProps) {
   const metrics = previewResult?.afterMetrics ?? sourceAnalysis?.metrics ?? null;
   const before = sourceAnalysis?.metrics ?? previewResult?.beforeMetrics ?? null;
+  const target = previewResult?.settings.targetLufsEstimate ?? null;
 
   return (
     <section className="panel dashboard-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Dashboard Preview Master V0.6</p>
-          <h2>Cible -13 estimée et contrôles audio</h2>
+          <p className="eyebrow">Dashboard Preview Master V0.7</p>
+          <h2>Cible automatique et contrôles audio</h2>
         </div>
         <span className="status-pill">{previewResult ? "Preview prête" : "Analyse source"}</span>
       </div>
@@ -66,6 +67,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult }: MasterDashboa
 
           {previewResult && before && (
             <div className="dashboard-delta">
+              <span>Cible auto : {target?.toFixed(1)} LUFS est.</span>
               <span>Gain appliqué : {previewResult.report.loudness.gainAppliedDb.toFixed(1)} dB</span>
               <span>Original : {formatLufs(before.estimatedLufs)}</span>
               <span>Preview : {formatLufs(previewResult.afterMetrics.estimatedLufs)}</span>

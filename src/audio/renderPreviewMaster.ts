@@ -381,7 +381,7 @@ export async function renderPreviewMaster(
           : settings.highTreatment === "open"
             ? "Plus ouverte"
             : "Naturelle",
-    targetLabel: "-13 LUFS estimé / RMS indicatif",
+    targetLabel: `${settings.targetLufsEstimate.toFixed(1)} LUFS estimé / RMS indicatif`,
     appliedMoves,
     cleanup: {
       declipActive: cleanup.declipActive,
@@ -402,7 +402,7 @@ export async function renderPreviewMaster(
     loudness: {
       gainAppliedDb,
       targetRmsDb: settings.targetRmsDb,
-      targetLufsEstimate: -13,
+      targetLufsEstimate: settings.targetLufsEstimate,
       limiterActive: limiter.active,
       limiterReductionDb: limiter.reductionDb
     },
