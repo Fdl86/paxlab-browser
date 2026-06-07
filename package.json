@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.5.1-dev05-clickless-ab",
+  "version": "0.5.2-dev05-switch-guard",
   "type": "module",
   "scripts": {
     "dev": "vite",

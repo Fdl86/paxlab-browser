@@ -10,6 +10,7 @@ interface RealtimeMonitorPanelProps {
   currentTime: number;
   duration: number;
   isPlaying: boolean;
+  isSwitching: boolean;
   canUsePreview: boolean;
   previewStatus: PreviewStatus;
   previewRevision: number;
@@ -112,6 +113,7 @@ export function RealtimeMonitorPanel({
   currentTime,
   duration,
   isPlaying,
+  isSwitching,
   canUsePreview,
   previewStatus,
   previewRevision,
@@ -157,7 +159,7 @@ export function RealtimeMonitorPanel({
         <button
           type="button"
           className={activeSource === "original" ? "monitor-source-button active" : "monitor-source-button"}
-          disabled={!originalBuffer}
+          disabled={!originalBuffer || isSwitching}
           onClick={() => onSwitchSource("original")}
         >
           Original Source
@@ -165,7 +167,7 @@ export function RealtimeMonitorPanel({
         <button
           type="button"
           className={activeSource === "preview" ? "monitor-source-button active" : "monitor-source-button"}
-          disabled={!canUsePreview}
+          disabled={!canUsePreview || isSwitching}
           onClick={() => onSwitchSource("preview")}
         >
           Preview Master
@@ -184,7 +186,7 @@ export function RealtimeMonitorPanel({
           <span>{fileName ?? "Aucun fichier audio chargé"}</span>
         </div>
         <strong className={isPlaying ? "live-pill live" : "live-pill"}>
-          {isPlaying ? "En lecture" : "Pause"}
+          {isSwitching ? "Commutation" : isPlaying ? "En lecture" : "Pause"}
         </strong>
       </div>
 
@@ -201,7 +203,7 @@ export function RealtimeMonitorPanel({
             <div className="waveform-label-row">
               <span>Waveform</span>
               <div className="waveform-actions">
-                <button type="button" onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
+                <button type="button" disabled={isSwitching} onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
                   {isPlaying ? "Pause" : "Play"}
                 </button>
                 <button type="button" onClick={(event) => { event.stopPropagation(); onStop(); }}>

@@ -238,7 +238,7 @@ export default function App() {
     <main className="app-shell">
       <header className="hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev05.1 Clickless A/B</p>
+          <p className="version">PAXLAB Browser Engine - dev05.2 Switch Guard</p>
           <h1>PAXLAB Browser Engine</h1>
           <p className="hero-text">
             Moteur navigateur local pour importer un fichier audio IA, analyser le fichier,
@@ -299,6 +299,7 @@ export default function App() {
         currentTime={player.currentTime}
         duration={player.duration}
         isPlaying={player.isPlaying}
+        isSwitching={player.isSwitching}
         canUsePreview={player.canPlayPreview}
         previewStatus={previewStatus}
         previewRevision={previewRevision}
@@ -342,8 +343,8 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev05.1</p>
-          <h2>Control Room, export local et traçabilité Preview</h2>
+          <p className="eyebrow">Statut dev05.2</p>
+          <h2>Control Room, A/B sans pop et export local</h2>
         </div>
 
         <p>

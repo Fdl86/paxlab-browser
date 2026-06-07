@@ -12,6 +12,7 @@ interface UseABAudioPlayerResult {
   currentTime: number;
   duration: number;
   isPlaying: boolean;
+  isSwitching: boolean;
   canPlayOriginal: boolean;
   canPlayPreview: boolean;
   meter: RealtimeMeterState;
@@ -23,9 +24,10 @@ interface UseABAudioPlayerResult {
 }
 
 const SILENCE_DB = -90;
-const SWITCH_FADE_SECONDS = 0.028;
-const STOP_FADE_SECONDS = 0.018;
-const START_FADE_SECONDS = 0.018;
+const SWITCH_FADE_SECONDS = 0.075;
+const SWITCH_LOCK_SECONDS = 0.11;
+const STOP_FADE_SECONDS = 0.028;
+const START_FADE_SECONDS = 0.045;
 
 const initialMeter: RealtimeMeterState = {
   instantPeakDb: SILENCE_DB,
@@ -106,11 +108,12 @@ function scheduleVoiceStop(voice: PlaybackVoice, fadeSeconds: number): void {
   voice.sourceNode.onended = null;
 
   try {
+    const currentGain = Math.max(0.0001, voice.gainNode.gain.value || 0.0001);
     voice.gainNode.gain.cancelScheduledValues(now);
-    voice.gainNode.gain.setValueAtTime(voice.gainNode.gain.value, now);
+    voice.gainNode.gain.setValueAtTime(currentGain, now);
 
     if (safeFade > 0) {
-      voice.gainNode.gain.linearRampToValueAtTime(0.0001, now + safeFade);
+      voice.gainNode.gain.setTargetAtTime(0.0001, now, Math.max(0.003, safeFade / 3));
     } else {
       voice.gainNode.gain.setValueAtTime(0.0001, now);
     }
@@ -152,6 +155,7 @@ export function useABAudioPlayer({
   const [activeSource, setActiveSourceState] = useState<PlaybackSource>("original");
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [meter, setMeter] = useState<RealtimeMeterState>(initialMeter);
 
   const currentVoiceRef = useRef<PlaybackVoice | null>(null);
@@ -171,6 +175,8 @@ export function useABAudioPlayer({
   const integratedSquareSumRef = useRef(0);
   const integratedFrameCountRef = useRef(0);
   const peakHoldDbRef = useRef(SILENCE_DB);
+  const isSwitchingRef = useRef(false);
+  const switchUnlockTimerRef = useRef<number | null>(null);
 
   const activeBuffer = getBufferForSource(activeSource, originalBuffer, previewBuffer);
   const duration = activeBuffer?.duration ?? originalBuffer?.duration ?? 0;
@@ -277,7 +283,7 @@ export function useABAudioPlayer({
       analyser.fftSize = 2048;
       analyser.smoothingTimeConstant = 0.55;
       gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-      gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + START_FADE_SECONDS);
+      gainNode.gain.setTargetAtTime(1, audioContext.currentTime, START_FADE_SECONDS / 3);
 
       sourceNode
         .connect(gainNode)
@@ -395,6 +401,10 @@ export function useABAudioPlayer({
 
   const switchSource = useCallback(
     async (nextSource: PlaybackSource) => {
+      if (isSwitchingRef.current) {
+        return;
+      }
+
       if (nextSource === "preview" && !previewBufferRef.current) {
         return;
       }
@@ -406,6 +416,13 @@ export function useABAudioPlayer({
       const nextBuffer = getBufferForSource(nextSource, originalBufferRef.current, previewBufferRef.current);
       if (!nextBuffer) {
         return;
+      }
+
+      isSwitchingRef.current = true;
+      setIsSwitching(true);
+
+      if (switchUnlockTimerRef.current !== null) {
+        window.clearTimeout(switchUnlockTimerRef.current);
       }
 
       const offset = Math.min(readCurrentOffset(), Math.max(nextBuffer.duration - 0.02, 0));
@@ -430,6 +447,12 @@ export function useABAudioPlayer({
       } else {
         resetMeter();
       }
+
+      switchUnlockTimerRef.current = window.setTimeout(() => {
+        isSwitchingRef.current = false;
+        setIsSwitching(false);
+        switchUnlockTimerRef.current = null;
+      }, Math.ceil(SWITCH_LOCK_SECONDS * 1000));
     },
     [fadeOutExistingVoices, readCurrentOffset, resetIntegratedMeterOnly, resetMeter, startSource, stopEverySource]
   );
@@ -506,6 +529,10 @@ export function useABAudioPlayer({
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
       }
+
+      if (switchUnlockTimerRef.current !== null) {
+        window.clearTimeout(switchUnlockTimerRef.current);
+      }
     };
   }, [readCurrentOffset, updateMeter]);
 
@@ -532,6 +559,7 @@ export function useABAudioPlayer({
     currentTime,
     duration,
     isPlaying,
+    isSwitching,
     canPlayOriginal,
     canPlayPreview,
     meter,
