@@ -584,3 +584,55 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   font-size: 0.72rem;
   line-height: 1.28;
 }
+
+/* DEV 08.4 - waveform clarity */
+.waveform-label-left {
+  display: grid;
+  gap: 3px;
+}
+
+.waveform-label-left > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.waveform-label-left small {
+  color: var(--muted-2);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.waveform-mode-toggle {
+  display: inline-flex;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.waveform-mode-toggle button {
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 9px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.waveform-mode-toggle button.active {
+  color: #16130a;
+  background: linear-gradient(135deg, #f1d67c, #d4af37);
+}
+
+@media (max-width: 760px) {
+  .waveform-label-row,
+  .waveform-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

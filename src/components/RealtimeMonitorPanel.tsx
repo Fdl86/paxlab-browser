@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type MouseEvent } from "react";
+import { useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import { analyzeHeadroomSummary, formatDuration } from "../audio/audioBufferUtils";
 import type { PlaybackSource, PreviewStatus, RealtimeMeterState } from "../audio/types";
 
@@ -23,6 +23,8 @@ interface RealtimeMonitorPanelProps {
   onSwitchSource: (source: PlaybackSource) => void;
 }
 
+type WaveformViewMode = "structure" | "level";
+
 function formatDb(value: number): string {
   if (!Number.isFinite(value) || value <= -89) {
     return "-inf";
@@ -44,47 +46,99 @@ interface WaveformBin {
   max: number;
 }
 
-function buildWaveformBins(buffer: AudioBuffer | null, bins = 420): WaveformBin[] {
+interface WaveformStatsBin {
+  rms: number;
+  peak: number;
+}
+
+function percentile(sortedValues: number[], ratio: number): number {
+  if (!sortedValues.length) {
+    return 0;
+  }
+
+  const index = Math.min(
+    sortedValues.length - 1,
+    Math.max(0, Math.round((sortedValues.length - 1) * ratio))
+  );
+
+  return sortedValues[index] ?? 0;
+}
+
+function buildWaveformStats(buffer: AudioBuffer | null, bins = 420): WaveformStatsBin[] {
   if (!buffer || buffer.length <= 0) {
     return [];
   }
 
   const channelCount = buffer.numberOfChannels;
   const step = Math.max(1, Math.floor(buffer.length / bins));
-  const rawPeaks: number[] = [];
+  const waveformStats: WaveformStatsBin[] = [];
 
   for (let bin = 0; bin < bins; bin += 1) {
     const start = bin * step;
     const end = Math.min(buffer.length, start + step);
     let peak = 0;
+    let sumSquares = 0;
+    let sampleCount = 0;
 
-    for (let index = start; index < end; index += 1) {
-      let channelPeak = 0;
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const data = buffer.getChannelData(channel);
 
-      for (let channel = 0; channel < channelCount; channel += 1) {
-        channelPeak = Math.max(channelPeak, Math.abs(buffer.getChannelData(channel)[index] ?? 0));
+      for (let index = start; index < end; index += 1) {
+        const sample = data[index] ?? 0;
+        const abs = Math.abs(sample);
+        peak = Math.max(peak, abs);
+        sumSquares += sample * sample;
+        sampleCount += 1;
       }
-
-      peak = Math.max(peak, channelPeak);
     }
 
-    rawPeaks.push(Math.min(1, peak));
+    waveformStats.push({
+      rms: sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0,
+      peak: Math.min(1, peak)
+    });
   }
 
-  const sorted = [...rawPeaks].sort((a, b) => a - b);
-  const referencePeak = sorted[Math.max(0, Math.floor(sorted.length * 0.97) - 1)] ?? 1;
-  const displayGain = referencePeak > 0 ? Math.min(1.8, 0.82 / referencePeak) : 1;
+  return waveformStats;
+}
+
+function getReferenceRms(stats: WaveformStatsBin[]): number {
+  const rmsValues = stats
+    .map((item) => item.rms)
+    .filter((value) => Number.isFinite(value) && value > 0.00001)
+    .sort((a, b) => a - b);
+
+  return Math.max(0.0008, percentile(rmsValues, 0.92));
+}
+
+function buildWaveformBins(
+  buffer: AudioBuffer | null,
+  referenceBuffer: AudioBuffer | null,
+  mode: WaveformViewMode,
+  bins = 420
+): WaveformBin[] {
+  const activeStats = buildWaveformStats(buffer, bins);
+
+  if (!activeStats.length) {
+    return [];
+  }
+
+  const referenceStats = mode === "level" ? buildWaveformStats(referenceBuffer ?? buffer, bins) : activeStats;
+  const referenceRms = getReferenceRms(referenceStats.length ? referenceStats : activeStats);
   const waveformBins: WaveformBin[] = [];
 
-  for (let index = 0; index < rawPeaks.length; index += 1) {
-    const previous = rawPeaks[index - 1] ?? rawPeaks[index] ?? 0;
-    const current = rawPeaks[index] ?? 0;
-    const next = rawPeaks[index + 1] ?? current;
-    const smoothed = (previous * 0.22 + current * 0.56 + next * 0.22) * displayGain;
-    const amplitude = Math.min(0.96, Math.max(0.012, smoothed));
+  for (let index = 0; index < activeStats.length; index += 1) {
+    const previous = activeStats[index - 1] ?? activeStats[index] ?? { rms: 0, peak: 0 };
+    const current = activeStats[index] ?? { rms: 0, peak: 0 };
+    const next = activeStats[index + 1] ?? current;
+    const smoothedRms = previous.rms * 0.18 + current.rms * 0.64 + next.rms * 0.18;
+    const smoothedPeak = previous.peak * 0.12 + current.peak * 0.76 + next.peak * 0.12;
 
-    // Affichage enveloppe centré : il évite les faux visuels “collés en haut”
-    // quand le signal traité est plus fort ou légèrement asymétrique.
+    // Dev08.4 : la waveform principale devient une vue de structure basée sur RMS.
+    // Les pics gardent une petite influence, mais ne peuvent plus transformer un master limité en bloc visuel.
+    const rmsBody = Math.pow(Math.min(3.2, smoothedRms / referenceRms), 0.72) * 0.42;
+    const peakAccent = Math.pow(Math.min(3.8, smoothedPeak / Math.max(referenceRms * 2.8, 0.001)), 0.48) * 0.12;
+    const amplitude = Math.min(0.84, Math.max(0.012, rmsBody + peakAccent));
+
     waveformBins.push({
       min: -amplitude,
       max: amplitude
@@ -156,8 +210,12 @@ export function RealtimeMonitorPanel({
   onSeek,
   onSwitchSource
 }: RealtimeMonitorPanelProps) {
+  const [waveformViewMode, setWaveformViewMode] = useState<WaveformViewMode>("structure");
   const activeBuffer = activeSource === "preview" ? previewBuffer ?? originalBuffer : originalBuffer;
-  const waveformBins = useMemo(() => buildWaveformBins(activeBuffer), [activeBuffer]);
+  const waveformBins = useMemo(
+    () => buildWaveformBins(activeBuffer, originalBuffer, waveformViewMode),
+    [activeBuffer, originalBuffer, waveformViewMode]
+  );
   const path = useMemo(() => pathFromWaveformBins(waveformBins), [waveformBins]);
   const headroomSummary = useMemo(() => activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null, [activeBuffer]);
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
@@ -233,8 +291,33 @@ export function RealtimeMonitorPanel({
         <>
           <div className="monitor-waveform" onClick={handleClick} style={{ "--playhead": `${progress}%` } as CSSProperties}>
             <div className="waveform-label-row">
-              <span>Waveform</span>
+              <div className="waveform-label-left">
+                <span>Waveform</span>
+                <small>{waveformViewMode === "structure" ? "Vue structure RMS" : "Vue niveau comparé"}</small>
+              </div>
               <div className="waveform-actions">
+                <div className="waveform-mode-toggle" aria-label="Mode d’affichage waveform">
+                  <button
+                    type="button"
+                    className={waveformViewMode === "structure" ? "active" : ""}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setWaveformViewMode("structure");
+                    }}
+                  >
+                    Structure
+                  </button>
+                  <button
+                    type="button"
+                    className={waveformViewMode === "level" ? "active" : ""}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setWaveformViewMode("level");
+                    }}
+                  >
+                    Niveau
+                  </button>
+                </div>
                 <button type="button" disabled={isSwitching} onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
                   {isPlaying ? "Pause" : "Play"}
                 </button>
@@ -270,19 +353,19 @@ export function RealtimeMonitorPanel({
 
           <div className="realtime-grid">
             <div className="meter-card primary-meter">
-              <span>True Peak approx.</span>
+              <span>Peak lecture</span>
               <strong>{formatDb(meter.peakHoldDb)}</strong>
               <small>dBTP est.</small>
             </div>
             <div className="meter-card primary-meter">
-              <span>Integrated</span>
+              <span>LUFS lecture</span>
               <strong>{formatLufs(meter.integratedLufsEstimate)}</strong>
-              <small>LUFS est.</small>
+              <small>mesure depuis play</small>
             </div>
             <div className="meter-card primary-meter">
-              <span>Short-term</span>
+              <span>Short-term lecture</span>
               <strong>{formatLufs(meter.shortTermLufsEstimate)}</strong>
-              <small>LUFS est.</small>
+              <small>fenêtre env. 3 s</small>
             </div>
             <div className="meter-card output-meter-card">
               <span>Output level</span>
@@ -320,7 +403,7 @@ export function RealtimeMonitorPanel({
       )}
 
       <p className="monitor-note">
-Indicateurs estimés. Le headroom affiché est désormais un résumé stable du fichier actif ; l’output level reste instantané pendant l’écoute.
+        Lecture courante : les meters de gauche bougent selon le passage écouté. Résumé global : le LUFS rendu et le headroom final sont affichés dans Rendu local / Auto Engine.
       </p>
     </section>
   );

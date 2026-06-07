@@ -110,7 +110,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
     <section className="panel dashboard-panel auto-engine-panel calibration-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Auto Engine V3.3</p>
+          <p className="eyebrow">Auto Engine V3.4</p>
           <h2>Dynamic Targeting</h2>
         </div>
         <span className="status-pill">{previewResult ? calibration?.label ?? "Preview analysée" : "Plan auto"}</span>
@@ -195,7 +195,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
           )}
 
           <p className="message message-info">
-            Dynamic Targeting ne force pas tous les morceaux vers le même chiffre. Le headroom final vient du peak max du rendu ; le headroom actif moyen ignore les silences pour donner une lecture plus utile.
+            Dynamic Targeting ne force pas tous les morceaux vers le même chiffre. Ce panneau affiche le résumé global du rendu, tandis que le bloc de lecture affiche seulement les mesures courantes pendant l’écoute.
           </p>
         </>
       )}

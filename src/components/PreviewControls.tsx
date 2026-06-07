@@ -129,7 +129,7 @@ export function PreviewControls({
       <div className="panel-heading compact-heading">
         <div>
           <p className="eyebrow">Rendu local</p>
-          <h2>Auto Engine V3.2</h2>
+          <h2>Auto Engine V3.4</h2>
         </div>
         <div className="mode-toggle" aria-label="Mode de réglage">
           <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>

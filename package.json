@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.8.3-dev08-3-target-reality",
+  "version": "0.8.4-dev08-4-meter-clarity",
   "type": "module",
   "scripts": {
     "dev": "vite",

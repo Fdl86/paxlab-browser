@@ -277,10 +277,10 @@ export default function App() {
     <main className="app-shell control-room-shell">
       <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev08.3 Target Reality</p>
+          <p className="version">PAXLAB Browser Engine - dev08.4 Meter Clarity</p>
           <h1>PAXLAB Instant Control Room</h1>
           <p className="hero-text">
-            Auto Engine V3.3 : objectif indicatif, résultat obtenu et écart cible affichés clairement, sans promettre une cible impossible.
+            Auto Engine V3.4 : meters de lecture clarifiés, waveform structurelle et résultat global séparé du monitoring temps réel.
           </p>
         </div>
 
@@ -391,11 +391,11 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev08.3</p>
-          <h2>Target Reality : objectif, résultat et sécurité enfin séparés</h2>
+          <p className="eyebrow">Statut dev08.4</p>
+          <h2>Meter Clarity : lecture courante et résultat global séparés</h2>
         </div>
         <p>
-          Cette version sépare clairement l’objectif automatique, le résultat réellement obtenu et les limites de sécurité. Un rendu peut être bon même si la cible loudness haute n’est pas atteinte.
+          Cette version clarifie les meters pendant l’écoute et stabilise la waveform pour éviter les faux effets de zoom. Le résultat global reste affiché dans les panneaux Rendu local et Auto Engine.
         </p>
         <p className="honest-note">
           Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.
