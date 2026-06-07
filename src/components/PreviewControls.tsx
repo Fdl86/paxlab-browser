@@ -1,6 +1,7 @@
 import type { ChangeEvent } from "react";
-import { PREVIEW_PRESETS, getPresetById, getSettingsForPreset } from "../audio/previewPresets";
-import type { PreviewSettings, PreviewStatus } from "../audio/types";
+import { useState } from "react";
+import { PREVIEW_PRESETS, getPresetById, getSettingsForPreset, describeSourceRepair } from "../audio/previewPresets";
+import type { PreviewSettings, PreviewStatus, SourceRepairLevel } from "../audio/types";
 
 interface PreviewControlsProps {
   settings: PreviewSettings;
@@ -15,6 +16,20 @@ interface PreviewControlsProps {
   onRenderPreview: () => void;
 }
 
+type WorkMode = "simple" | "expert";
+
+function repairHelp(level: SourceRepairLevel): string {
+  if (level === "strong") {
+    return "Fort : utile sur exports Suno agressifs, brillants ou proches du clipping.";
+  }
+
+  if (level === "light") {
+    return "Léger : conserve davantage l’énergie quand la source est déjà propre.";
+  }
+
+  return "Normal : compromis recommandé pour la majorité des morceaux IA.";
+}
+
 export function PreviewControls({
   settings,
   previewStatus,
@@ -27,6 +42,7 @@ export function PreviewControls({
   onSettingsChange,
   onRenderPreview
 }: PreviewControlsProps) {
+  const [mode, setMode] = useState<WorkMode>("simple");
   const preset = getPresetById(settings.presetId);
   const isRendering = previewStatus === "rendering";
 
@@ -49,24 +65,31 @@ export function PreviewControls({
   }
 
   return (
-    <section className="panel controls-panel">
-      <div className="panel-heading">
-        <p className="eyebrow">Preview Master locale</p>
-        <h2>Chaîne automatique V0.8</h2>
+    <section className="panel controls-panel pro-controls-panel">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Rendu local</p>
+          <h2>Preview Engine V1</h2>
+        </div>
+        <div className="mode-toggle" aria-label="Mode de réglage">
+          <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
+          <button type="button" className={mode === "expert" ? "active" : ""} onClick={() => setMode("expert")}>Expert</button>
+        </div>
       </div>
 
-      <div className="chain-badges">
-        <span>Cible auto : {settings.targetLufsEstimate.toFixed(1)} LUFS est.</span>
-        <span>Anti-fizz</span>
-        <span>De-click</span>
-        <span>EQ M/S</span>
-        <span>Limiteur sécurité</span>
-      </div>
-
-      <div className="auto-target-card">
-        <span>Cible calculée depuis l’analyse</span>
-        <strong>{settings.targetLufsEstimate.toFixed(1)} LUFS estimé</strong>
-        <p>Conversion interne : {settings.targetRmsDb.toFixed(1)} dB RMS simple. La valeur s’adapte au niveau, aux aigus et à la dynamique du fichier source.</p>
+      <div className="control-room-summary">
+        <div>
+          <span>Cible auto</span>
+          <strong>{settings.targetLufsEstimate.toFixed(1)} LUFS est.</strong>
+        </div>
+        <div>
+          <span>Réparation</span>
+          <strong>{describeSourceRepair(settings.sourceRepair).replace("Réparation source ", "")}</strong>
+        </div>
+        <div>
+          <span>Intensité</span>
+          <strong>{settings.intensity} %</strong>
+        </div>
       </div>
 
       <div className="control-group">
@@ -81,89 +104,91 @@ export function PreviewControls({
         <p className="control-help">{preset.description}</p>
       </div>
 
-      <div className="control-group">
-        <label htmlFor="highTreatment">Brillance / anti-fizz</label>
-        <select
-          id="highTreatment"
-          value={settings.highTreatment}
-          onChange={(event) =>
-            updateSettings({
-              highTreatment: event.target.value as PreviewSettings["highTreatment"]
-            })
-          }
-        >
-          <option value="verySoft">Très douce</option>
-          <option value="soft">Plus douce</option>
-          <option value="neutral">Naturelle</option>
-          <option value="open">Plus ouverte</option>
-        </select>
-        <p className="control-help">
-          Changer cette valeur ne relance pas le traitement tant que tu ne valides pas.
-        </p>
+      <div className="segmented-control-block">
+        <span>Réparation source</span>
+        <div className="segmented-control">
+          {(["light", "normal", "strong"] as SourceRepairLevel[]).map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={settings.sourceRepair === level ? "active" : ""}
+              onClick={() => updateSettings({ sourceRepair: level })}
+            >
+              {level === "light" ? "Léger" : level === "strong" ? "Fort" : "Normal"}
+            </button>
+          ))}
+        </div>
+        <p className="control-help">{repairHelp(settings.sourceRepair)}</p>
       </div>
 
-      <div className="slider-row">
+      <div className="slider-row primary-slider-row">
         <div>
-          <label htmlFor="intensity">Intensité du traitement</label>
+          <label htmlFor="intensity">Intensité globale</label>
           <span>{settings.intensity} %</span>
         </div>
         <input
           id="intensity"
           type="range"
-          min="0"
-          max="100"
+          min="24"
+          max="90"
           step="1"
           value={settings.intensity}
-          onChange={(event) =>
-            updateSettings({
-              intensity: Number(event.target.value)
-            })
-          }
+          onChange={(event) => updateSettings({ intensity: Number(event.target.value) })}
         />
       </div>
 
-      <div className="slider-row">
-        <div>
-          <label htmlFor="stereoWidth">Largeur stéréo</label>
-          <span>{settings.stereoWidth} %</span>
-        </div>
-        <input
-          id="stereoWidth"
-          type="range"
-          min="85"
-          max="112"
-          step="1"
-          value={settings.stereoWidth}
-          onChange={(event) =>
-            updateSettings({
-              stereoWidth: Number(event.target.value)
-            })
-          }
-        />
-      </div>
+      {mode === "expert" && (
+        <div className="expert-controls">
+          <div className="control-group">
+            <label htmlFor="highTreatment">Brillance / anti-fizz</label>
+            <select
+              id="highTreatment"
+              value={settings.highTreatment}
+              onChange={(event) => updateSettings({ highTreatment: event.target.value as PreviewSettings["highTreatment"] })}
+            >
+              <option value="verySoft">Très douce</option>
+              <option value="soft">Plus douce</option>
+              <option value="neutral">Naturelle</option>
+              <option value="open">Plus ouverte</option>
+            </select>
+          </div>
 
-      <div className="slider-row">
-        <div>
-          <label htmlFor="density">Densité harmonique</label>
-          <span>{settings.density} %</span>
+          <div className="slider-row">
+            <div>
+              <label htmlFor="stereoWidth">Largeur stéréo</label>
+              <span>{settings.stereoWidth} %</span>
+            </div>
+            <input
+              id="stereoWidth"
+              type="range"
+              min="85"
+              max="112"
+              step="1"
+              value={settings.stereoWidth}
+              onChange={(event) => updateSettings({ stereoWidth: Number(event.target.value) })}
+            />
+          </div>
+
+          <div className="slider-row">
+            <div>
+              <label htmlFor="density">Densité harmonique</label>
+              <span>{settings.density} %</span>
+            </div>
+            <input
+              id="density"
+              type="range"
+              min="0"
+              max="80"
+              step="1"
+              value={settings.density}
+              onChange={(event) => updateSettings({ density: Number(event.target.value) })}
+            />
+          </div>
         </div>
-        <input
-          id="density"
-          type="range"
-          min="0"
-          max="80"
-          step="1"
-          value={settings.density}
-          onChange={(event) =>
-            updateSettings({
-              density: Number(event.target.value)
-            })
-          }
-        />
-      </div>
+      )}
 
       <button
-        className="primary-button"
+        className="primary-button big-render-button"
         type="button"
         disabled={!hasAudio || isRendering}
         onClick={onRenderPreview}
@@ -171,39 +196,19 @@ export function PreviewControls({
         {isRendering
           ? "Génération en cours..."
           : hasPreview
-            ? "Appliquer les réglages et régénérer"
+            ? "Appliquer et régénérer"
             : "Générer la Preview Master"}
       </button>
 
-      {!hasAudio && (
-        <p className="message message-info">
-          Importe d’abord un fichier audio pour activer la génération locale.
-        </p>
-      )}
-
-      {previewStatus === "rendering" && (
-        <p className="message message-info">
-          Lecture arrêtée. Génération d’une nouvelle Preview Master en cours.
-        </p>
-      )}
-
+      {!hasAudio && <p className="message message-info">Importe un fichier audio pour activer la génération locale.</p>}
+      {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouvelle Preview en cours.</p>}
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
-        <p className="message message-warning">
-          Réglages modifiés. La Preview Master #{previewRevision} reste l’ancienne version.
-          Clique sur “Appliquer les réglages et régénérer” pour créer une nouvelle Preview.
-        </p>
+        <p className="message message-warning">Réglages modifiés. La Preview Master #{previewRevision} reste l’ancienne version tant que tu ne régénères pas.</p>
       )}
-
       {previewStatus === "ready" && !hasPendingChanges && (
-        <p className="message message-success">
-          Preview Master #{previewRevision}{previewRenderedAt ? ` · version générée à ${previewRenderedAt}` : ""}.
-          Elle est sélectionnée pour la prochaine lecture et peut être exportée localement.
-        </p>
+        <p className="message message-success">Preview Master #{previewRevision}{previewRenderedAt ? ` · ${previewRenderedAt}` : ""} prête pour A/B et export.</p>
       )}
-
-      {previewStatus === "error" && errorMessage && (
-        <p className="message message-error">{errorMessage}</p>
-      )}
+      {previewStatus === "error" && errorMessage && <p className="message message-error">{errorMessage}</p>}
     </section>
   );
 }

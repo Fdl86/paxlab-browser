@@ -14,7 +14,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       targetLufsEstimate: -13,
       maxPeakDb: -1.2,
       stereoWidth: 100,
-      density: 44
+      density: 44,
+      sourceRepair: "normal"
     }
   },
   {
@@ -30,7 +31,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       targetLufsEstimate: -13.5,
       maxPeakDb: -1.2,
       stereoWidth: 98,
-      density: 36
+      density: 36,
+      sourceRepair: "strong"
     }
   },
   {
@@ -46,7 +48,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       targetLufsEstimate: -13,
       maxPeakDb: -1.1,
       stereoWidth: 100,
-      density: 30
+      density: 30,
+      sourceRepair: "light"
     }
   },
   {
@@ -62,7 +65,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       targetLufsEstimate: -13,
       maxPeakDb: -1,
       stereoWidth: 102,
-      density: 52
+      density: 52,
+      sourceRepair: "normal"
     }
   },
   {
@@ -78,7 +82,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       targetLufsEstimate: -13,
       maxPeakDb: -1.1,
       stereoWidth: 104,
-      density: 24
+      density: 24,
+      sourceRepair: "light"
     }
   }
 ];
@@ -111,4 +116,16 @@ export function describeHighTreatment(id: HighTreatmentId): string {
   }
 
   return "Aigus naturels";
+}
+
+export function describeSourceRepair(level: import("./types").SourceRepairLevel): string {
+  if (level === "strong") {
+    return "Réparation source forte";
+  }
+
+  if (level === "light") {
+    return "Réparation source légère";
+  }
+
+  return "Réparation source normale";
 }

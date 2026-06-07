@@ -1,6 +1,6 @@
 import { clamp } from "./audioBufferUtils";
 import { getSettingsForPreset } from "./previewPresets";
-import type { AdvancedAudioMetrics, PreviewPresetId, PreviewSettings } from "./types";
+import type { AdvancedAudioMetrics, PreviewPresetId, PreviewSettings, SourceRepairLevel } from "./types";
 
 function spectralCorrectionFor(metrics: AdvancedAudioMetrics): number {
   return clamp((metrics.highTotalRatio - 0.28) * 2.2, -0.9, 1.1);
@@ -38,6 +38,23 @@ export function inferTargetLufs(metrics: AdvancedAudioMetrics): number {
 export function targetLufsToRmsTarget(metrics: AdvancedAudioMetrics, targetLufs: number): number {
   const correction = spectralCorrectionFor(metrics);
   return clamp(targetLufs + 0.7 - correction, -16, -12);
+}
+
+
+function inferSourceRepair(metrics: AdvancedAudioMetrics): SourceRepairLevel {
+  const harshOrFizz = metrics.fizzRatio > 0.075 || metrics.highTotalRatio > 0.4;
+  const clipped = metrics.clippingSamples > 25 || metrics.approxTruePeakDb > -0.4;
+  const compact = metrics.crestFactorDb < 7.3 || metrics.loudnessRangeEstimate < 4.5;
+
+  if ((harshOrFizz && compact) || clipped) {
+    return "strong";
+  }
+
+  if (harshOrFizz || metrics.noiseFloorEstimateDb > -50) {
+    return "normal";
+  }
+
+  return "light";
 }
 
 export function buildSettingsFromAnalysis(
@@ -83,6 +100,7 @@ export function buildSettingsFromAnalysis(
     targetRmsDb: Number(targetRmsDb.toFixed(1)),
     targetLufsEstimate: Number(targetLufsEstimate.toFixed(1)),
     stereoWidth: Math.round(stereoWidth),
-    density: Math.round(density)
+    density: Math.round(density),
+    sourceRepair: inferSourceRepair(metrics)
   };
 }

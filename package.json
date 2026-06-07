@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.5.2-dev05-switch-guard",
+  "version": "0.6.0-dev06-control-room",
   "type": "module",
   "scripts": {
     "dev": "vite",

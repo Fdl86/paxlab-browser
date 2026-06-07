@@ -33,8 +33,33 @@ interface CleanupResult {
   declickActive: boolean;
 }
 
+function repairMultiplier(settings: PreviewSettings): number {
+  if (settings.sourceRepair === "strong") {
+    return 1.25;
+  }
+
+  if (settings.sourceRepair === "light") {
+    return 0.72;
+  }
+
+  return 1;
+}
+
+function repairLabel(settings: PreviewSettings): string {
+  if (settings.sourceRepair === "strong") {
+    return "Forte";
+  }
+
+  if (settings.sourceRepair === "light") {
+    return "Légère";
+  }
+
+  return "Normale";
+}
+
 function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
   const amount = clamp(settings.intensity / 100, 0, 1);
+  const repair = repairMultiplier(settings);
 
   const highTreatmentGain =
     settings.highTreatment === "verySoft"
@@ -60,15 +85,15 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
 
   return {
     highShelfGain: highTreatmentGain * amount * presetWeight,
-    harshDipGain: -2.3 * amount * presetWeight,
+    harshDipGain: -2.3 * amount * presetWeight * repair,
     fizzDipGain:
       settings.highTreatment === "verySoft"
-        ? -3.2 * amount
+        ? -3.2 * amount * repair
         : settings.highTreatment === "soft"
-          ? -2.0 * amount
+          ? -2.0 * amount * repair
           : settings.highTreatment === "open"
-            ? -0.4 * amount
-            : -1.0 * amount,
+            ? -0.4 * amount * repair
+            : -1.0 * amount * repair,
     airGain: settings.highTreatment === "open" ? 0.9 * amount : -0.35 * amount,
     presenceGain: settings.highTreatment === "open" ? 0.65 * amount : -0.45 * amount,
     lowShelfGain: settings.presetId === "open" ? -0.35 * amount : 0.45 * amount + powerBoost,
@@ -77,13 +102,13 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
     compressorRatio: 1.45 + 1.05 * amount + settings.density * 0.012,
     makeupGain: 1 + 0.07 * amount + settings.density * 0.0015,
     dehissReductionDb:
-      settings.highTreatment === "verySoft"
+      (settings.highTreatment === "verySoft"
         ? 2.2
         : settings.highTreatment === "soft"
           ? 1.35
           : settings.highTreatment === "open"
             ? 0.25
-            : 0.75
+            : 0.75) * repair
   };
 }
 
@@ -95,7 +120,10 @@ function createEmptyLike(source: AudioBuffer): AudioBuffer {
   });
 }
 
-function cleanupInputBuffer(inputBuffer: AudioBuffer): CleanupResult {
+function cleanupInputBuffer(inputBuffer: AudioBuffer, settings: PreviewSettings): CleanupResult {
+  const repair = repairMultiplier(settings);
+  const clipThreshold = settings.sourceRepair === "strong" ? 0.975 : settings.sourceRepair === "light" ? 0.992 : 0.985;
+  const clickThreshold = settings.sourceRepair === "strong" ? 0.34 : settings.sourceRepair === "light" ? 0.52 : 0.42;
   const output = createEmptyLike(inputBuffer);
   let clippedSamplesDetected = 0;
   let clicksRepaired = 0;
@@ -110,18 +138,19 @@ function cleanupInputBuffer(inputBuffer: AudioBuffer): CleanupResult {
       const next = data[index + 1];
       const absValue = Math.abs(value);
 
-      if (absValue >= 0.985) {
+      if (absValue >= clipThreshold) {
         clippedSamplesDetected += 1;
         const sign = Math.sign(value) || 1;
-        const overshoot = clamp((absValue - 0.985) / 0.015, 0, 1);
-        data[index] = sign * (0.985 + 0.01 * Math.tanh(overshoot));
+        const overshoot = clamp((absValue - clipThreshold) / Math.max(0.006, 1 - clipThreshold), 0, 1);
+        const softCeiling = clipThreshold + 0.006 / repair;
+        data[index] = sign * (softCeiling + 0.004 * Math.tanh(overshoot));
       }
 
       const neighborAverage = (previous + next) * 0.5;
       const localJump = Math.abs(value - neighborAverage);
       const neighborDelta = Math.abs(previous - next);
 
-      if (localJump > 0.42 && localJump > neighborDelta * 3.2) {
+      if (localJump > clickThreshold && localJump > neighborDelta * (settings.sourceRepair === "strong" ? 2.6 : 3.2)) {
         data[index] = neighborAverage;
         clicksRepaired += 1;
       }
@@ -244,7 +273,7 @@ export async function renderPreviewMaster(
   const profile = getProcessingProfile(settings);
   const preset = getPresetById(settings.presetId);
 
-  const cleanup = cleanupInputBuffer(inputBuffer);
+  const cleanup = cleanupInputBuffer(inputBuffer, settings);
 
   const offlineContext = new OfflineAudioContext(
     cleanup.buffer.numberOfChannels,
@@ -342,7 +371,7 @@ export async function renderPreviewMaster(
   const antiFizzReductionDb =
     Math.abs(profile.highShelfGain * 0.58) + Math.abs(profile.fizzDipGain) + profile.dehissReductionDb * 0.35;
 
-  const appliedMoves: string[] = [];
+  const appliedMoves: string[] = [`réparation source ${repairLabel(settings).toLowerCase()}`];
   if (cleanup.declipActive) {
     appliedMoves.push("de-clipper prudent");
   }
@@ -392,6 +421,7 @@ export async function renderPreviewMaster(
       dehissReductionDb: dehissActive ? profile.dehissReductionDb : 0
     },
     tone: {
+      sourceRepairLabel: repairLabel(settings),
       antiFizzActive: antiFizzReductionDb > 0.8,
       antiFizzReductionDb,
       subControlActive: profile.subControlFrequency > 30,

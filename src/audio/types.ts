@@ -10,6 +10,8 @@ export type PreviewPresetId = "auto" | "smooth" | "balanced" | "open" | "power";
 
 export type HighTreatmentId = "soft" | "verySoft" | "neutral" | "open";
 
+export type SourceRepairLevel = "light" | "normal" | "strong";
+
 export type ListeningZoneFamily =
   | "Présence 2-5 kHz"
   | "Brillance 5-9 kHz"
@@ -107,6 +109,7 @@ export interface PreviewSettings {
   maxPeakDb: number;
   stereoWidth: number;
   density: number;
+  sourceRepair: SourceRepairLevel;
 }
 
 export interface PreviewPreset {
@@ -130,6 +133,7 @@ export interface ProcessingReport {
     dehissReductionDb: number;
   };
   tone: {
+    sourceRepairLabel: string;
     antiFizzActive: boolean;
     antiFizzReductionDb: number;
     subControlActive: boolean;

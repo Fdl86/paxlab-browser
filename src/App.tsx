@@ -14,13 +14,15 @@ import type {
   PreviewStatus,
   SourceAnalysisResult
 } from "./audio/types";
-import { MasterDashboard } from "./components/MasterDashboard";
 import { ExportPanel } from "./components/ExportPanel";
+import { MasterDashboard } from "./components/MasterDashboard";
 import { MetricsPanel } from "./components/MetricsPanel";
-import { RealtimeMonitorPanel } from "./components/RealtimeMonitorPanel";
 import { PreviewControls } from "./components/PreviewControls";
+import { PreviewHistoryPanel, type PreviewHistoryItem } from "./components/PreviewHistoryPanel";
 import { ProcessingReportPanel } from "./components/ProcessingReportPanel";
+import { RealtimeMonitorPanel } from "./components/RealtimeMonitorPanel";
 import { SessionStatusPanel } from "./components/SessionStatusPanel";
+import { SmartAdvisorPanel } from "./components/SmartAdvisorPanel";
 import { UploadPanel } from "./components/UploadPanel";
 
 function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings): boolean {
@@ -36,8 +38,17 @@ function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings):
     left.targetLufsEstimate === right.targetLufsEstimate &&
     left.maxPeakDb === right.maxPeakDb &&
     left.stereoWidth === right.stereoWidth &&
-    left.density === right.density
+    left.density === right.density &&
+    left.sourceRepair === right.sourceRepair
   );
+}
+
+function formatRevisionLabel(revision: number, renderedAt: string | null): string {
+  if (revision <= 0) {
+    return "Aucune Preview";
+  }
+
+  return `Preview Master #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
 }
 
 export default function App() {
@@ -53,13 +64,14 @@ export default function App() {
   const [previewSettings, setPreviewSettings] = useState<PreviewSettings>({
     ...DEFAULT_PREVIEW_SETTINGS
   });
-  const [appliedPreviewSettings, setAppliedPreviewSettings] =
-    useState<PreviewSettings | null>(null);
+  const [appliedPreviewSettings, setAppliedPreviewSettings] = useState<PreviewSettings | null>(null);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("idle");
   const [previewResult, setPreviewResult] = useState<PreviewRenderResult | null>(null);
   const [previewErrorMessage, setPreviewErrorMessage] = useState<string | null>(null);
   const [previewRevision, setPreviewRevision] = useState(0);
+  const [previewCounter, setPreviewCounter] = useState(0);
   const [previewRenderedAt, setPreviewRenderedAt] = useState<string | null>(null);
+  const [previewHistory, setPreviewHistory] = useState<PreviewHistoryItem[]>([]);
   const [shouldSelectPreviewAfterRender, setShouldSelectPreviewAfterRender] = useState(false);
 
   const player = useABAudioPlayer({
@@ -85,7 +97,9 @@ export default function App() {
       setPreviewErrorMessage(null);
       setAppliedPreviewSettings(null);
       setPreviewRevision(0);
+      setPreviewCounter(0);
       setPreviewRenderedAt(null);
+      setPreviewHistory([]);
       setShouldSelectPreviewAfterRender(false);
       return;
     }
@@ -104,7 +118,9 @@ export default function App() {
       setPreviewErrorMessage(null);
       setAppliedPreviewSettings(null);
       setPreviewRevision(0);
+      setPreviewCounter(0);
       setPreviewRenderedAt(null);
+      setPreviewHistory([]);
       setShouldSelectPreviewAfterRender(false);
 
       try {
@@ -121,11 +137,7 @@ export default function App() {
           return;
         }
 
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Erreur inconnue pendant le décodage audio.";
-
+        const message = error instanceof Error ? error.message : "Erreur inconnue pendant le décodage audio.";
         setDecodeErrorMessage(message);
         setDecodeStatus("error");
       }
@@ -168,10 +180,7 @@ export default function App() {
           return;
         }
 
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Erreur inconnue pendant l’analyse locale.";
+        const message = error instanceof Error ? error.message : "Erreur inconnue pendant l’analyse locale.";
         setAnalysisErrorMessage(message);
         setAnalysisStatus("error");
       }
@@ -184,15 +193,18 @@ export default function App() {
     };
   }, [decodedAudio]);
 
-  async function handleRenderPreview() {
+  async function handleRenderPreview(settingsOverride?: PreviewSettings) {
     if (!decodedAudio?.audioBuffer || previewStatus === "rendering") {
       return;
     }
 
+    const settingsToRender = settingsOverride ? { ...settingsOverride } : { ...previewSettings };
+
     player.stop();
 
-    const nextRevision = previewRevision + 1;
+    const nextRevision = previewCounter + 1;
 
+    setPreviewSettings(settingsToRender);
     setPreviewStatus("rendering");
     setPreviewErrorMessage(null);
     setPreviewResult(null);
@@ -201,28 +213,53 @@ export default function App() {
     setShouldSelectPreviewAfterRender(true);
 
     try {
-      const result = await renderPreviewMaster(decodedAudio.audioBuffer, previewSettings);
+      const result = await renderPreviewMaster(decodedAudio.audioBuffer, settingsToRender);
+      const renderedAt = new Date().toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+      const historyItem: PreviewHistoryItem = {
+        id: nextRevision,
+        renderedAt,
+        result,
+        settings: { ...settingsToRender }
+      };
+
       setPreviewResult(result);
-      setAppliedPreviewSettings({ ...previewSettings });
+      setAppliedPreviewSettings({ ...settingsToRender });
       setPreviewRevision(nextRevision);
-      setPreviewRenderedAt(
-        new Date().toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit"
-        })
-      );
+      setPreviewCounter(nextRevision);
+      setPreviewRenderedAt(renderedAt);
+      setPreviewHistory((items) => [historyItem, ...items].slice(0, 6));
       setPreviewStatus("ready");
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Erreur inconnue pendant la génération de la Preview Master.";
-
+      const message = error instanceof Error ? error.message : "Erreur inconnue pendant la génération de la Preview Master.";
       setPreviewErrorMessage(message);
       setPreviewStatus("error");
       setShouldSelectPreviewAfterRender(false);
     }
+  }
+
+  function handleSelectHistory(item: PreviewHistoryItem) {
+    player.stop();
+    setPreviewResult(item.result);
+    setPreviewSettings({ ...item.settings });
+    setAppliedPreviewSettings({ ...item.settings });
+    setPreviewRevision(item.id);
+    setPreviewRenderedAt(item.renderedAt);
+    setPreviewStatus("ready");
+    setPreviewErrorMessage(null);
+    setShouldSelectPreviewAfterRender(true);
+  }
+
+  function handleApplyRecommended(settings: PreviewSettings) {
+    player.stop();
+    setPreviewSettings({ ...settings });
+  }
+
+  function handleApplyRecommendedAndRender(settings: PreviewSettings) {
+    void handleRenderPreview(settings);
   }
 
   useEffect(() => {
@@ -235,34 +272,29 @@ export default function App() {
   }, [player, previewResult, previewStatus, shouldSelectPreviewAfterRender]);
 
   return (
-    <main className="app-shell">
-      <header className="hero">
+    <main className="app-shell control-room-shell">
+      <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev05.2 Switch Guard</p>
-          <h1>PAXLAB Browser Engine</h1>
+          <p className="version">PAXLAB Browser Engine - dev06 Control Room</p>
+          <h1>PAXLAB Control Room</h1>
           <p className="hero-text">
-            Moteur navigateur local pour importer un fichier audio IA, analyser le fichier,
-            générer une Preview Master en mémoire, comparer Original / Preview Master en A/B, puis exporter localement la version validée.
+            Interface recentrée sur l’écoute : import local, Smart Repair, Preview Master traçable, A/B temps réel et export WAV validé à l’oreille.
           </p>
         </div>
 
-        <div className="privacy-card">
-          <span>Confidentialité</span>
-          <strong>Traitement local</strong>
+        <div className="privacy-card studio-status-card">
+          <span>Session active</span>
+          <strong>{formatRevisionLabel(previewRevision, previewRenderedAt)}</strong>
           <p>
-            Le fichier est lu, analysé et traité dans ton navigateur. Aucun upload serveur,
-            aucune API externe, aucune base de données.
+            {hasPendingChanges
+              ? "Réglages modifiés : régénère pour travailler sur la bonne version."
+              : "Traitement local, non destructif, aucune API externe."}
           </p>
         </div>
       </header>
 
-      <div className="layout two-columns compact-top-layout">
-        <UploadPanel
-          selectedFile={selectedFile}
-          isDecoding={decodeStatus === "loading"}
-          onFileSelected={setSelectedFile}
-        />
-
+      <div className="studio-command-bar">
+        <UploadPanel selectedFile={selectedFile} isDecoding={decodeStatus === "loading"} onFileSelected={setSelectedFile} />
         <SessionStatusPanel
           decodedAudio={decodedAudio}
           sourceAnalysis={sourceAnalysis}
@@ -275,55 +307,67 @@ export default function App() {
         />
       </div>
 
-      {decodeStatus === "error" && decodeErrorMessage && (
-        <p className="message message-error standalone-message">{decodeErrorMessage}</p>
-      )}
+      {decodeStatus === "error" && decodeErrorMessage && <p className="message message-error standalone-message">{decodeErrorMessage}</p>}
+      {analysisStatus === "running" && <p className="message message-info standalone-message">Analyse locale en cours : niveau, spectre, stéréo et cible automatique.</p>}
+      {analysisStatus === "error" && analysisErrorMessage && <p className="message message-error standalone-message">{analysisErrorMessage}</p>}
 
-      {analysisStatus === "running" && (
-        <p className="message message-info standalone-message">
-          Analyse locale en cours : niveau, spectre, stéréo et cible automatique.
-        </p>
-      )}
+      <section className="studio-main-grid">
+        <div className="studio-monitor-column">
+          <RealtimeMonitorPanel
+            fileName={selectedFile?.name ?? null}
+            originalBuffer={decodedAudio?.audioBuffer ?? null}
+            previewBuffer={previewResult?.buffer ?? null}
+            activeSource={player.activeSource}
+            currentTime={player.currentTime}
+            duration={player.duration}
+            isPlaying={player.isPlaying}
+            isSwitching={player.isSwitching}
+            canUsePreview={player.canPlayPreview}
+            previewStatus={previewStatus}
+            previewRevision={previewRevision}
+            previewRenderedAt={previewRenderedAt}
+            hasPendingChanges={hasPendingChanges}
+            meter={player.meter}
+            onPlayPause={() => void player.playPause()}
+            onStop={player.stop}
+            onSeek={player.seek}
+            onSwitchSource={(source) => void player.switchSource(source)}
+          />
 
-      {analysisStatus === "error" && analysisErrorMessage && (
-        <p className="message message-error standalone-message">{analysisErrorMessage}</p>
-      )}
+          <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} />
+        </div>
 
-      <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} />
+        <div className="studio-side-column">
+          <SmartAdvisorPanel
+            sourceAnalysis={sourceAnalysis}
+            previewResult={previewResult}
+            settings={previewSettings}
+            isRendering={previewStatus === "rendering"}
+            onApplySettings={handleApplyRecommended}
+            onApplyAndRender={handleApplyRecommendedAndRender}
+          />
 
-      <RealtimeMonitorPanel
-        fileName={selectedFile?.name ?? null}
-        originalBuffer={decodedAudio?.audioBuffer ?? null}
-        previewBuffer={previewResult?.buffer ?? null}
-        activeSource={player.activeSource}
-        currentTime={player.currentTime}
-        duration={player.duration}
-        isPlaying={player.isPlaying}
-        isSwitching={player.isSwitching}
-        canUsePreview={player.canPlayPreview}
-        previewStatus={previewStatus}
-        previewRevision={previewRevision}
-        previewRenderedAt={previewRenderedAt}
-        hasPendingChanges={hasPendingChanges}
-        meter={player.meter}
-        onPlayPause={() => void player.playPause()}
-        onStop={player.stop}
-        onSeek={player.seek}
-        onSwitchSource={(source) => void player.switchSource(source)}
-      />
+          <PreviewControls
+            settings={previewSettings}
+            previewStatus={previewStatus}
+            hasAudio={Boolean(decodedAudio)}
+            hasPreview={Boolean(previewResult)}
+            hasPendingChanges={hasPendingChanges}
+            previewRevision={previewRevision}
+            previewRenderedAt={previewRenderedAt}
+            errorMessage={previewErrorMessage}
+            onSettingsChange={setPreviewSettings}
+            onRenderPreview={() => void handleRenderPreview()}
+          />
+        </div>
+      </section>
 
-      <div className="layout three-columns control-room-layout">
-        <PreviewControls
-          settings={previewSettings}
-          previewStatus={previewStatus}
-          hasAudio={Boolean(decodedAudio)}
-          hasPreview={Boolean(previewResult)}
-          hasPendingChanges={hasPendingChanges}
-          previewRevision={previewRevision}
-          previewRenderedAt={previewRenderedAt}
-          errorMessage={previewErrorMessage}
-          onSettingsChange={setPreviewSettings}
-          onRenderPreview={() => void handleRenderPreview()}
+      <section className="studio-lower-grid">
+        <PreviewHistoryPanel
+          items={previewHistory}
+          activeRevision={previewRevision}
+          isRendering={previewStatus === "rendering"}
+          onSelect={handleSelectHistory}
         />
 
         <ProcessingReportPanel result={previewResult} />
@@ -337,22 +381,20 @@ export default function App() {
           isRendering={previewStatus === "rendering"}
           onBeforeExport={player.stop}
         />
-      </div>
+      </section>
 
       <MetricsPanel result={previewResult} sourceAnalysis={sourceAnalysis} />
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev05.2</p>
-          <h2>Control Room, A/B sans pop et export local</h2>
+          <p className="eyebrow">Statut dev06</p>
+          <h2>Smart Repair, historique Preview et UI Control Room</h2>
         </div>
-
         <p>
-          Cette version verrouille le flux de travail : session claire, lecture A/B, monitoring dynamique, génération traçable de la Preview Master et export WAV local de la version validée.
+          Cette version fait basculer l’outil vers un vrai cockpit minimaliste : les réglages importants restent visibles, les versions sont traçables, les conseils sont actionnables, et le monitoring A/B reste central.
         </p>
-
         <p className="honest-note">
-          L’export WAV est généré localement depuis la Preview en mémoire. La Preview Master reste une version de comparaison à valider à l’écoute. Les mesures LUFS, true peak et streaming check restent indicatives.
+          Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.
         </p>
       </section>
     </main>

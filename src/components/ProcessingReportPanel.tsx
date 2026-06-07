@@ -33,6 +33,10 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.report.profileLabel}</strong>
             </div>
             <div className="report-card">
+              <span>Réparation</span>
+              <strong>{result.report.tone.sourceRepairLabel}</strong>
+            </div>
+            <div className="report-card">
               <span>Anti-fizz</span>
               <strong>{result.report.brightnessLabel}</strong>
             </div>
