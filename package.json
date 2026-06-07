@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.7.1-dev07-waveform-integrity",
+  "version": "0.8.0-dev08-instant-ab",
   "type": "module",
   "scripts": {
     "dev": "vite",

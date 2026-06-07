@@ -50,6 +50,7 @@ export function inferAutoMasterPlan(metrics: AdvancedAudioMetrics): AutoMasterPl
   const veryCompact = metrics.crestFactorDb < 6.8 || metrics.loudnessRangeEstimate < 3.8;
   const compact = metrics.crestFactorDb < 7.8 || metrics.loudnessRangeEstimate < 4.6;
   const fatiguingHigh = metrics.highTotalRatio > 0.4 || metrics.fizzRatio > 0.08;
+  const ultraQuiet = metrics.estimatedLufs <= -19;
   const veryQuiet = metrics.estimatedLufs <= -17;
   const quiet = metrics.estimatedLufs <= -15.2;
   const moderate = metrics.estimatedLufs <= -13.4;
@@ -84,14 +85,26 @@ export function inferAutoMasterPlan(metrics: AdvancedAudioMetrics): AutoMasterPl
     compressionIntent = "léger";
     safetyIntent = "prudent";
     reason = "Source déjà assez forte : légère mise en forme sans chercher à écraser.";
+  } else if (ultraQuiet && !compact) {
+    targetLufsEstimate = fatiguingHigh ? -12.6 : -12.2;
+    profile = "strongLift";
+    profileLabel = "Auto lift très fort";
+    compressionIntent = "fort prudent";
+    reason = "Source très basse : PAXLAB pousse le niveau de comparaison tout en gardant le headroom sous contrôle.";
+  } else if (ultraQuiet) {
+    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.5;
+    profile = "strongLift";
+    profileLabel = "Auto lift très fort contrôlé";
+    compressionIntent = compact ? "modéré" : "fort prudent";
+    reason = "Source très basse mais compacte : gain plus assumé, avec ceiling et limiteur en garde-fou.";
   } else if (veryQuiet && !compact) {
-    targetLufsEstimate = -12.1;
+    targetLufsEstimate = -12.2;
     profile = "strongLift";
     profileLabel = "Auto lift fort";
     compressionIntent = "fort prudent";
     reason = "Source très basse et encore dynamique : gain assumé, ceiling proche de -1 dBTP estimé.";
   } else if (veryQuiet) {
-    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.7;
+    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.6;
     profile = "strongLift";
     profileLabel = "Auto lift contrôlé";
     compressionIntent = compact ? "modéré" : "fort prudent";
@@ -118,8 +131,12 @@ export function inferAutoMasterPlan(metrics: AdvancedAudioMetrics): AutoMasterPl
     targetLufsEstimate = -13.4;
   }
 
-  if (veryCompact && veryQuiet && targetLufsEstimate > -12.9) {
+  if (veryCompact && veryQuiet && !ultraQuiet && targetLufsEstimate > -12.9) {
     targetLufsEstimate = -12.9;
+  }
+
+  if (veryCompact && ultraQuiet && targetLufsEstimate > -12.6) {
+    targetLufsEstimate = -12.6;
   }
 
   const targetRmsDb = targetLufsToRmsTarget(metrics, targetLufsEstimate);
@@ -168,15 +185,15 @@ export function buildSettingsFromAnalysis(
         ? "soft"
         : base.highTreatment;
 
-  const liftPush = clamp(plan.expectedLiftDb, 0, 8.8);
+  const liftPush = clamp(plan.expectedLiftDb, 0, 10.5);
   const intensity = clamp(
     base.intensity +
-      liftPush * 3.2 +
+      liftPush * 3.6 +
       (metrics.fizzRatio > 0.08 ? 8 : 0) +
       (metrics.highTotalRatio > 0.4 ? 6 : 0) +
       (metrics.crestFactorDb < 7 ? -5 : 0),
     34,
-    88
+    94
   );
 
   const density = clamp(

@@ -24,10 +24,10 @@ interface UseABAudioPlayerResult {
 }
 
 const SILENCE_DB = -90;
-const SWITCH_FADE_SECONDS = 0.075;
-const SWITCH_LOCK_SECONDS = 0.11;
-const STOP_FADE_SECONDS = 0.028;
-const START_FADE_SECONDS = 0.045;
+const SWITCH_FADE_SECONDS = 0.014;
+const SWITCH_LOCK_SECONDS = 0.04;
+const STOP_FADE_SECONDS = 0.018;
+const START_FADE_SECONDS = 0.008;
 
 const initialMeter: RealtimeMeterState = {
   instantPeakDb: SILENCE_DB,
@@ -442,8 +442,10 @@ export function useABAudioPlayer({
       activeSourceRef.current = nextSource;
       setCurrentTime(offset);
       currentTimeRef.current = offset;
-      setIsPlaying(false);
-      isPlayingRef.current = false;
+      if (!wasPlaying) {
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+      }
       resetIntegratedMeterOnly();
 
       if (wasPlaying) {

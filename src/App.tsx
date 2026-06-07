@@ -275,10 +275,10 @@ export default function App() {
     <main className="app-shell control-room-shell">
       <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev07.1 Waveform Integrity</p>
-          <h1>PAXLAB Auto Control Room</h1>
+          <p className="version">PAXLAB Browser Engine - dev08 Instant A/B</p>
+          <h1>PAXLAB Instant Control Room</h1>
           <p className="hero-text">
-            Auto Engine V2 : analyse plus poussée de la source, cible LUFS estimée dynamique, headroom contrôlé, Preview traçable, A/B temps réel et export WAV local.
+            Auto Engine V3 : A/B quasi instantané, cible LUFS estimée dynamique, headroom calibré, historique Preview enrichi et export WAV local.
           </p>
         </div>
 
@@ -388,11 +388,11 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev07.1</p>
-          <h2>Waveform Integrity, DC offset guard et Auto Push</h2>
+          <p className="eyebrow">Statut dev08</p>
+          <h2>Instant A/B, Auto Calibration et historique enrichi</h2>
         </div>
         <p>
-          Cette version corrige la représentation waveform, recentre le signal après rendu, garde un headroom fiable et pousse davantage les sources très basses vers la cible automatique.
+          Cette version optimise la commutation A/B, pousse plus justement les sources très basses et affiche clairement la cible prévue, le résultat obtenu et l’écart de calibration.
         </p>
         <p className="honest-note">
           Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.

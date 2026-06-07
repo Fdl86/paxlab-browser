@@ -11,6 +11,10 @@ function formatLufs(value: number): string {
   return `${value.toFixed(1)} LUFS est.`;
 }
 
+function formatSignedDb(value: number): string {
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} dB`;
+}
+
 function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)} %`;
 }
@@ -19,54 +23,79 @@ function formatHeadroomFromPeak(peakDb: number): string {
   return `${Math.max(0, -peakDb).toFixed(1)} dB`;
 }
 
+function calibrationStatus(deltaLufs: number, headroomDelta: number): { label: string; tone: "success" | "warning" | "neutral" } {
+  const absDelta = Math.abs(deltaLufs);
+  const absHeadroom = Math.abs(headroomDelta);
+
+  if (absDelta <= 0.8 && absHeadroom <= 0.8) {
+    return { label: "Cible atteinte", tone: "success" };
+  }
+
+  if (absDelta <= 1.6 && absHeadroom <= 1.4) {
+    return { label: "Très proche", tone: "neutral" };
+  }
+
+  return { label: "À ajuster", tone: "warning" };
+}
+
 export function MasterDashboard({ sourceAnalysis, previewResult }: MasterDashboardProps) {
   const sourceMetrics = sourceAnalysis?.metrics ?? previewResult?.beforeMetrics ?? null;
   const activeMetrics = previewResult?.afterMetrics ?? sourceMetrics;
   const plan = sourceMetrics ? inferAutoMasterPlan(sourceMetrics) : null;
+  const targetLufs = previewResult?.settings.targetLufsEstimate ?? plan?.targetLufsEstimate ?? null;
+  const targetHeadroom = previewResult?.report.loudness.targetHeadroomDb ?? plan?.targetHeadroomDb ?? null;
+  const achievedHeadroom = previewResult ? previewResult.report.loudness.achievedHeadroomDb : activeMetrics ? Math.max(0, -activeMetrics.approxTruePeakDb) : null;
+  const lufsDelta = previewResult && targetLufs !== null ? previewResult.afterMetrics.estimatedLufs - targetLufs : null;
+  const headroomDelta = previewResult && achievedHeadroom !== null && targetHeadroom !== null ? achievedHeadroom - targetHeadroom : null;
+  const calibration = lufsDelta !== null && headroomDelta !== null ? calibrationStatus(lufsDelta, headroomDelta) : null;
 
   return (
-    <section className="panel dashboard-panel auto-engine-panel">
+    <section className="panel dashboard-panel auto-engine-panel calibration-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Auto Engine V2</p>
-          <h2>Analyse automatique, LUFS cible et headroom</h2>
+          <p className="eyebrow">Auto Engine V3</p>
+          <h2>Calibration automatique</h2>
         </div>
-        <span className="status-pill">{previewResult ? "Preview analysée" : "Plan auto"}</span>
+        <span className="status-pill">{previewResult ? calibration?.label ?? "Preview analysée" : "Plan auto"}</span>
       </div>
 
       {!activeMetrics && (
         <div className="empty-state small-empty-state">
           <p>Aucune analyse disponible.</p>
-          <span>Importe un fichier audio pour lancer l’analyse locale.</span>
+          <span>Importe un fichier audio pour calculer la cible, le ceiling et le headroom.</span>
         </div>
       )}
 
       {activeMetrics && plan && (
         <>
-          <div className="auto-plan-card">
+          <div className="calibration-hero">
             <div>
-              <span>Plan automatique</span>
+              <span>Décision automatique</span>
               <strong>{plan.profileLabel}</strong>
               <small>{plan.reason}</small>
             </div>
             <div>
-              <span>Cible Preview</span>
-              <strong>{formatLufs(previewResult?.settings.targetLufsEstimate ?? plan.targetLufsEstimate)}</strong>
-              <small>Calculée depuis la source</small>
+              <span>Cible loudness</span>
+              <strong>{targetLufs !== null ? formatLufs(targetLufs) : "-"}</strong>
+              <small>Déduite du fichier source</small>
             </div>
             <div>
-              <span>Ceiling</span>
-              <strong>{formatDb(previewResult?.settings.maxPeakDb ?? plan.ceilingDb)}</strong>
-              <small>Headroom cible {(previewResult?.report.loudness.targetHeadroomDb ?? plan.targetHeadroomDb).toFixed(1)} dB</small>
+              <span>Headroom cible</span>
+              <strong>{targetHeadroom !== null ? `${targetHeadroom.toFixed(1)} dB` : "-"}</strong>
+              <small>Ceiling {formatDb(previewResult?.settings.maxPeakDb ?? plan.ceilingDb)}</small>
             </div>
-            <div>
-              <span>Lift estimé</span>
-              <strong>{plan.expectedLiftDb >= 0 ? "+" : ""}{plan.expectedLiftDb.toFixed(1)} dB</strong>
-              <small>Compression {plan.compressionIntent}</small>
+            <div className={calibration ? `calibration-score ${calibration.tone}` : "calibration-score neutral"}>
+              <span>Résultat</span>
+              <strong>{calibration?.label ?? "En attente"}</strong>
+              <small>
+                {previewResult && lufsDelta !== null && headroomDelta !== null
+                  ? `Écart ${formatSignedDb(lufsDelta)} LUFS / ${formatSignedDb(headroomDelta)} headroom`
+                  : `Lift prévu ${formatSignedDb(plan.expectedLiftDb)}`}
+              </small>
             </div>
           </div>
 
-          <div className="metrics-grid dashboard-grid">
+          <div className="metrics-grid dashboard-grid compact-metrics-grid">
             <div className="metric-card">
               <span>Source LUFS</span>
               <strong>{sourceMetrics ? formatLufs(sourceMetrics.estimatedLufs) : "-"}</strong>
@@ -80,7 +109,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult }: MasterDashboa
               <strong>{formatDb(activeMetrics.approxTruePeakDb)}</strong>
             </div>
             <div className="metric-card success">
-              <span>Headroom</span>
+              <span>Headroom obtenu</span>
               <strong>{formatHeadroomFromPeak(activeMetrics.approxTruePeakDb)}</strong>
             </div>
             <div className="metric-card">
@@ -102,16 +131,16 @@ export function MasterDashboard({ sourceAnalysis, previewResult }: MasterDashboa
           </div>
 
           {previewResult && sourceMetrics && (
-            <div className="dashboard-delta auto-delta">
-              <span>Gain obtenu : {previewResult.report.loudness.gainAppliedDb >= 0 ? "+" : ""}{previewResult.report.loudness.gainAppliedDb.toFixed(1)} dB approx.</span>
+            <div className="dashboard-delta auto-delta premium-delta">
+              <span>Gain obtenu : {formatSignedDb(previewResult.report.loudness.gainAppliedDb)}</span>
               <span>Ceiling : {formatDb(previewResult.report.loudness.ceilingDb)}</span>
-              <span>Headroom obtenu : {previewResult.report.loudness.achievedHeadroomDb.toFixed(1)} dB</span>
+              <span>Headroom : {previewResult.report.loudness.achievedHeadroomDb.toFixed(1)} dB / cible {previewResult.report.loudness.targetHeadroomDb.toFixed(1)} dB</span>
               <span>LRA : {sourceMetrics.loudnessRangeEstimate.toFixed(1)} → {previewResult.afterMetrics.loudnessRangeEstimate.toFixed(1)} LU</span>
             </div>
           )}
 
           <p className="message message-info">
-            Auto Engine V2 adapte le niveau cible, le ceiling et le headroom selon la source. Les valeurs restent indicatives et doivent être validées à l’écoute.
+            Auto Engine V3 pousse davantage les sources trop faibles, puis calibre le résultat avec cible LUFS estimée, ceiling et headroom. Les valeurs restent indicatives et doivent être validées à l’écoute.
           </p>
         </>
       )}

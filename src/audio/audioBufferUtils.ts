@@ -104,11 +104,12 @@ export function applySafeTargetGain(
   // Dev07.1 : un fichier Suno très bas doit pouvoir être réellement poussé vers
   // sa cible automatique. On autorise donc une marge au-dessus du ceiling avant
   // limiteur, mais avec un garde-fou absolu pour éviter les sources corrompues.
-  const limiterWorkRoomDb = requiredLiftDb > 6 ? 2.6 : 1.8;
+  const limiterWorkRoomDb =
+    requiredLiftDb > 8 ? 6.4 : requiredLiftDb > 6 ? 5.2 : requiredLiftDb > 4 ? 3.4 : 2.1;
   const protectedLiftLimitDb = clamp(
     Math.max(1.2, peakCeilingLiftDb + limiterWorkRoomDb),
     1.2,
-    9.8
+    12.8
   );
   const finalGain = Math.min(gainForRms, dbToLinear(protectedLiftLimitDb));
 
