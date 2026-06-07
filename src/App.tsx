@@ -57,6 +57,9 @@ export default function App() {
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("idle");
   const [previewResult, setPreviewResult] = useState<PreviewRenderResult | null>(null);
   const [previewErrorMessage, setPreviewErrorMessage] = useState<string | null>(null);
+  const [previewRevision, setPreviewRevision] = useState(0);
+  const [previewRenderedAt, setPreviewRenderedAt] = useState<string | null>(null);
+  const [shouldSelectPreviewAfterRender, setShouldSelectPreviewAfterRender] = useState(false);
 
   const player = useABAudioPlayer({
     originalBuffer: decodedAudio?.audioBuffer ?? null,
@@ -80,6 +83,9 @@ export default function App() {
       setPreviewResult(null);
       setPreviewErrorMessage(null);
       setAppliedPreviewSettings(null);
+      setPreviewRevision(0);
+      setPreviewRenderedAt(null);
+      setShouldSelectPreviewAfterRender(false);
       return;
     }
 
@@ -96,6 +102,9 @@ export default function App() {
       setPreviewResult(null);
       setPreviewErrorMessage(null);
       setAppliedPreviewSettings(null);
+      setPreviewRevision(0);
+      setPreviewRenderedAt(null);
+      setShouldSelectPreviewAfterRender(false);
 
       try {
         const decoded = await decodeAudioFile(selectedFile as File);
@@ -179,13 +188,29 @@ export default function App() {
       return;
     }
 
+    player.stop();
+
+    const nextRevision = previewRevision + 1;
+
     setPreviewStatus("rendering");
     setPreviewErrorMessage(null);
+    setPreviewResult(null);
+    setAppliedPreviewSettings(null);
+    setPreviewRenderedAt(null);
+    setShouldSelectPreviewAfterRender(true);
 
     try {
       const result = await renderPreviewMaster(decodedAudio.audioBuffer, previewSettings);
       setPreviewResult(result);
       setAppliedPreviewSettings({ ...previewSettings });
+      setPreviewRevision(nextRevision);
+      setPreviewRenderedAt(
+        new Date().toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit"
+        })
+      );
       setPreviewStatus("ready");
     } catch (error) {
       const message =
@@ -195,14 +220,24 @@ export default function App() {
 
       setPreviewErrorMessage(message);
       setPreviewStatus("error");
+      setShouldSelectPreviewAfterRender(false);
     }
   }
+
+  useEffect(() => {
+    if (previewStatus !== "ready" || !previewResult || !shouldSelectPreviewAfterRender) {
+      return;
+    }
+
+    void player.switchSource("preview");
+    setShouldSelectPreviewAfterRender(false);
+  }, [player, previewResult, previewStatus, shouldSelectPreviewAfterRender]);
 
   return (
     <main className="app-shell">
       <header className="hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev04 Realtime</p>
+          <p className="version">PAXLAB Browser Engine - dev04.1 Render Guard</p>
           <h1>PAXLAB Browser Engine</h1>
           <p className="hero-text">
             Moteur navigateur local pour importer un fichier audio IA, analyser le fichier,
@@ -257,6 +292,9 @@ export default function App() {
         isPlaying={player.isPlaying}
         canUsePreview={player.canPlayPreview}
         previewStatus={previewStatus}
+        previewRevision={previewRevision}
+        previewRenderedAt={previewRenderedAt}
+        hasPendingChanges={hasPendingChanges}
         meter={player.meter}
         onPlayPause={() => void player.playPause()}
         onStop={player.stop}
@@ -271,6 +309,8 @@ export default function App() {
           hasAudio={Boolean(decodedAudio)}
           hasPreview={Boolean(previewResult)}
           hasPendingChanges={hasPendingChanges}
+          previewRevision={previewRevision}
+          previewRenderedAt={previewRenderedAt}
           errorMessage={previewErrorMessage}
           onSettingsChange={setPreviewSettings}
           onRenderPreview={() => void handleRenderPreview()}

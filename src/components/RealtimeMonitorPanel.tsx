@@ -12,6 +12,9 @@ interface RealtimeMonitorPanelProps {
   isPlaying: boolean;
   canUsePreview: boolean;
   previewStatus: PreviewStatus;
+  previewRevision: number;
+  previewRenderedAt: string | null;
+  hasPendingChanges: boolean;
   meter: RealtimeMeterState;
   onPlayPause: () => void;
   onStop: () => void;
@@ -111,6 +114,9 @@ export function RealtimeMonitorPanel({
   isPlaying,
   canUsePreview,
   previewStatus,
+  previewRevision,
+  previewRenderedAt,
+  hasPendingChanges,
   meter,
   onPlayPause,
   onStop,
@@ -123,7 +129,16 @@ export function RealtimeMonitorPanel({
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const outputPercent = Math.min(100, Math.max(0, ((meter.outputDb + 60) / 60) * 100));
   const peakPercent = Math.min(100, Math.max(0, ((meter.peakHoldDb + 60) / 60) * 100));
-  const nowPlayingLabel = activeSource === "original" ? "Original Source" : "Preview Master";
+  const previewLabel = previewRevision > 0 ? `Preview Master #${previewRevision}` : "Preview Master";
+  const nowPlayingLabel = activeSource === "original" ? "Original Source" : previewLabel;
+  const previewStatusLabel =
+    previewStatus === "rendering"
+      ? "Rendu..."
+      : previewStatus === "ready"
+        ? hasPendingChanges
+          ? `#${previewRevision} à régénérer`
+          : `Prête #${previewRevision}`
+        : "Non générée";
 
   function handleClick(event: MouseEvent<HTMLDivElement>) {
     if (!duration) {
@@ -161,6 +176,9 @@ export function RealtimeMonitorPanel({
           <p className="eyebrow">Lecture active</p>
           <h2>{nowPlayingLabel}</h2>
           <span>{fileName ?? "Aucun fichier audio chargé"}</span>
+          {activeSource === "preview" && previewRenderedAt && (
+            <small>Version générée à {previewRenderedAt}</small>
+          )}
         </div>
         <strong className={isPlaying ? "live-pill live" : "live-pill"}>
           {isPlaying ? "En lecture" : "Pause"}
@@ -253,7 +271,7 @@ export function RealtimeMonitorPanel({
             </div>
             <div>
               <span>Preview</span>
-              <strong>{previewStatus === "ready" ? "Prête" : previewStatus === "rendering" ? "Rendu..." : "Non générée"}</strong>
+              <strong>{previewStatusLabel}</strong>
             </div>
           </div>
         </>

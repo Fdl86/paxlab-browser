@@ -8,6 +8,8 @@ interface PreviewControlsProps {
   hasAudio: boolean;
   hasPreview: boolean;
   hasPendingChanges: boolean;
+  previewRevision: number;
+  previewRenderedAt: string | null;
   errorMessage: string | null;
   onSettingsChange: (settings: PreviewSettings) => void;
   onRenderPreview: () => void;
@@ -19,6 +21,8 @@ export function PreviewControls({
   hasAudio,
   hasPreview,
   hasPendingChanges,
+  previewRevision,
+  previewRenderedAt,
   errorMessage,
   onSettingsChange,
   onRenderPreview
@@ -177,15 +181,23 @@ export function PreviewControls({
         </p>
       )}
 
+      {previewStatus === "rendering" && (
+        <p className="message message-info">
+          Lecture arrêtée. Génération d’une nouvelle Preview Master en cours.
+        </p>
+      )}
+
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
         <p className="message message-warning">
-          Réglages modifiés. La Preview affichée utilise encore les réglages validés précédents.
+          Réglages modifiés. La Preview Master #{previewRevision} reste l’ancienne version.
+          Clique sur “Appliquer les réglages et régénérer” pour créer une nouvelle Preview.
         </p>
       )}
 
       {previewStatus === "ready" && !hasPendingChanges && (
         <p className="message message-success">
-          Preview Master générée en mémoire navigateur. Aucun export n’est créé.
+          Preview Master #{previewRevision} générée{previewRenderedAt ? ` à ${previewRenderedAt}` : ""}.
+          Elle est sélectionnée pour la prochaine lecture. Aucun export n’est créé.
         </p>
       )}
 

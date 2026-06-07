@@ -1115,3 +1115,5 @@ input[type="range"] {
     flex-direction: column;
   }
 }
+
+.now-playing-bar small { display: block; margin-top: 6px; color: #d4af37; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; }
