@@ -2,11 +2,17 @@ import { clamp } from "./audioBufferUtils";
 import { getSettingsForPreset } from "./previewPresets";
 import type {
   AdvancedAudioMetrics,
+  AutoIntensityId,
   AutoMasterPlan,
   PreviewPresetId,
   PreviewSettings,
   SourceRepairLevel
 } from "./types";
+
+export interface AutoPlanOptions {
+  autoIntensity?: AutoIntensityId;
+  antiFatigue?: boolean;
+}
 
 function spectralCorrectionFor(metrics: AdvancedAudioMetrics): number {
   return clamp((metrics.highTotalRatio - 0.28) * 2.2, -0.9, 1.1);
@@ -16,24 +22,58 @@ function oneDecimal(value: number): number {
   return Number(value.toFixed(1));
 }
 
-function inferCeiling(metrics: AdvancedAudioMetrics): number {
+function inferSafety(metrics: AdvancedAudioMetrics, antiFatigue: boolean) {
   const clipped = metrics.clippingSamples > 25 || metrics.approxTruePeakDb > -0.35;
-  const compact = metrics.crestFactorDb < 7.2 || metrics.loudnessRangeEstimate < 4.2;
-  const harsh = metrics.highTotalRatio > 0.42 || metrics.fizzRatio > 0.085;
+  const veryCompact = metrics.crestFactorDb < 6.8 || metrics.loudnessRangeEstimate < 3.8;
+  const compact = metrics.crestFactorDb < 7.8 || metrics.loudnessRangeEstimate < 4.6;
+  const fatiguingHigh = antiFatigue || metrics.highTotalRatio > 0.4 || metrics.fizzRatio > 0.08;
+
+  return { clipped, veryCompact, compact, fatiguingHigh };
+}
+
+function inferCeiling(
+  metrics: AdvancedAudioMetrics,
+  autoIntensity: AutoIntensityId,
+  antiFatigue: boolean
+): { ceiling: number; minHeadroom: number; maxHeadroom: number } {
+  const { clipped, veryCompact, compact, fatiguingHigh } = inferSafety(metrics, antiFatigue);
 
   if (clipped) {
-    return -1.5;
+    return { ceiling: -2.4, minHeadroom: 2.0, maxHeadroom: 4.0 };
   }
 
-  if (compact && harsh) {
-    return -1.3;
+  if (antiFatigue && (fatiguingHigh || compact)) {
+    return { ceiling: -2.8, minHeadroom: 2.4, maxHeadroom: 4.2 };
+  }
+
+  if (autoIntensity === "safe") {
+    return fatiguingHigh || veryCompact
+      ? { ceiling: -3.2, minHeadroom: 2.8, maxHeadroom: 4.4 }
+      : { ceiling: -2.8, minHeadroom: 2.4, maxHeadroom: 4.0 };
+  }
+
+  if (autoIntensity === "impact") {
+    if (fatiguingHigh || veryCompact) {
+      return { ceiling: -1.8, minHeadroom: 1.5, maxHeadroom: 3.2 };
+    }
+
+    return { ceiling: -1.2, minHeadroom: 1.0, maxHeadroom: 2.4 };
+  }
+
+  if (fatiguingHigh || veryCompact) {
+    return { ceiling: -2.6, minHeadroom: 2.0, maxHeadroom: 4.0 };
   }
 
   if (compact) {
-    return -1.2;
+    return { ceiling: -2.2, minHeadroom: 1.8, maxHeadroom: 3.5 };
   }
 
-  return -1.0;
+  return { ceiling: -1.8, minHeadroom: 1.4, maxHeadroom: 3.2 };
+}
+
+function intensityTargetShift(autoIntensity: AutoIntensityId, antiFatigue: boolean): number {
+  const shift = autoIntensity === "safe" ? -1.0 : autoIntensity === "impact" ? 0.8 : -0.2;
+  return shift + (antiFatigue ? -0.55 : 0);
 }
 
 export function inferTargetLufs(metrics: AdvancedAudioMetrics): number {
@@ -42,125 +82,136 @@ export function inferTargetLufs(metrics: AdvancedAudioMetrics): number {
 
 export function targetLufsToRmsTarget(metrics: AdvancedAudioMetrics, targetLufs: number): number {
   const correction = spectralCorrectionFor(metrics);
-  return clamp(targetLufs + 0.7 - correction, -16.5, -11.1);
+  return clamp(targetLufs + 0.75 - correction, -17.2, -10.6);
 }
 
-export function inferAutoMasterPlan(metrics: AdvancedAudioMetrics): AutoMasterPlan {
-  const clipped = metrics.clippingSamples > 25 || metrics.approxTruePeakDb > -0.35;
-  const veryCompact = metrics.crestFactorDb < 6.8 || metrics.loudnessRangeEstimate < 3.8;
-  const compact = metrics.crestFactorDb < 7.8 || metrics.loudnessRangeEstimate < 4.6;
-  const fatiguingHigh = metrics.highTotalRatio > 0.4 || metrics.fizzRatio > 0.08;
+export function inferAutoMasterPlan(
+  metrics: AdvancedAudioMetrics,
+  options: AutoPlanOptions = {}
+): AutoMasterPlan {
+  const autoIntensity = options.autoIntensity ?? "balanced";
+  const antiFatigue = Boolean(options.antiFatigue);
+  const { clipped, veryCompact, compact, fatiguingHigh } = inferSafety(metrics, antiFatigue);
   const ultraQuiet = metrics.estimatedLufs <= -19;
   const veryQuiet = metrics.estimatedLufs <= -17;
   const quiet = metrics.estimatedLufs <= -15.2;
   const moderate = metrics.estimatedLufs <= -13.4;
   const alreadyLoud = metrics.estimatedLufs > -12.2;
-  const ceilingDb = inferCeiling(metrics);
+  const ceilingPlan = inferCeiling(metrics, autoIntensity, antiFatigue);
 
-  let targetLufsEstimate = -12.8;
+  let targetLufsEstimate = -13.1;
   let profile: AutoMasterPlan["profile"] = "balancedLift";
   let profileLabel = "Auto équilibré";
   let compressionIntent: AutoMasterPlan["compressionIntent"] = "modéré";
   let safetyIntent: AutoMasterPlan["safetyIntent"] = "normal";
-  let reason = "Niveau source moyen : montée de niveau contrôlée et ceiling autour de -1 dBTP estimé.";
+  let reason = "Niveau source moyen : montée de niveau contrôlée, puis headroom dynamique selon sécurité.";
 
   if (clipped) {
-    targetLufsEstimate = -13.8;
+    targetLufsEstimate = -14.4;
     profile = "protect";
     profileLabel = "Auto protecteur";
     compressionIntent = "léger";
     safetyIntent = "protecteur";
-    reason = "Pics déjà très proches du plafond : priorité à la sécurité et au soft repair avant le loudness.";
+    reason = "Pics déjà proches du plafond : PAXLAB privilégie la réparation et garde plus de marge.";
   } else if (alreadyLoud && veryCompact) {
-    targetLufsEstimate = -14.0;
+    targetLufsEstimate = -14.2;
     profile = "preserve";
     profileLabel = "Auto préservation";
     compressionIntent = "préserver";
     safetyIntent = "prudent";
-    reason = "Source déjà forte et compacte : éviter de pousser le morceau inutilement.";
+    reason = "Source déjà forte et compacte : le traitement évite de pousser inutilement.";
   } else if (alreadyLoud) {
-    targetLufsEstimate = fatiguingHigh ? -13.7 : -13.4;
+    targetLufsEstimate = fatiguingHigh ? -13.9 : -13.6;
     profile = "preserve";
     profileLabel = "Auto prudent";
     compressionIntent = "léger";
     safetyIntent = "prudent";
-    reason = "Source déjà assez forte : légère mise en forme sans chercher à écraser.";
+    reason = "Source déjà assez forte : mise en forme et sécurité, sans course au volume.";
   } else if (ultraQuiet && !compact) {
-    targetLufsEstimate = fatiguingHigh ? -12.6 : -12.2;
+    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.4;
     profile = "strongLift";
     profileLabel = "Auto lift très fort";
     compressionIntent = "fort prudent";
-    reason = "Source très basse : PAXLAB pousse le niveau de comparaison tout en gardant le headroom sous contrôle.";
+    reason = "Source très basse : PAXLAB peut pousser franchement, avec contrôle de headroom.";
   } else if (ultraQuiet) {
-    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.5;
+    targetLufsEstimate = fatiguingHigh ? -13.4 : -12.9;
     profile = "strongLift";
-    profileLabel = "Auto lift très fort contrôlé";
+    profileLabel = "Auto lift fort contrôlé";
     compressionIntent = compact ? "modéré" : "fort prudent";
-    reason = "Source très basse mais compacte : gain plus assumé, avec ceiling et limiteur en garde-fou.";
+    reason = "Source très basse mais compacte : gain important, avec marge plus prudente.";
   } else if (veryQuiet && !compact) {
-    targetLufsEstimate = -12.2;
+    targetLufsEstimate = fatiguingHigh ? -12.8 : -12.4;
     profile = "strongLift";
     profileLabel = "Auto lift fort";
     compressionIntent = "fort prudent";
-    reason = "Source très basse et encore dynamique : gain assumé, ceiling proche de -1 dBTP estimé.";
+    reason = "Source basse et dynamique : rapprochement d’une Preview plus dense.";
   } else if (veryQuiet) {
-    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.6;
+    targetLufsEstimate = fatiguingHigh ? -13.2 : -12.8;
     profile = "strongLift";
     profileLabel = "Auto lift contrôlé";
     compressionIntent = compact ? "modéré" : "fort prudent";
-    reason = "Source très basse mais compacte : montée franche avec headroom protégé.";
+    reason = "Source basse mais déjà dense : lift contrôlé pour préserver l’écoute.";
   } else if (quiet) {
-    targetLufsEstimate = fatiguingHigh ? -12.6 : -12.3;
+    targetLufsEstimate = fatiguingHigh ? -13.0 : -12.7;
     profile = "strongLift";
     profileLabel = "Auto lift";
     compressionIntent = compact ? "modéré" : "fort prudent";
-    reason = "Source sous le niveau cible : montée automatique et headroom contrôlé.";
+    reason = "Source sous le niveau cible : montée automatique et marge contrôlée.";
   } else if (moderate) {
-    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.6;
+    targetLufsEstimate = fatiguingHigh ? -13.2 : -12.9;
     profile = "balancedLift";
     profileLabel = "Auto équilibré";
     compressionIntent = compact ? "léger" : "modéré";
-    reason = "Source intermédiaire : rapprochement d’un niveau de comparaison plus franc.";
+    reason = "Source intermédiaire : densité supplémentaire sans forcer le plafond.";
   }
 
-  if (fatiguingHigh && targetLufsEstimate > -12.6 && !veryQuiet) {
-    targetLufsEstimate -= 0.3;
+  targetLufsEstimate += intensityTargetShift(autoIntensity, antiFatigue);
+
+  if (autoIntensity === "impact" && veryCompact && !veryQuiet) {
+    targetLufsEstimate = Math.min(targetLufsEstimate, -13.2);
   }
 
-  if (veryCompact && !veryQuiet && targetLufsEstimate > -13.4) {
-    targetLufsEstimate = -13.4;
+  if (autoIntensity === "safe") {
+    profileLabel = `${profileLabel} prudent`;
+  } else if (autoIntensity === "impact") {
+    profileLabel = `${profileLabel} impact`;
   }
 
-  if (veryCompact && veryQuiet && !ultraQuiet && targetLufsEstimate > -12.9) {
-    targetLufsEstimate = -12.9;
+  if (antiFatigue) {
+    profileLabel = `${profileLabel} anti-fatigue`;
+    reason = `${reason} Option aigus fatigants active : le haut du spectre est calmé et la cible reste plus confortable.`;
   }
 
-  if (veryCompact && ultraQuiet && targetLufsEstimate > -12.6) {
-    targetLufsEstimate = -12.6;
-  }
+  targetLufsEstimate = clamp(targetLufsEstimate, -15.2, autoIntensity === "impact" && !antiFatigue ? -11.8 : -12.2);
 
   const targetRmsDb = targetLufsToRmsTarget(metrics, targetLufsEstimate);
+  const lufsToleranceLow = autoIntensity === "safe" ? 1.1 : antiFatigue ? 1.2 : 0.9;
+  const lufsToleranceHigh = autoIntensity === "impact" ? 0.45 : 0.35;
 
   return {
     profile,
     profileLabel,
     targetLufsEstimate: oneDecimal(targetLufsEstimate),
+    targetLufsMinEstimate: oneDecimal(targetLufsEstimate - lufsToleranceLow),
+    targetLufsMaxEstimate: oneDecimal(targetLufsEstimate + lufsToleranceHigh),
     targetRmsDb: oneDecimal(targetRmsDb),
-    ceilingDb: oneDecimal(ceilingDb),
-    targetHeadroomDb: oneDecimal(Math.abs(ceilingDb)),
-    expectedLiftDb: oneDecimal(clamp(targetLufsEstimate - metrics.estimatedLufs, -1.8, 8.8)),
+    ceilingDb: oneDecimal(ceilingPlan.ceiling),
+    targetHeadroomDb: oneDecimal(Math.abs(ceilingPlan.ceiling)),
+    targetHeadroomMinDb: oneDecimal(ceilingPlan.minHeadroom),
+    targetHeadroomMaxDb: oneDecimal(ceilingPlan.maxHeadroom),
+    expectedLiftDb: oneDecimal(clamp(targetLufsEstimate - metrics.estimatedLufs, -2.2, 10.2)),
     compressionIntent,
     safetyIntent,
     reason
   };
 }
 
-function inferSourceRepair(metrics: AdvancedAudioMetrics): SourceRepairLevel {
-  const harshOrFizz = metrics.fizzRatio > 0.075 || metrics.highTotalRatio > 0.4;
+function inferSourceRepair(metrics: AdvancedAudioMetrics, antiFatigue: boolean): SourceRepairLevel {
+  const harshOrFizz = antiFatigue || metrics.fizzRatio > 0.075 || metrics.highTotalRatio > 0.4;
   const clipped = metrics.clippingSamples > 25 || metrics.approxTruePeakDb > -0.4;
   const compact = metrics.crestFactorDb < 7.3 || metrics.loudnessRangeEstimate < 4.5;
 
-  if ((harshOrFizz && compact) || clipped) {
+  if ((harshOrFizz && compact) || clipped || antiFatigue) {
     return "strong";
   }
 
@@ -173,13 +224,17 @@ function inferSourceRepair(metrics: AdvancedAudioMetrics): SourceRepairLevel {
 
 export function buildSettingsFromAnalysis(
   metrics: AdvancedAudioMetrics,
-  presetId: PreviewPresetId = "auto"
+  presetId: PreviewPresetId = "auto",
+  options: AutoPlanOptions = {}
 ): PreviewSettings {
   const base = getSettingsForPreset(presetId);
-  const plan = inferAutoMasterPlan(metrics);
+  const autoIntensity = options.autoIntensity ?? base.autoIntensity ?? "balanced";
+  const antiFatigue = options.antiFatigue ?? base.antiFatigue ?? false;
+  const plan = inferAutoMasterPlan(metrics, { autoIntensity, antiFatigue });
 
-  const highTreatment =
-    metrics.fizzRatio > 0.075 || metrics.highTotalRatio > 0.42
+  const highTreatment = antiFatigue
+    ? "verySoft"
+    : metrics.fizzRatio > 0.075 || metrics.highTotalRatio > 0.42
       ? "verySoft"
       : metrics.highTotalRatio > 0.34
         ? "soft"
@@ -188,27 +243,31 @@ export function buildSettingsFromAnalysis(
   const liftPush = clamp(plan.expectedLiftDb, 0, 10.5);
   const intensity = clamp(
     base.intensity +
-      liftPush * 3.6 +
+      liftPush * (autoIntensity === "impact" ? 4.0 : autoIntensity === "safe" ? 2.8 : 3.4) +
       (metrics.fizzRatio > 0.08 ? 8 : 0) +
       (metrics.highTotalRatio > 0.4 ? 6 : 0) +
-      (metrics.crestFactorDb < 7 ? -5 : 0),
-    34,
-    94
+      (metrics.crestFactorDb < 7 ? -5 : 0) +
+      (antiFatigue ? 8 : 0),
+    32,
+    autoIntensity === "impact" ? 98 : 92
   );
 
   const density = clamp(
     base.density +
       (metrics.crestFactorDb > 11 ? 7 : 0) +
-      (plan.profile === "strongLift" ? 5 : 0) -
+      (plan.profile === "strongLift" ? 5 : 0) +
+      (autoIntensity === "impact" ? 5 : 0) -
+      (autoIntensity === "safe" ? 6 : 0) -
+      (antiFatigue ? 5 : 0) -
       (metrics.crestFactorDb < 7 ? 8 : 0),
-    16,
-    62
+    12,
+    66
   );
 
   const stereoWidth = clamp(
     metrics.stereoCorrelation < 0.18 ? 96 : base.stereoWidth,
     90,
-    106
+    antiFatigue ? 102 : 108
   );
 
   return {
@@ -220,6 +279,8 @@ export function buildSettingsFromAnalysis(
     maxPeakDb: plan.ceilingDb,
     stereoWidth: Math.round(stereoWidth),
     density: Math.round(density),
-    sourceRepair: inferSourceRepair(metrics)
+    sourceRepair: inferSourceRepair(metrics, antiFatigue),
+    autoIntensity,
+    antiFatigue
   };
 }

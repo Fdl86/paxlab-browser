@@ -15,7 +15,9 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       maxPeakDb: -1.2,
       stereoWidth: 100,
       density: 44,
-      sourceRepair: "normal"
+      sourceRepair: "normal",
+      autoIntensity: "balanced",
+      antiFatigue: false
     }
   },
   {
@@ -32,7 +34,9 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       maxPeakDb: -1.2,
       stereoWidth: 98,
       density: 36,
-      sourceRepair: "strong"
+      sourceRepair: "strong",
+      autoIntensity: "safe",
+      antiFatigue: true
     }
   },
   {
@@ -49,7 +53,9 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       maxPeakDb: -1.1,
       stereoWidth: 100,
       density: 30,
-      sourceRepair: "light"
+      sourceRepair: "light",
+      autoIntensity: "balanced",
+      antiFatigue: false
     }
   },
   {
@@ -66,7 +72,9 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       maxPeakDb: -1,
       stereoWidth: 102,
       density: 52,
-      sourceRepair: "normal"
+      sourceRepair: "normal",
+      autoIntensity: "impact",
+      antiFatigue: false
     }
   },
   {
@@ -83,7 +91,9 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       maxPeakDb: -1.1,
       stereoWidth: 104,
       density: 24,
-      sourceRepair: "light"
+      sourceRepair: "light",
+      autoIntensity: "balanced",
+      antiFatigue: false
     }
   }
 ];

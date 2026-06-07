@@ -512,3 +512,67 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
     grid-template-columns: 1fr;
   }
 }
+
+/* DEV 08.1 - Dynamic targeting + anti-fatigue */
+.dynamic-controls-panel {
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.dynamic-summary {
+  grid-template-columns: 1.1fr 0.95fr 0.95fr 0.85fr;
+}
+
+.auto-intensity-control button {
+  min-width: 0;
+}
+
+.fatigue-toggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.fatigue-toggle:hover,
+.fatigue-toggle.active {
+  border-color: rgba(212, 175, 55, 0.48);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.fatigue-toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #e8ca54;
+}
+
+.fatigue-toggle strong {
+  display: block;
+  color: #fff7df;
+  font-size: 0.98rem;
+}
+
+.fatigue-toggle small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  line-height: 1.42;
+}
+
+.dynamic-target-hero > div:nth-child(2),
+.dynamic-target-hero > div:nth-child(3) {
+  background: rgba(212, 175, 55, 0.055);
+}
+
+@media (max-width: 760px) {
+  .dynamic-summary {
+    grid-template-columns: 1fr;
+  }
+}

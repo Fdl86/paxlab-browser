@@ -1,14 +1,17 @@
-# PAXLAB Browser Engine - dev08 Instant A/B
+# PAXLAB Browser Engine - dev08.1 Dynamic Targeting
 
 Application Vite / React / TypeScript pour traitement audio local dans le navigateur.
 
-## Dev08
+## Dev08.1
 
-- A/B Engine V3 : commutation Original / Preview plus immédiate, avec micro crossfade court.
-- Auto Engine V3 : cible LUFS estimée plus ambitieuse pour les sources très basses.
-- Calibration automatique : cible prévue, résultat obtenu, écart loudness et headroom.
-- Historique Preview enrichi : LUFS, true peak, headroom et gain appliqué par version.
+- Dynamic Targeting : la cible n’est plus un chiffre unique, mais une plage loudness + headroom selon le fichier.
+- Orientation automatique : Prudent / Équilibré / Impact.
+- Option Aigus fatigants : AI Shimmer Control pour calmer les brillances IA agressives.
+- Rapport plus honnête : cible atteinte, rendu prudent, cible partielle ou sécurité prioritaire.
+- Auto Engine V3.1 : meilleure cohérence entre cible prévue et résultat obtenu.
+- Calibration loudness supplémentaire après rendu, avec limiteur de sécurité.
 - Waveform min/max centrée conservée.
+- A/B instantané conservé.
 - Export WAV local conservé.
 - Aucun upload serveur.
 - Aucune API externe.

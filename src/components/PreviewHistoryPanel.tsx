@@ -15,8 +15,21 @@ interface PreviewHistoryPanelProps {
   onSelect: (item: PreviewHistoryItem) => void;
 }
 
+function formatAuto(settings: PreviewSettings): string {
+  if (settings.autoIntensity === "impact") {
+    return "Impact";
+  }
+
+  if (settings.autoIntensity === "safe") {
+    return "Prudent";
+  }
+
+  return "Équilibré";
+}
+
 function formatLabel(settings: PreviewSettings): string {
-  return `${describeSourceRepair(settings.sourceRepair)} · ${describeHighTreatment(settings.highTreatment)}`;
+  const fatigue = settings.antiFatigue ? " · Anti-fatigue" : "";
+  return `${formatAuto(settings)} · ${describeSourceRepair(settings.sourceRepair)} · ${describeHighTreatment(settings.highTreatment)}${fatigue}`;
 }
 
 function formatDb(value: number): string {

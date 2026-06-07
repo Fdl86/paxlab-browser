@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.8.0-dev08-instant-ab",
+  "version": "0.8.1-dev08-1-dynamic-targeting",
   "type": "module",
   "scripts": {
     "dev": "vite",

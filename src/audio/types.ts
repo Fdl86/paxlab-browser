@@ -12,6 +12,8 @@ export type HighTreatmentId = "soft" | "verySoft" | "neutral" | "open";
 
 export type SourceRepairLevel = "light" | "normal" | "strong";
 
+export type AutoIntensityId = "safe" | "balanced" | "impact";
+
 export type AutoPlanProfile = "preserve" | "balancedLift" | "strongLift" | "protect";
 
 export type ListeningZoneFamily =
@@ -112,15 +114,21 @@ export interface PreviewSettings {
   stereoWidth: number;
   density: number;
   sourceRepair: SourceRepairLevel;
+  autoIntensity: AutoIntensityId;
+  antiFatigue: boolean;
 }
 
 export interface AutoMasterPlan {
   profile: AutoPlanProfile;
   profileLabel: string;
   targetLufsEstimate: number;
+  targetLufsMinEstimate: number;
+  targetLufsMaxEstimate: number;
   targetRmsDb: number;
   ceilingDb: number;
   targetHeadroomDb: number;
+  targetHeadroomMinDb: number;
+  targetHeadroomMaxDb: number;
   expectedLiftDb: number;
   compressionIntent: "préserver" | "léger" | "modéré" | "fort prudent";
   safetyIntent: "normal" | "prudent" | "protecteur";
@@ -160,8 +168,12 @@ export interface ProcessingReport {
     gainAppliedDb: number;
     targetRmsDb: number;
     targetLufsEstimate: number;
+    targetLufsMinEstimate?: number;
+    targetLufsMaxEstimate?: number;
     ceilingDb: number;
     targetHeadroomDb: number;
+    targetHeadroomMinDb?: number;
+    targetHeadroomMaxDb?: number;
     achievedHeadroomDb: number;
     limiterActive: boolean;
     limiterReductionDb: number;

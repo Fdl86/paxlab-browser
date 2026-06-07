@@ -54,9 +54,13 @@ export function SessionStatusPanel({
 }: SessionStatusPanelProps) {
   const file = decodedAudio?.file ?? null;
   const info = decodedAudio?.info ?? null;
-  const plan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics) : null;
-  const target = previewResult?.settings.targetLufsEstimate ?? previewSettings.targetLufsEstimate;
-  const ceiling = previewResult?.settings.maxPeakDb ?? previewSettings.maxPeakDb;
+  const activeSettings = previewResult?.settings ?? previewSettings;
+  const plan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics, {
+    autoIntensity: activeSettings.autoIntensity,
+    antiFatigue: activeSettings.antiFatigue
+  }) : null;
+  const target = activeSettings.targetLufsEstimate;
+  const ceiling = activeSettings.maxPeakDb;
   const sourceLufs = sourceAnalysis?.metrics.estimatedLufs ?? null;
 
   return (
@@ -91,8 +95,8 @@ export function SessionStatusPanel({
 
           <div className="session-card">
             <span>Cible / Headroom</span>
-            <strong>{formatLufs(target)}</strong>
-            <small>Ceiling {ceiling.toFixed(1)} dBTP est. · headroom {Math.abs(ceiling).toFixed(1)} dB</small>
+            <strong>{plan ? `${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS` : formatLufs(target)}</strong>
+            <small>{plan ? `Headroom ${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB` : `Ceiling ${ceiling.toFixed(1)} dBTP est.`}</small>
           </div>
 
           <div className={hasPendingChanges ? "session-card warning-session-card" : "session-card success-session-card"}>

@@ -38,7 +38,7 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
             </div>
             <div className="report-card">
               <span>Anti-fizz</span>
-              <strong>{result.report.brightnessLabel}</strong>
+              <strong>{result.settings.antiFatigue ? "Aigus fatigants" : result.report.brightnessLabel}</strong>
             </div>
             <div className="report-card">
               <span>Clics réparés</span>
@@ -57,8 +57,8 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.report.loudness.targetLufsEstimate.toFixed(1)} LUFS est.</strong>
             </div>
             <div className="report-card">
-              <span>Headroom cible</span>
-              <strong>{result.report.loudness.targetHeadroomDb.toFixed(1)} dB</strong>
+              <span>Plage headroom</span>
+              <strong>{result.report.loudness.targetHeadroomMinDb?.toFixed(1) ?? "-"} à {result.report.loudness.targetHeadroomMaxDb?.toFixed(1) ?? "-"} dB</strong>
             </div>
             <div className="report-card">
               <span>Headroom obtenu</span>

@@ -39,7 +39,9 @@ function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings):
     left.maxPeakDb === right.maxPeakDb &&
     left.stereoWidth === right.stereoWidth &&
     left.density === right.density &&
-    left.sourceRepair === right.sourceRepair
+    left.sourceRepair === right.sourceRepair &&
+    left.autoIntensity === right.autoIntensity &&
+    left.antiFatigue === right.antiFatigue
   );
 }
 
@@ -275,10 +277,10 @@ export default function App() {
     <main className="app-shell control-room-shell">
       <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev08 Instant A/B</p>
+          <p className="version">PAXLAB Browser Engine - dev08.1 Dynamic Targeting</p>
           <h1>PAXLAB Instant Control Room</h1>
           <p className="hero-text">
-            Auto Engine V3 : A/B quasi instantané, cible LUFS estimée dynamique, headroom calibré, historique Preview enrichi et export WAV local.
+            Auto Engine V3.1 : ciblage dynamique, plage headroom intelligente, mode aigus fatigants, A/B instantané et export WAV local.
           </p>
         </div>
 
@@ -334,7 +336,7 @@ export default function App() {
             onSwitchSource={(source) => void player.switchSource(source)}
           />
 
-          <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} />
+          <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} previewSettings={previewSettings} />
         </div>
 
         <div className="studio-side-column">
@@ -388,11 +390,11 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev08</p>
-          <h2>Instant A/B, Auto Calibration et historique enrichi</h2>
+          <p className="eyebrow">Statut dev08.1</p>
+          <h2>Dynamic Targeting, headroom intelligent et anti-fatigue</h2>
         </div>
         <p>
-          Cette version optimise la commutation A/B, pousse plus justement les sources très basses et affiche clairement la cible prévue, le résultat obtenu et l’écart de calibration.
+          Cette version remplace la cible fixe par une plage cohérente selon le fichier : mode prudent, équilibré ou impact, headroom dynamique, résultat honnête et option aigus fatigants.
         </p>
         <p className="honest-note">
           Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.

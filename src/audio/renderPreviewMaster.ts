@@ -3,6 +3,7 @@ import {
 } from "./advancedAnalysis";
 import {
   analyzeAudioBuffer,
+  applyGainToNewBuffer,
   applySafeTargetGain,
   applyTinyEdgeFade,
   clamp,
@@ -61,13 +62,13 @@ function repairLabel(settings: PreviewSettings): string {
 
 function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
   const amount = clamp(settings.intensity / 100, 0, 1);
-  const repair = repairMultiplier(settings);
+  const repair = repairMultiplier(settings) * (settings.antiFatigue ? 1.18 : 1);
 
   const highTreatmentGain =
     settings.highTreatment === "verySoft"
-      ? -4.1
+      ? (settings.antiFatigue ? -5.2 : -4.1)
       : settings.highTreatment === "soft"
-        ? -2.7
+        ? (settings.antiFatigue ? -3.5 : -2.7)
         : settings.highTreatment === "open"
           ? 1.0
           : -0.5;
@@ -87,22 +88,22 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
 
   return {
     highShelfGain: highTreatmentGain * amount * presetWeight,
-    harshDipGain: -2.3 * amount * presetWeight * repair,
+    harshDipGain: (settings.antiFatigue ? -3.1 : -2.3) * amount * presetWeight * repair,
     fizzDipGain:
       settings.highTreatment === "verySoft"
-        ? -3.2 * amount * repair
+        ? (settings.antiFatigue ? -4.2 : -3.2) * amount * repair
         : settings.highTreatment === "soft"
-          ? -2.0 * amount * repair
+          ? (settings.antiFatigue ? -2.9 : -2.0) * amount * repair
           : settings.highTreatment === "open"
             ? -0.4 * amount * repair
             : -1.0 * amount * repair,
-    airGain: settings.highTreatment === "open" ? 0.9 * amount : -0.35 * amount,
-    presenceGain: settings.highTreatment === "open" ? 0.65 * amount : -0.45 * amount,
+    airGain: settings.highTreatment === "open" ? 0.9 * amount : (settings.antiFatigue ? -0.9 : -0.35) * amount,
+    presenceGain: settings.highTreatment === "open" ? 0.65 * amount : (settings.antiFatigue ? -0.75 : -0.45) * amount,
     lowShelfGain: settings.presetId === "open" ? -0.35 * amount : 0.45 * amount + powerBoost,
     subControlFrequency: settings.presetId === "power" ? 30 : 34,
     compressorThreshold: -23 + 8 * (1 - amount) - settings.density * 0.04,
     compressorRatio: 1.45 + 1.05 * amount + settings.density * 0.012,
-    makeupGain: 1 + 0.07 * amount + settings.density * 0.0015,
+    makeupGain: 1 + 0.08 * amount + settings.density * 0.0018 + (settings.autoIntensity === "impact" ? 0.035 : 0),
     dehissReductionDb:
       (settings.highTreatment === "verySoft"
         ? 2.2
@@ -110,7 +111,7 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
           ? 1.35
           : settings.highTreatment === "open"
             ? 0.25
-            : 0.75) * repair
+            : 0.75) * repair + (settings.antiFatigue ? 0.55 : 0)
   };
 }
 
@@ -266,6 +267,57 @@ function inferDehissActive(beforeHighRatio: number, profile: ProcessingProfile):
   return beforeHighRatio > 0.34 && profile.dehissReductionDb > 0.5;
 }
 
+function applyPostLoudnessCalibration(
+  source: AudioBuffer,
+  targetLufsEstimate: number,
+  maxPeakDb: number,
+  autoIntensity: PreviewSettings["autoIntensity"],
+  antiFatigue: boolean
+): { buffer: AudioBuffer; limiterActive: boolean; limiterReductionDb: number; correctionGainDb: number } {
+  let current = source;
+  let limiterActive = false;
+  let limiterReductionDb = 0;
+  let correctionGainDb = 0;
+  const maxExtraDb = autoIntensity === "impact" ? 4.2 : antiFatigue || autoIntensity === "safe" ? 2.2 : 3.2;
+
+  for (let pass = 0; pass < 3; pass += 1) {
+    const metrics = analyzeAdvancedAudioBuffer(current);
+    const loudnessGapDb = targetLufsEstimate - metrics.estimatedLufs;
+
+    if (loudnessGapDb <= 0.35 || correctionGainDb >= maxExtraDb) {
+      break;
+    }
+
+    const currentHeadroomDb = Math.max(0, -metrics.approxTruePeakDb);
+    const ceilingHeadroomDb = Math.abs(maxPeakDb);
+    const roomBeforeLimiterDb = Math.max(0, currentHeadroomDb - ceilingHeadroomDb);
+    const limiterAllowanceDb = autoIntensity === "impact" ? 1.8 : antiFatigue || autoIntensity === "safe" ? 0.8 : 1.25;
+    const passGainDb = clamp(
+      Math.min(loudnessGapDb, roomBeforeLimiterDb + limiterAllowanceDb, maxExtraDb - correctionGainDb),
+      0,
+      2.4
+    );
+
+    if (passGainDb < 0.15) {
+      break;
+    }
+
+    current = applyGainToNewBuffer(current, dbToLinear(passGainDb));
+    const limited = applyImprovedLimiter(current, maxPeakDb);
+    current = limited.buffer;
+    limiterActive = limiterActive || limited.active;
+    limiterReductionDb = Math.max(limiterReductionDb, limited.reductionDb);
+    correctionGainDb += passGainDb;
+  }
+
+  return {
+    buffer: current,
+    limiterActive,
+    limiterReductionDb,
+    correctionGainDb
+  };
+}
+
 export async function renderPreviewMaster(
   inputBuffer: AudioBuffer,
   settings: PreviewSettings
@@ -365,7 +417,19 @@ export async function renderPreviewMaster(
     settings.targetRmsDb,
     settings.maxPeakDb
   );
-  const limiter = applyImprovedLimiter(leveledBuffer, settings.maxPeakDb);
+  const firstLimiter = applyImprovedLimiter(leveledBuffer, settings.maxPeakDb);
+  const calibrated = applyPostLoudnessCalibration(
+    firstLimiter.buffer,
+    settings.targetLufsEstimate,
+    settings.maxPeakDb,
+    settings.autoIntensity,
+    settings.antiFatigue
+  );
+  const limiter = {
+    buffer: calibrated.buffer,
+    active: firstLimiter.active || calibrated.limiterActive,
+    reductionDb: Math.max(firstLimiter.reductionDb, calibrated.limiterReductionDb)
+  };
   const dcCorrection = removeDcOffset(limiter.buffer);
   const finalBuffer = applyTinyEdgeFade(dcCorrection.buffer);
   const afterMetrics = analyzeAdvancedAudioBuffer(finalBuffer);
@@ -387,7 +451,7 @@ export async function renderPreviewMaster(
     appliedMoves.push("de-hiss aigu léger");
   }
   if (antiFizzReductionDb > 0.8) {
-    appliedMoves.push("anti-fizz / contrôle des aigus");
+    appliedMoves.push(settings.antiFatigue ? "AI Shimmer Control / aigus fatigants" : "anti-fizz / contrôle des aigus");
   }
   if (Math.abs(profile.lowShelfGain) > 0.2 || profile.subControlFrequency > 30) {
     appliedMoves.push("contrôle sub et bas du spectre");
@@ -400,7 +464,10 @@ export async function renderPreviewMaster(
   }
   appliedMoves.push("compression douce");
   appliedMoves.push(`auto target ${settings.targetLufsEstimate.toFixed(1)} LUFS est.`);
-  appliedMoves.push(`headroom cible ${Math.abs(settings.maxPeakDb).toFixed(1)} dB`);
+  appliedMoves.push(`ceiling ${settings.maxPeakDb.toFixed(1)} dBTP est.`);
+  if (calibrated.correctionGainDb > 0.15) {
+    appliedMoves.push(`calibration loudness +${calibrated.correctionGainDb.toFixed(1)} dB`);
+  }
   if (limiter.active) {
     appliedMoves.push("limiteur de sécurité");
   }
@@ -442,8 +509,12 @@ export async function renderPreviewMaster(
       gainAppliedDb,
       targetRmsDb: settings.targetRmsDb,
       targetLufsEstimate: settings.targetLufsEstimate,
+      targetLufsMinEstimate: settings.targetLufsEstimate - (settings.autoIntensity === "safe" || settings.antiFatigue ? 1.15 : 0.9),
+      targetLufsMaxEstimate: settings.targetLufsEstimate + (settings.autoIntensity === "impact" ? 0.45 : 0.35),
       ceilingDb: settings.maxPeakDb,
       targetHeadroomDb: Math.abs(settings.maxPeakDb),
+      targetHeadroomMinDb: Math.max(1, Math.abs(settings.maxPeakDb) - 0.4),
+      targetHeadroomMaxDb: settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
       achievedHeadroomDb,
       limiterActive: limiter.active,
       limiterReductionDb: limiter.reductionDb

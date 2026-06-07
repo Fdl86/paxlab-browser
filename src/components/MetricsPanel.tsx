@@ -107,8 +107,8 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
           <div className="render-summary">
             <span>Rendu local : {(result.renderTimeMs / 1000).toFixed(2)} s</span>
             <span>{describeHighTreatment(result.settings.highTreatment)}</span>
-            <span>Cible auto : {result.settings.targetLufsEstimate.toFixed(1)} LUFS est.</span>
-            <span>Ceiling : {result.settings.maxPeakDb.toFixed(1)} dBTP est. / headroom {Math.abs(result.settings.maxPeakDb).toFixed(1)} dB</span>
+            <span>Cible centrale : {result.settings.targetLufsEstimate.toFixed(1)} LUFS est.</span>
+            <span>Ceiling : {result.settings.maxPeakDb.toFixed(1)} dBTP est. / plage headroom {result.report.loudness.targetHeadroomMinDb?.toFixed(1) ?? "-"} à {result.report.loudness.targetHeadroomMaxDb?.toFixed(1) ?? "-"} dB</span>
             <span>Gain obtenu : {result.report.loudness.gainAppliedDb >= 0 ? "+" : ""}{result.report.loudness.gainAppliedDb.toFixed(1)} dB approx.</span>
           </div>
 

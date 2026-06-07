@@ -1,8 +1,14 @@
 import type { ChangeEvent } from "react";
 import { useState } from "react";
-import { inferAutoMasterPlan } from "../audio/autoTarget";
+import { buildSettingsFromAnalysis, inferAutoMasterPlan } from "../audio/autoTarget";
 import { PREVIEW_PRESETS, getPresetById, getSettingsForPreset, describeSourceRepair } from "../audio/previewPresets";
-import type { PreviewSettings, PreviewStatus, SourceRepairLevel, SourceAnalysisResult } from "../audio/types";
+import type {
+  AutoIntensityId,
+  PreviewSettings,
+  PreviewStatus,
+  SourceRepairLevel,
+  SourceAnalysisResult
+} from "../audio/types";
 
 interface PreviewControlsProps {
   settings: PreviewSettings;
@@ -32,6 +38,18 @@ function repairHelp(level: SourceRepairLevel): string {
   return "Normal : compromis recommandé pour la majorité des morceaux IA.";
 }
 
+function autoIntensityLabel(value: AutoIntensityId): string {
+  if (value === "safe") {
+    return "Prudent";
+  }
+
+  if (value === "impact") {
+    return "Impact";
+  }
+
+  return "Équilibré";
+}
+
 export function PreviewControls({
   settings,
   previewStatus,
@@ -48,7 +66,37 @@ export function PreviewControls({
   const [mode, setMode] = useState<WorkMode>("simple");
   const preset = getPresetById(settings.presetId);
   const isRendering = previewStatus === "rendering";
-  const autoPlan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics) : null;
+  const autoPlan = sourceAnalysis
+    ? inferAutoMasterPlan(sourceAnalysis.metrics, {
+        autoIntensity: settings.autoIntensity,
+        antiFatigue: settings.antiFatigue
+      })
+    : null;
+
+  function rebuildAutoSettings(partial: Partial<PreviewSettings>) {
+    const nextBase = {
+      ...settings,
+      ...partial
+    };
+
+    if (!sourceAnalysis) {
+      onSettingsChange(nextBase);
+      return;
+    }
+
+    const rebuilt = buildSettingsFromAnalysis(sourceAnalysis.metrics, nextBase.presetId, {
+      autoIntensity: nextBase.autoIntensity,
+      antiFatigue: nextBase.antiFatigue
+    });
+
+    onSettingsChange({
+      ...rebuilt,
+      ...partial,
+      presetId: nextBase.presetId,
+      autoIntensity: nextBase.autoIntensity,
+      antiFatigue: nextBase.antiFatigue
+    });
+  }
 
   function updateSettings(partial: Partial<PreviewSettings>) {
     onSettingsChange({
@@ -61,19 +109,24 @@ export function PreviewControls({
     const nextPresetId = event.target.value as PreviewSettings["presetId"];
     const nextPresetSettings = getSettingsForPreset(nextPresetId);
 
-    onSettingsChange({
-      ...nextPresetSettings,
-      targetRmsDb: settings.targetRmsDb,
-      targetLufsEstimate: settings.targetLufsEstimate
-    });
+    if (sourceAnalysis) {
+      const rebuilt = buildSettingsFromAnalysis(sourceAnalysis.metrics, nextPresetId, {
+        autoIntensity: nextPresetSettings.autoIntensity,
+        antiFatigue: nextPresetSettings.antiFatigue
+      });
+      onSettingsChange(rebuilt);
+      return;
+    }
+
+    onSettingsChange(nextPresetSettings);
   }
 
   return (
-    <section className="panel controls-panel pro-controls-panel">
+    <section className="panel controls-panel pro-controls-panel dynamic-controls-panel">
       <div className="panel-heading compact-heading">
         <div>
           <p className="eyebrow">Rendu local</p>
-          <h2>Auto Engine V2</h2>
+          <h2>Auto Engine V3.1</h2>
         </div>
         <div className="mode-toggle" aria-label="Mode de réglage">
           <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
@@ -81,24 +134,55 @@ export function PreviewControls({
         </div>
       </div>
 
-      <div className="control-room-summary control-room-summary-v2">
+      <div className="control-room-summary control-room-summary-v2 dynamic-summary">
         <div>
           <span>Plan auto</span>
           <strong>{autoPlan?.profileLabel ?? "Analyse"}</strong>
         </div>
         <div>
-          <span>Cible</span>
-          <strong>{settings.targetLufsEstimate.toFixed(1)} LUFS est.</strong>
+          <span>Plage LUFS</span>
+          <strong>{autoPlan ? `${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : `${settings.targetLufsEstimate.toFixed(1)}`}</strong>
         </div>
         <div>
           <span>Headroom</span>
-          <strong>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</strong>
+          <strong>{autoPlan ? `${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : `${Math.abs(settings.maxPeakDb).toFixed(1)} dB`}</strong>
         </div>
         <div>
-          <span>Réparation</span>
-          <strong>{describeSourceRepair(settings.sourceRepair).replace("Réparation source ", "")}</strong>
+          <span>Anti-fatigue</span>
+          <strong>{settings.antiFatigue ? "Activé" : "Off"}</strong>
         </div>
       </div>
+
+      <div className="segmented-control-block">
+        <span>Orientation automatique</span>
+        <div className="segmented-control auto-intensity-control">
+          {(["safe", "balanced", "impact"] as AutoIntensityId[]).map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={settings.autoIntensity === value ? "active" : ""}
+              onClick={() => rebuildAutoSettings({ autoIntensity: value })}
+            >
+              {autoIntensityLabel(value)}
+            </button>
+          ))}
+        </div>
+        <p className="control-help">
+          Prudent garde plus de marge. Équilibré est le mode par défaut. Impact pousse plus fort si le fichier le permet.
+        </p>
+      </div>
+
+      <label className={settings.antiFatigue ? "fatigue-toggle active" : "fatigue-toggle"}>
+        <input
+          type="checkbox"
+          checked={settings.antiFatigue}
+          onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
+        />
+        <span>
+          <strong>Aigus fatigants</strong>
+          <small>AI Shimmer Control : calme le fizz, la brillance dure et les cymbales IA qui piquent.</small>
+        </span>
+      </label>
 
       <div className="control-group">
         <label htmlFor="preset">Profil de rendu</label>
@@ -138,7 +222,7 @@ export function PreviewControls({
           id="intensity"
           type="range"
           min="24"
-          max="90"
+          max="96"
           step="1"
           value={settings.intensity}
           onChange={(event) => updateSettings({ intensity: Number(event.target.value) })}
@@ -195,32 +279,32 @@ export function PreviewControls({
 
           <div className="slider-row">
             <div>
-              <label htmlFor="targetLufs">Cible LUFS estimée</label>
+              <label htmlFor="targetLufs">Cible centrale LUFS estimée</label>
               <span>{settings.targetLufsEstimate.toFixed(1)} LUFS</span>
             </div>
             <input
               id="targetLufs"
               type="range"
-              min="-14.8"
+              min="-15.2"
               max="-11.8"
               step="0.1"
               value={settings.targetLufsEstimate}
               onChange={(event) => {
                 const target = Number(event.target.value);
-                updateSettings({ targetLufsEstimate: target, targetRmsDb: target + 0.7 });
+                updateSettings({ targetLufsEstimate: target, targetRmsDb: target + 0.75 });
               }}
             />
           </div>
 
           <div className="slider-row">
             <div>
-              <label htmlFor="maxPeakDb">Ceiling / headroom</label>
+              <label htmlFor="maxPeakDb">Ceiling / headroom minimal</label>
               <span>{settings.maxPeakDb.toFixed(1)} dBTP est.</span>
             </div>
             <input
               id="maxPeakDb"
               type="range"
-              min="-1.8"
+              min="-3.5"
               max="-0.8"
               step="0.1"
               value={settings.maxPeakDb}

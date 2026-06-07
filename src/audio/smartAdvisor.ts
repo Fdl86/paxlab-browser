@@ -32,13 +32,19 @@ export function buildAdvisor(
 
   const metrics = sourceAnalysis.metrics;
   const moves: AdvisorMove[] = [];
-  const plan = inferAutoMasterPlan(metrics);
-  const recommended = buildSettingsFromAnalysis(metrics, currentSettings.presetId);
+  const plan = inferAutoMasterPlan(metrics, {
+    autoIntensity: currentSettings.autoIntensity,
+    antiFatigue: currentSettings.antiFatigue
+  });
+  const recommended = buildSettingsFromAnalysis(metrics, currentSettings.presetId, {
+    autoIntensity: currentSettings.autoIntensity,
+    antiFatigue: currentSettings.antiFatigue
+  });
 
   moves.push({
     id: "auto-plan",
     title: `${plan.profileLabel} : ${plan.targetLufsEstimate.toFixed(1)} LUFS est.`,
-    detail: `Headroom cible ${plan.targetHeadroomDb.toFixed(1)} dB, ceiling ${plan.ceilingDb.toFixed(1)} dBTP est., lift prévu ${plan.expectedLiftDb >= 0 ? "+" : ""}${plan.expectedLiftDb.toFixed(1)} dB.`,
+    detail: `Plage headroom ${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB, ceiling ${plan.ceilingDb.toFixed(1)} dBTP est., lift prévu ${plan.expectedLiftDb >= 0 ? "+" : ""}${plan.expectedLiftDb.toFixed(1)} dB.`,
     severity: "info"
   });
 
@@ -51,6 +57,8 @@ export function buildAdvisor(
     });
     recommended.highTreatment = "verySoft";
     recommended.sourceRepair = "strong";
+    recommended.antiFatigue = true;
+    recommended.autoIntensity = currentSettings.autoIntensity === "impact" ? "balanced" : currentSettings.autoIntensity;
     recommended.intensity = Math.max(recommended.intensity, 72);
   }
 
@@ -83,7 +91,7 @@ export function buildAdvisor(
       severity: "info"
     });
     recommended.targetLufsEstimate = Math.min(recommended.targetLufsEstimate, -13.8);
-    recommended.targetRmsDb = Math.min(recommended.targetRmsDb, -13.6);
+    recommended.targetRmsDb = Math.min(recommended.targetRmsDb, -13.1);
     recommended.density = Math.min(recommended.density, 38);
   }
 
@@ -107,7 +115,9 @@ export function buildAdvisor(
     Object.assign(recommended, getSettingsForPreset("balanced"), {
       targetLufsEstimate: recommended.targetLufsEstimate,
       targetRmsDb: recommended.targetRmsDb,
-      sourceRepair: "light"
+      sourceRepair: "light",
+      autoIntensity: currentSettings.autoIntensity,
+      antiFatigue: currentSettings.antiFatigue
     });
   }
 
