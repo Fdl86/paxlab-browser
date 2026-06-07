@@ -1,5 +1,5 @@
 import { inferAutoMasterPlan } from "../audio/autoTarget";
-import { formatBytes, formatDuration, formatNumber } from "../audio/audioBufferUtils";
+import { formatDuration } from "../audio/audioBufferUtils";
 import type {
   DecodedAudioData,
   PreviewRenderResult,
@@ -23,23 +23,30 @@ function formatLufs(value: number): string {
   return `${value.toFixed(1)} LUFS est.`;
 }
 
-function previewLabel(
+function formatPreview(
   previewStatus: PreviewStatus,
   previewRevision: number,
   previewRenderedAt: string | null,
   hasPendingChanges: boolean
 ): string {
   if (previewStatus === "rendering") {
-    return "Rendu en cours";
+    return "Génération en cours";
   }
 
   if (previewRevision <= 0) {
-    return "Non générée";
+    return "Pas encore";
   }
 
-  const time = previewRenderedAt ? ` · ${previewRenderedAt}` : "";
-  const stale = hasPendingChanges ? " · réglages modifiés" : " · à jour";
-  return `Preview Master #${previewRevision}${time}${stale}`;
+  if (hasPendingChanges) {
+    return `#${previewRevision} à mettre à jour`;
+  }
+
+  return `#${previewRevision}${previewRenderedAt ? ` · ${previewRenderedAt}` : ""}`;
+}
+
+function formatPreset(settings: PreviewSettings): string {
+  const base = settings.autoIntensity === "impact" ? "Impact" : settings.autoIntensity === "safe" ? "Propre" : "Équilibré";
+  return settings.antiFatigue ? `${base} + anti-fatigue` : base;
 }
 
 export function SessionStatusPanel({
@@ -52,57 +59,50 @@ export function SessionStatusPanel({
   previewRenderedAt,
   hasPendingChanges
 }: SessionStatusPanelProps) {
-  const file = decodedAudio?.file ?? null;
   const info = decodedAudio?.info ?? null;
   const activeSettings = previewResult?.settings ?? previewSettings;
   const plan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics, {
     autoIntensity: activeSettings.autoIntensity,
     antiFatigue: activeSettings.antiFatigue
   }) : null;
-  const target = activeSettings.targetLufsEstimate;
-  const ceiling = activeSettings.maxPeakDb;
-  const sourceLufs = sourceAnalysis?.metrics.estimatedLufs ?? null;
 
   return (
-    <section className="panel session-panel">
-      <div className="panel-heading">
-        <p className="eyebrow">Session locale</p>
-        <h2>État du travail</h2>
+    <section className="panel session-panel command-summary-panel">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Résumé</p>
+          <h2>Ce que PAXLAB va faire</h2>
+        </div>
+        <span className={previewResult && !hasPendingChanges ? "status-pill ready-pill" : "status-pill"}>
+          {previewResult && !hasPendingChanges ? "Prêt" : decodedAudio ? "En cours" : "Attente"}
+        </span>
       </div>
 
       {!decodedAudio && (
-        <div className="empty-state small-empty-state">
-          <p>Aucun morceau chargé.</p>
-          <span>Importe un fichier WAV ou MP3 pour lancer l’analyse locale.</span>
+        <div className="empty-state small-empty-state friendly-empty-state">
+          <p>Commence par importer un morceau.</p>
+          <span>Ensuite, choisis simplement Propre, Équilibré ou Impact.</span>
         </div>
       )}
 
       {decodedAudio && (
-        <div className="session-grid">
-          <div className="session-card large-session-card">
+        <div className="simple-status-list">
+          <div>
             <span>Morceau</span>
-            <strong>{file?.name ?? "Fichier local"}</strong>
-            <small>
-              {info ? `${formatDuration(info.durationSeconds)} · ${formatNumber(info.sampleRate)} Hz · ${info.numberOfChannels} canal${info.numberOfChannels > 1 ? "x" : ""}` : "Décodage local"}
-            </small>
+            <strong>{decodedAudio.file.name}</strong>
+            <small>{info ? `${formatDuration(info.durationSeconds)} · ${info.numberOfChannels} canal${info.numberOfChannels > 1 ? "x" : ""}` : "Décodage local"}</small>
           </div>
 
-          <div className="session-card">
-            <span>Plan auto</span>
-            <strong>{plan?.profileLabel ?? "Analyse"}</strong>
-            <small>{sourceLufs !== null ? `Source : ${formatLufs(sourceLufs)}` : "En attente"}</small>
+          <div>
+            <span>Rendu choisi</span>
+            <strong>{formatPreset(activeSettings)}</strong>
+            <small>{plan ? `${plan.profileLabel} · ${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS` : "Analyse en cours"}</small>
           </div>
 
-          <div className="session-card">
-            <span>{previewResult ? "Résultat / Objectif" : "Objectif / Headroom"}</span>
-            <strong>{previewResult ? formatLufs(previewResult.afterMetrics.estimatedLufs) : plan ? `${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS` : formatLufs(target)}</strong>
-            <small>{previewResult && plan ? `Objectif indicatif ${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)} LUFS` : plan ? `Headroom ${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB` : `Ceiling ${ceiling.toFixed(1)} dBTP est.`}</small>
-          </div>
-
-          <div className={hasPendingChanges ? "session-card warning-session-card" : "session-card success-session-card"}>
+          <div>
             <span>Preview</span>
-            <strong>{previewLabel(previewStatus, previewRevision, previewRenderedAt, hasPendingChanges)}</strong>
-            <small>{previewResult ? "Version générée en mémoire" : "Aucun rendu pour l’instant"}</small>
+            <strong>{formatPreview(previewStatus, previewRevision, previewRenderedAt, hasPendingChanges)}</strong>
+            <small>{previewResult ? `${formatLufs(previewResult.afterMetrics.estimatedLufs)} · HR ${(previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb).toFixed(1)} dB` : "Clique sur Générer pour créer la version A/B"}</small>
           </div>
         </div>
       )}

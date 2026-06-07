@@ -19,6 +19,17 @@ function isSupportedAudioFile(file: File): boolean {
   );
 }
 
+function formatBytes(bytes: number): string {
+  if (!bytes) {
+    return "0 o";
+  }
+
+  const units = ["o", "Ko", "Mo", "Go"];
+  const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** unit;
+  return `${value.toLocaleString("fr-FR", { maximumFractionDigits: value >= 10 ? 1 : 2 })} ${units[unit]}`;
+}
+
 export function UploadPanel({
   selectedFile,
   isDecoding,
@@ -43,14 +54,17 @@ export function UploadPanel({
   }
 
   return (
-    <section className="panel upload-panel">
-      <div className="panel-heading">
-        <p className="eyebrow">Import local</p>
-        <h2>Importer un WAV ou MP3</h2>
+    <section className="panel upload-panel hero-upload-panel">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Étape 1</p>
+          <h2>Dépose ton morceau</h2>
+        </div>
+        <span className="status-pill">Local</span>
       </div>
 
       <label
-        className={`drop-zone ${isDragActive ? "drop-zone-active" : ""}`}
+        className={`drop-zone hero-drop-zone ${isDragActive ? "drop-zone-active" : ""}`}
         onDragEnter={(event) => {
           event.preventDefault();
           setIsDragActive(true);
@@ -75,26 +89,22 @@ export function UploadPanel({
           onChange={(event) => handleFile(event.target.files?.[0])}
         />
 
-        <span className="drop-zone-title">
-          Glisse un fichier ici ou clique pour sélectionner
-        </span>
-        <span className="drop-zone-subtitle">
-          Décodage local via le navigateur. Aucun upload serveur.
-        </span>
+        <span className="drop-zone-icon" aria-hidden="true">+</span>
+        <span className="drop-zone-title">Clique ou glisse un WAV / MP3</span>
+        <span className="drop-zone-subtitle">Le fichier reste dans ton navigateur. Rien n’est envoyé sur un serveur.</span>
       </label>
 
       {localWarning && <p className="message message-warning">{localWarning}</p>}
 
       {selectedFile && (
-        <div className="selected-file">
-          <span className="selected-file-label">Fichier sélectionné</span>
+        <div className="selected-file selected-file-pill">
+          <span className="selected-file-label">Morceau chargé</span>
           <strong>{selectedFile.name}</strong>
+          <small>{formatBytes(selectedFile.size)}</small>
         </div>
       )}
 
-      {isDecoding && (
-        <p className="message message-info">Analyse locale du fichier en cours...</p>
-      )}
+      {isDecoding && <p className="message message-info">Analyse locale en cours...</p>}
     </section>
   );
 }

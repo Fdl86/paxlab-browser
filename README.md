@@ -1,16 +1,16 @@
-# PAXLAB Browser Engine - dev09.1 Wow UX Scroll Fix
+# PAXLAB Browser Engine - dev10 Simple UX
 
-Application Vite / React / TypeScript pour traitement audio local dans le navigateur.
+Application Vite / React / TypeScript pour Preview Master locale dans le navigateur.
 
-## Dev08.3
+## Dev10
 
-- Séparation claire entre objectif indicatif, résultat obtenu et sécurité audio.
-- L’UI n’affiche plus une plage LUFS comme si elle était garantie.
-- Le panneau Rendu local affiche le résultat LUFS et le headroom réellement obtenus après génération.
-- Le Smart Repair parle d’objectif indicatif plutôt que de promesse de cible fixe.
-- Le dashboard explique quand le rendu est contrôlé : headroom respecté mais loudness volontairement plus prudent pour éviter d’écraser.
-- Headroom final et headroom actif moyen conservés.
-- Mode Impact et option Aigus fatigants conservés.
+- UI/UX simplifiée et plus compacte.
+- Mode Simple par défaut : Propre / Équilibré / Impact + option Aigus fatigants.
+- Mode Expert disponible sur demande.
+- Workflow plus direct : Importer, générer, comparer, exporter.
+- Moteur audio DEV08.4 conservé.
+- Impact conservé.
+- Anti-fatigue conservé.
 - Export WAV local conservé.
 - Aucun upload serveur.
 - Aucune API externe.

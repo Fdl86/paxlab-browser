@@ -221,9 +221,9 @@ export function RealtimeMonitorPanel({
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const outputPercent = Math.min(100, Math.max(0, ((meter.outputDb + 60) / 60) * 100));
   const peakPercent = Math.min(100, Math.max(0, ((meter.peakHoldDb + 60) / 60) * 100));
-  const previewLabel = previewRevision > 0 ? `Preview Master #${previewRevision}` : "Preview Master";
+  const previewLabel = previewRevision > 0 ? `Preview #${previewRevision}` : "Preview";
   const previewInlineTime = previewRenderedAt ? `Version générée à ${previewRenderedAt}` : null;
-  const nowPlayingLabel = activeSource === "original" ? "Original Source" : previewLabel;
+  const nowPlayingLabel = activeSource === "original" ? "Original" : previewLabel;
   const previewStatusLabel =
     previewStatus === "rendering"
       ? "Rendu..."
@@ -252,7 +252,7 @@ export function RealtimeMonitorPanel({
           disabled={!originalBuffer || isSwitching}
           onClick={() => onSwitchSource("original")}
         >
-          Original Source
+          Original
         </button>
         <button
           type="button"
@@ -260,7 +260,7 @@ export function RealtimeMonitorPanel({
           disabled={!canUsePreview || isSwitching}
           onClick={() => onSwitchSource("preview")}
         >
-          Preview Master
+          Preview
         </button>
       </div>
 
@@ -292,8 +292,8 @@ export function RealtimeMonitorPanel({
           <div className="monitor-waveform" onClick={handleClick} style={{ "--playhead": `${progress}%` } as CSSProperties}>
             <div className="waveform-label-row">
               <div className="waveform-label-left">
-                <span>Signal</span>
-                <small>{waveformViewMode === "structure" ? "Vue structure RMS" : "Vue niveau comparé"}</small>
+                <span>Écoute A/B</span>
+                <small>{waveformViewMode === "structure" ? "Structure" : "Niveau comparé"}</small>
               </div>
               <div className="waveform-actions">
                 <div className="waveform-mode-toggle" aria-label="Mode d’affichage waveform">
@@ -353,12 +353,12 @@ export function RealtimeMonitorPanel({
 
           <div className="realtime-grid">
             <div className="meter-card primary-meter">
-              <span>Peak</span>
+              <span>Peak lecture</span>
               <strong>{formatDb(meter.peakHoldDb)}</strong>
               <small>dBTP est.</small>
             </div>
             <div className="meter-card primary-meter">
-              <span>LUFS</span>
+              <span>LUFS lecture</span>
               <strong>{formatLufs(meter.integratedLufsEstimate)}</strong>
               <small>mesure depuis play</small>
             </div>
@@ -403,7 +403,7 @@ export function RealtimeMonitorPanel({
       )}
 
       <p className="monitor-note">
-        Lecture courante : les meters de gauche bougent selon le passage écouté. Résumé global : le LUFS rendu et le headroom final sont affichés dans Rendu local / Auto Engine.
+        Les compteurs bougent pendant l’écoute. Le résultat global est résumé dans le panneau de droite et dans l’export.
       </p>
     </section>
   );

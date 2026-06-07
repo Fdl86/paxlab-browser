@@ -275,26 +275,26 @@ export default function App() {
 
   const workflowStep = !decodedAudio ? 1 : previewResult ? 3 : previewStatus === "rendering" ? 2 : 2;
   const mainCtaLabel = !decodedAudio
-    ? "1. Importe un morceau"
+    ? "Importer un morceau"
     : previewStatus === "rendering"
-      ? "2. Génération en cours"
+      ? "Génération en cours"
       : previewResult
-        ? "3. Compare et exporte"
-        : "2. Génère la Preview";
+        ? "Comparer et exporter"
+        : "Générer la Preview";
 
   return (
     <main className="app-shell ux-shell">
       <header className="ux-hero-wow">
         <div className="ux-hero-copy">
-          <p className="version">PAXLAB Browser Engine - dev09.1 Wow UX</p>
+          <p className="version">PAXLAB Browser Engine - dev10 Simple UX</p>
           <h1>PAXLAB Master Room</h1>
           <p className="hero-text">
-            Un workflow simple : importe un morceau, choisis le rendu, génère une Preview Master, compare en A/B et exporte en WAV. Traitement local, sans upload serveur.
+            Dépose ton morceau, choisis Propre, Équilibré ou Impact, puis compare la Preview en A/B. Simple en façade, expert si besoin, toujours local dans ton navigateur.
           </p>
           <div className="ux-trust-row">
-            <span>Local browser</span>
-            <span>Preview non destructive</span>
-            <span>WAV export</span>
+            <span>Traitement local</span>
+            <span>A/B instantané</span>
+            <span>Export WAV</span>
           </div>
         </div>
 
@@ -306,7 +306,7 @@ export default function App() {
               ? "Réglages modifiés : clique sur régénérer pour mettre la Preview à jour."
               : previewRevision > 0
                 ? formatRevisionLabel(previewRevision, previewRenderedAt)
-                : "Glisse un fichier WAV ou MP3 pour commencer."}
+                : "Commence par déposer un WAV ou MP3."}
           </p>
         </div>
       </header>
@@ -320,7 +320,7 @@ export default function App() {
         <div className={workflowStep >= 2 ? "ux-step active" : "ux-step"}>
           <b>2</b>
           <span>Générer</span>
-          <small>Auto / Impact / Anti-fatigue</small>
+          <small>Propre / Équilibré / Impact</small>
         </div>
         <div className={workflowStep >= 3 ? "ux-step active" : "ux-step"}>
           <b>3</b>

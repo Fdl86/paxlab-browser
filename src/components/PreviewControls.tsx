@@ -28,6 +28,32 @@ interface PreviewControlsProps {
 
 type WorkMode = "simple" | "expert";
 
+const SIMPLE_PRESETS: Array<{
+  id: AutoIntensityId;
+  label: string;
+  promise: string;
+  help: string;
+}> = [
+  {
+    id: "safe",
+    label: "Propre",
+    promise: "Plus doux",
+    help: "Garde le morceau naturel et confortable."
+  },
+  {
+    id: "balanced",
+    label: "Équilibré",
+    promise: "Le choix simple",
+    help: "Plus fort, plus net, sans trop pousser."
+  },
+  {
+    id: "impact",
+    label: "Impact",
+    promise: "Plus puissant",
+    help: "Basses plus présentes et rendu plus dense."
+  }
+];
+
 function repairHelp(level: SourceRepairLevel): string {
   if (level === "strong") {
     return "Fort : utile sur exports Suno agressifs, brillants ou proches du clipping.";
@@ -42,7 +68,7 @@ function repairHelp(level: SourceRepairLevel): string {
 
 function autoIntensityLabel(value: AutoIntensityId): string {
   if (value === "safe") {
-    return "Prudent";
+    return "Propre";
   }
 
   if (value === "impact") {
@@ -50,6 +76,14 @@ function autoIntensityLabel(value: AutoIntensityId): string {
   }
 
   return "Équilibré";
+}
+
+function formatPreviewReady(revision: number, renderedAt: string | null): string {
+  if (revision <= 0) {
+    return "Aucune Preview générée";
+  }
+
+  return `Preview #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
 }
 
 export function PreviewControls({
@@ -124,12 +158,21 @@ export function PreviewControls({
     onSettingsChange(nextPresetSettings);
   }
 
+  const selectedSimplePreset = SIMPLE_PRESETS.find((item) => item.id === settings.autoIntensity) ?? SIMPLE_PRESETS[1];
+  const renderButtonLabel = isRendering
+    ? "Génération en cours..."
+    : hasPreview
+      ? hasPendingChanges
+        ? "Mettre à jour la Preview"
+        : "Générer une nouvelle Preview"
+      : "Générer la Preview";
+
   return (
-    <section className="panel controls-panel pro-controls-panel dynamic-controls-panel">
-      <div className="panel-heading compact-heading">
+    <section className="panel controls-panel pro-controls-panel dynamic-controls-panel simple-first-panel">
+      <div className="panel-heading compact-heading simple-header">
         <div>
           <p className="eyebrow">Action</p>
-          <h2>Réglages rapides</h2>
+          <h2>Choisis le rendu</h2>
         </div>
         <div className="mode-toggle" aria-label="Mode de réglage">
           <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
@@ -137,224 +180,260 @@ export function PreviewControls({
         </div>
       </div>
 
-      <div className="control-room-summary control-room-summary-v2 dynamic-summary">
-        <div>
-          <span>Plan auto</span>
-          <strong>{autoPlan?.profileLabel ?? "Analyse"}</strong>
-          <small>Objectif indicatif, ajusté par sécurité au rendu.</small>
-        </div>
-        <div>
-          <span>{previewResult ? "Résultat LUFS" : "Objectif LUFS"}</span>
-          <strong>{previewResult ? `${previewResult.afterMetrics.estimatedLufs.toFixed(1)}` : autoPlan ? `${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : `${settings.targetLufsEstimate.toFixed(1)}`}</strong>
-          <small>{previewResult && autoPlan ? `Objectif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : "Plage prévue avant rendu"}</small>
-        </div>
-        <div>
-          <span>{previewResult ? "Headroom obtenu" : "Headroom prévu"}</span>
-          <strong>{previewResult ? `${(previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb).toFixed(1)} dB` : autoPlan ? `${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : `${Math.abs(settings.maxPeakDb).toFixed(1)} dB`}</strong>
-          <small>{previewResult && autoPlan ? `Plage ${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : "Plage dynamique selon source"}</small>
-        </div>
-        <div>
-          <span>Anti-fatigue</span>
-          <strong>{settings.antiFatigue ? "Activé" : "Off"}</strong>
-          <small>{settings.antiFatigue ? "AI Shimmer Control actif" : "Désactivé"}</small>
-        </div>
-      </div>
+      {mode === "simple" && (
+        <>
+          <div className="simple-choice-grid" aria-label="Presets rapides">
+            {SIMPLE_PRESETS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={settings.autoIntensity === item.id ? "simple-preset-card active" : "simple-preset-card"}
+                onClick={() => rebuildAutoSettings({ autoIntensity: item.id })}
+              >
+                <strong>{item.label}</strong>
+                <span>{item.promise}</span>
+                <small>{item.help}</small>
+              </button>
+            ))}
+          </div>
 
-      <div className="segmented-control-block">
-        <span>Type de rendu</span>
-        <div className="segmented-control auto-intensity-control">
-          {(["safe", "balanced", "impact"] as AutoIntensityId[]).map((value) => (
-            <button
-              key={value}
-              type="button"
-              className={settings.autoIntensity === value ? "active" : ""}
-              onClick={() => rebuildAutoSettings({ autoIntensity: value })}
-            >
-              {autoIntensityLabel(value)}
-            </button>
-          ))}
-        </div>
-        <p className="control-help">
-          Prudent protège. Équilibré est le choix simple. Impact pousse plus fort quand le fichier le permet.
-        </p>
-      </div>
+          <label className={settings.antiFatigue ? "fatigue-toggle big-fatigue-toggle active" : "fatigue-toggle big-fatigue-toggle"}>
+            <input
+              type="checkbox"
+              checked={settings.antiFatigue}
+              onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
+            />
+            <span>
+              <strong>Aigus fatigants</strong>
+              <small>À cocher si le morceau pique les oreilles ou si les cymbales semblent artificielles.</small>
+            </span>
+          </label>
 
-      <label className={settings.antiFatigue ? "fatigue-toggle active" : "fatigue-toggle"}>
-        <input
-          type="checkbox"
-          checked={settings.antiFatigue}
-          onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
-        />
-        <span>
-          <strong>Aigus fatigants</strong>
-          <small>AI Shimmer Control : calme le fizz, la brillance dure et les cymbales IA qui piquent.</small>
-        </span>
-      </label>
-
-      <div className="control-group">
-        <label htmlFor="preset">Profil</label>
-        <select id="preset" value={settings.presetId} onChange={handlePresetChange}>
-          {PREVIEW_PRESETS.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-        <p className="control-help">{preset.description}</p>
-      </div>
-
-      <div className="segmented-control-block">
-        <span>Nettoyage source</span>
-        <div className="segmented-control">
-          {(["light", "normal", "strong"] as SourceRepairLevel[]).map((level) => (
-            <button
-              key={level}
-              type="button"
-              className={settings.sourceRepair === level ? "active" : ""}
-              onClick={() => updateSettings({ sourceRepair: level })}
-            >
-              {level === "light" ? "Léger" : level === "strong" ? "Fort" : "Normal"}
-            </button>
-          ))}
-        </div>
-        <p className="control-help">{repairHelp(settings.sourceRepair)}</p>
-      </div>
-
-      <div className="slider-row primary-slider-row">
-        <div>
-          <label htmlFor="intensity">Intensité</label>
-          <span>{settings.intensity} %</span>
-        </div>
-        <input
-          id="intensity"
-          type="range"
-          min="24"
-          max="96"
-          step="1"
-          value={settings.intensity}
-          onChange={(event) => updateSettings({ intensity: Number(event.target.value) })}
-        />
-      </div>
+          <div className="simple-result-preview">
+            <span>Réglage choisi</span>
+            <strong>{selectedSimplePreset.label}{settings.antiFatigue ? " + anti-fatigue" : ""}</strong>
+            <small>
+              {autoPlan
+                ? `${autoPlan.profileLabel} · objectif indicatif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)} LUFS`
+                : "PAXLAB ajustera la cible après analyse du fichier."}
+            </small>
+          </div>
+        </>
+      )}
 
       {mode === "expert" && (
-        <div className="expert-controls">
+        <>
+          <div className="control-room-summary control-room-summary-v2 dynamic-summary">
+            <div>
+              <span>Plan auto</span>
+              <strong>{autoPlan?.profileLabel ?? "Analyse"}</strong>
+              <small>Objectif indicatif, ajusté par sécurité au rendu.</small>
+            </div>
+            <div>
+              <span>{previewResult ? "Résultat LUFS" : "Objectif LUFS"}</span>
+              <strong>{previewResult ? `${previewResult.afterMetrics.estimatedLufs.toFixed(1)}` : autoPlan ? `${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : `${settings.targetLufsEstimate.toFixed(1)}`}</strong>
+              <small>{previewResult && autoPlan ? `Objectif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : "Plage prévue avant rendu"}</small>
+            </div>
+            <div>
+              <span>{previewResult ? "Headroom obtenu" : "Headroom prévu"}</span>
+              <strong>{previewResult ? `${(previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb).toFixed(1)} dB` : autoPlan ? `${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : `${Math.abs(settings.maxPeakDb).toFixed(1)} dB`}</strong>
+              <small>{previewResult && autoPlan ? `Plage ${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : "Plage dynamique selon source"}</small>
+            </div>
+            <div>
+              <span>Anti-fatigue</span>
+              <strong>{settings.antiFatigue ? "Activé" : "Off"}</strong>
+              <small>{settings.antiFatigue ? "AI Shimmer Control actif" : "Désactivé"}</small>
+            </div>
+          </div>
+
+          <div className="segmented-control-block">
+            <span>Type de rendu</span>
+            <div className="segmented-control auto-intensity-control">
+              {(["safe", "balanced", "impact"] as AutoIntensityId[]).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={settings.autoIntensity === value ? "active" : ""}
+                  onClick={() => rebuildAutoSettings({ autoIntensity: value })}
+                >
+                  {autoIntensityLabel(value)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className={settings.antiFatigue ? "fatigue-toggle active" : "fatigue-toggle"}>
+            <input
+              type="checkbox"
+              checked={settings.antiFatigue}
+              onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
+            />
+            <span>
+              <strong>Aigus fatigants</strong>
+              <small>AI Shimmer Control : calme le fizz, la brillance dure et les cymbales IA qui piquent.</small>
+            </span>
+          </label>
+
           <div className="control-group">
-            <label htmlFor="highTreatment">Brillance / anti-fizz</label>
-            <select
-              id="highTreatment"
-              value={settings.highTreatment}
-              onChange={(event) => updateSettings({ highTreatment: event.target.value as PreviewSettings["highTreatment"] })}
-            >
-              <option value="verySoft">Très douce</option>
-              <option value="soft">Plus douce</option>
-              <option value="neutral">Naturelle</option>
-              <option value="open">Plus ouverte</option>
+            <label htmlFor="preset">Profil</label>
+            <select id="preset" value={settings.presetId} onChange={handlePresetChange}>
+              {PREVIEW_PRESETS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
             </select>
+            <p className="control-help">{preset.description}</p>
           </div>
 
-          <div className="slider-row">
+          <div className="segmented-control-block">
+            <span>Nettoyage source</span>
+            <div className="segmented-control">
+              {(["light", "normal", "strong"] as SourceRepairLevel[]).map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  className={settings.sourceRepair === level ? "active" : ""}
+                  onClick={() => updateSettings({ sourceRepair: level })}
+                >
+                  {level === "light" ? "Léger" : level === "strong" ? "Fort" : "Normal"}
+                </button>
+              ))}
+            </div>
+            <p className="control-help">{repairHelp(settings.sourceRepair)}</p>
+          </div>
+
+          <div className="slider-row primary-slider-row">
             <div>
-              <label htmlFor="stereoWidth">Largeur stéréo</label>
-              <span>{settings.stereoWidth} %</span>
+              <label htmlFor="intensity">Intensité</label>
+              <span>{settings.intensity} %</span>
             </div>
             <input
-              id="stereoWidth"
+              id="intensity"
               type="range"
-              min="85"
-              max="112"
+              min="24"
+              max="96"
               step="1"
-              value={settings.stereoWidth}
-              onChange={(event) => updateSettings({ stereoWidth: Number(event.target.value) })}
+              value={settings.intensity}
+              onChange={(event) => updateSettings({ intensity: Number(event.target.value) })}
             />
           </div>
 
-          <div className="slider-row">
-            <div>
-              <label htmlFor="density">Densité harmonique</label>
-              <span>{settings.density} %</span>
+          <div className="expert-controls">
+            <div className="control-group">
+              <label htmlFor="highTreatment">Brillance / anti-fizz</label>
+              <select
+                id="highTreatment"
+                value={settings.highTreatment}
+                onChange={(event) => updateSettings({ highTreatment: event.target.value as PreviewSettings["highTreatment"] })}
+              >
+                <option value="verySoft">Très douce</option>
+                <option value="soft">Plus douce</option>
+                <option value="neutral">Naturelle</option>
+                <option value="open">Plus ouverte</option>
+              </select>
             </div>
-            <input
-              id="density"
-              type="range"
-              min="0"
-              max="80"
-              step="1"
-              value={settings.density}
-              onChange={(event) => updateSettings({ density: Number(event.target.value) })}
-            />
-          </div>
 
-          <div className="slider-row">
-            <div>
-              <label htmlFor="targetLufs">Cible centrale LUFS estimée</label>
-              <span>{settings.targetLufsEstimate.toFixed(1)} LUFS</span>
+            <div className="slider-row">
+              <div>
+                <label htmlFor="stereoWidth">Largeur stéréo</label>
+                <span>{settings.stereoWidth} %</span>
+              </div>
+              <input
+                id="stereoWidth"
+                type="range"
+                min="85"
+                max="112"
+                step="1"
+                value={settings.stereoWidth}
+                onChange={(event) => updateSettings({ stereoWidth: Number(event.target.value) })}
+              />
             </div>
-            <input
-              id="targetLufs"
-              type="range"
-              min="-15.2"
-              max="-11.8"
-              step="0.1"
-              value={settings.targetLufsEstimate}
-              onChange={(event) => {
-                const target = Number(event.target.value);
-                updateSettings({ targetLufsEstimate: target, targetRmsDb: target + 0.75 });
-              }}
-            />
-          </div>
 
-          <div className="slider-row">
-            <div>
-              <label htmlFor="maxPeakDb">Headroom final demandé</label>
-              <span>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</span>
+            <div className="slider-row">
+              <div>
+                <label htmlFor="density">Densité harmonique</label>
+                <span>{settings.density} %</span>
+              </div>
+              <input
+                id="density"
+                type="range"
+                min="0"
+                max="80"
+                step="1"
+                value={settings.density}
+                onChange={(event) => updateSettings({ density: Number(event.target.value) })}
+              />
             </div>
-            <input
-              id="maxPeakDb"
-              type="range"
-              min="-3.5"
-              max="-0.8"
-              step="0.1"
-              value={settings.maxPeakDb}
-              onChange={(event) => {
-                const nextCeiling = Number(event.target.value);
-                const currentHeadroom = Math.abs(settings.maxPeakDb);
-                const nextHeadroom = Math.abs(nextCeiling);
-                const headroomDelta = currentHeadroom - nextHeadroom;
-                const nextTarget = Math.min(-11.6, Math.max(-15.5, settings.targetLufsEstimate + headroomDelta * 0.65));
-                updateSettings({
-                  maxPeakDb: nextCeiling,
-                  targetLufsEstimate: nextTarget,
-                  targetRmsDb: nextTarget + 0.75
-                });
-              }}
-            />
+
+            <div className="slider-row">
+              <div>
+                <label htmlFor="targetLufs">Cible centrale LUFS estimée</label>
+                <span>{settings.targetLufsEstimate.toFixed(1)} LUFS</span>
+              </div>
+              <input
+                id="targetLufs"
+                type="range"
+                min="-15.2"
+                max="-11.8"
+                step="0.1"
+                value={settings.targetLufsEstimate}
+                onChange={(event) => {
+                  const target = Number(event.target.value);
+                  updateSettings({ targetLufsEstimate: target, targetRmsDb: target + 0.75 });
+                }}
+              />
+            </div>
+
+            <div className="slider-row">
+              <div>
+                <label htmlFor="maxPeakDb">Headroom final demandé</label>
+                <span>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</span>
+              </div>
+              <input
+                id="maxPeakDb"
+                type="range"
+                min="-3.5"
+                max="-0.8"
+                step="0.1"
+                value={settings.maxPeakDb}
+                onChange={(event) => {
+                  const nextCeiling = Number(event.target.value);
+                  const currentHeadroom = Math.abs(settings.maxPeakDb);
+                  const nextHeadroom = Math.abs(nextCeiling);
+                  const headroomDelta = currentHeadroom - nextHeadroom;
+                  const nextTarget = Math.min(-11.6, Math.max(-15.5, settings.targetLufsEstimate + headroomDelta * 0.65));
+                  updateSettings({
+                    maxPeakDb: nextCeiling,
+                    targetLufsEstimate: nextTarget,
+                    targetRmsDb: nextTarget + 0.75
+                  });
+                }}
+              />
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <button
-        className="primary-button big-render-button"
+        className="primary-button big-render-button simple-render-button"
         type="button"
         disabled={!hasAudio || isRendering}
         onClick={onRenderPreview}
       >
-        {isRendering
-          ? "Génération..."
-          : hasPreview
-            ? "Régénérer"
-            : "Générer la Preview"}
+        {renderButtonLabel}
       </button>
 
       {!hasAudio && <p className="message message-info">Importe un fichier audio pour activer la génération locale.</p>}
       {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouvelle Preview en cours.</p>}
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
-        <p className="message message-warning">Réglages modifiés. La Preview Master #{previewRevision} reste l’ancienne version tant que tu ne régénères pas.</p>
+        <p className="message message-warning">Réglages modifiés. {formatPreviewReady(previewRevision, previewRenderedAt)} reste l’ancienne version tant que tu ne régénères pas.</p>
       )}
       {mode === "expert" && (
-        <p className="message message-info">Le slider headroom agit maintenant aussi sur la cible loudness : moins de headroom demandé = rendu plus poussé, plus de headroom = rendu plus prudent.</p>
+        <p className="message message-info">Mode expert : les réglages changent la prochaine Preview uniquement après régénération.</p>
       )}
       {previewStatus === "ready" && !hasPendingChanges && (
-        <p className="message message-success">Preview Master #{previewRevision}{previewRenderedAt ? ` · ${previewRenderedAt}` : ""} prête pour A/B et export.</p>
+        <p className="message message-success">{formatPreviewReady(previewRevision, previewRenderedAt)} prête pour A/B et export.</p>
       )}
       {previewStatus === "error" && errorMessage && <p className="message message-error">{errorMessage}</p>}
     </section>

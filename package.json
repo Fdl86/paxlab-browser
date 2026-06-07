@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.9.1-dev09-wow-ux-scrollfix",
+  "version": "1.0.0-dev10-simple-ux",
   "type": "module",
   "scripts": {
     "dev": "vite",
