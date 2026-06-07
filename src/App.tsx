@@ -277,10 +277,10 @@ export default function App() {
     <main className="app-shell control-room-shell">
       <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev08.1 Dynamic Targeting</p>
+          <p className="version">PAXLAB Browser Engine - dev08.2 Metering Fix</p>
           <h1>PAXLAB Instant Control Room</h1>
           <p className="hero-text">
-            Auto Engine V3.1 : ciblage dynamique, plage headroom intelligente, mode aigus fatigants, A/B instantané et export WAV local.
+            Auto Engine V3.2 : headroom final stable, headroom actif moyen, waveform enveloppe fiable, mode impact et anti-fatigue conservés.
           </p>
         </div>
 
@@ -390,11 +390,11 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev08.1</p>
-          <h2>Dynamic Targeting, headroom intelligent et anti-fatigue</h2>
+          <p className="eyebrow">Statut dev08.2</p>
+          <h2>Metering stable, waveform fiable et contrôles manuels clarifiés</h2>
         </div>
         <p>
-          Cette version remplace la cible fixe par une plage cohérente selon le fichier : mode prudent, équilibré ou impact, headroom dynamique, résultat honnête et option aigus fatigants.
+          Cette version stabilise la lecture du headroom : headroom final, moyenne active hors silences, waveform centrée en enveloppe et slider headroom plus lisible en mode expert.
         </p>
         <p className="honest-note">
           Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.

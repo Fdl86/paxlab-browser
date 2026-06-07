@@ -6,6 +6,7 @@ import {
   applyGainToNewBuffer,
   applySafeTargetGain,
   applyTinyEdgeFade,
+  analyzeHeadroomSummary,
   clamp,
   dbToLinear,
   linearToDb,
@@ -436,6 +437,7 @@ export async function renderPreviewMaster(
 
   const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
   const achievedHeadroomDb = Math.max(0, -afterMetrics.approxTruePeakDb);
+  const headroomSummary = analyzeHeadroomSummary(finalBuffer);
   const dehissActive = inferDehissActive(beforeMetrics.highTotalRatio, profile);
   const antiFizzReductionDb =
     Math.abs(profile.highShelfGain * 0.58) + Math.abs(profile.fizzDipGain) + profile.dehissReductionDb * 0.35;
@@ -516,6 +518,7 @@ export async function renderPreviewMaster(
       targetHeadroomMinDb: Math.max(1, Math.abs(settings.maxPeakDb) - 0.4),
       targetHeadroomMaxDb: settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
       achievedHeadroomDb,
+      headroomSummary,
       limiterActive: limiter.active,
       limiterReductionDb: limiter.reductionDb
     },

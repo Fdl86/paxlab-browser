@@ -109,6 +109,8 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
             <span>{describeHighTreatment(result.settings.highTreatment)}</span>
             <span>Cible centrale : {result.settings.targetLufsEstimate.toFixed(1)} LUFS est.</span>
             <span>Ceiling : {result.settings.maxPeakDb.toFixed(1)} dBTP est. / plage headroom {result.report.loudness.targetHeadroomMinDb?.toFixed(1) ?? "-"} à {result.report.loudness.targetHeadroomMaxDb?.toFixed(1) ?? "-"} dB</span>
+            <span>Headroom final : {(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB</span>
+            <span>Headroom actif moy. : {result.report.loudness.headroomSummary ? result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1) : "-"} dB</span>
             <span>Gain obtenu : {result.report.loudness.gainAppliedDb >= 0 ? "+" : ""}{result.report.loudness.gainAppliedDb.toFixed(1)} dB approx.</span>
           </div>
 

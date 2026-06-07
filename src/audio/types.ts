@@ -142,6 +142,14 @@ export interface PreviewPreset {
   settings: PreviewSettings;
 }
 
+export interface HeadroomSummary {
+  finalHeadroomDb: number;
+  activeAverageHeadroomDb: number;
+  activeMinHeadroomDb: number;
+  activeMaxHeadroomDb: number;
+  activeWindows: number;
+}
+
 export interface ProcessingReport {
   profileLabel: string;
   brightnessLabel: string;
@@ -175,6 +183,7 @@ export interface ProcessingReport {
     targetHeadroomMinDb?: number;
     targetHeadroomMaxDb?: number;
     achievedHeadroomDb: number;
+    headroomSummary?: HeadroomSummary;
     limiterActive: boolean;
     limiterReductionDb: number;
   };

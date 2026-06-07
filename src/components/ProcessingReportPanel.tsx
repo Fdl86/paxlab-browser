@@ -61,8 +61,16 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.report.loudness.targetHeadroomMinDb?.toFixed(1) ?? "-"} à {result.report.loudness.targetHeadroomMaxDb?.toFixed(1) ?? "-"} dB</strong>
             </div>
             <div className="report-card">
-              <span>Headroom obtenu</span>
-              <strong>{result.report.loudness.achievedHeadroomDb.toFixed(1)} dB</strong>
+              <span>Headroom final</span>
+              <strong>{(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB</strong>
+            </div>
+            <div className="report-card">
+              <span>Headroom actif moy.</span>
+              <strong>{result.report.loudness.headroomSummary ? `${result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1)} dB` : "-"}</strong>
+            </div>
+            <div className="report-card">
+              <span>Plage active</span>
+              <strong>{result.report.loudness.headroomSummary ? `${result.report.loudness.headroomSummary.activeMinHeadroomDb.toFixed(1)} à ${result.report.loudness.headroomSummary.activeMaxHeadroomDb.toFixed(1)} dB` : "-"}</strong>
             </div>
             <div className="report-card">
               <span>Limiter</span>

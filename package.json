@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.8.1-dev08-1-dynamic-targeting",
+  "version": "0.8.2-dev08-2-metering-fix",
   "type": "module",
   "scripts": {
     "dev": "vite",

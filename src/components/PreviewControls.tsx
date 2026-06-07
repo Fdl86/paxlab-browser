@@ -126,7 +126,7 @@ export function PreviewControls({
       <div className="panel-heading compact-heading">
         <div>
           <p className="eyebrow">Rendu local</p>
-          <h2>Auto Engine V3.1</h2>
+          <h2>Auto Engine V3.2</h2>
         </div>
         <div className="mode-toggle" aria-label="Mode de réglage">
           <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
@@ -298,8 +298,8 @@ export function PreviewControls({
 
           <div className="slider-row">
             <div>
-              <label htmlFor="maxPeakDb">Ceiling / headroom minimal</label>
-              <span>{settings.maxPeakDb.toFixed(1)} dBTP est.</span>
+              <label htmlFor="maxPeakDb">Headroom final demandé</label>
+              <span>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</span>
             </div>
             <input
               id="maxPeakDb"
@@ -308,7 +308,18 @@ export function PreviewControls({
               max="-0.8"
               step="0.1"
               value={settings.maxPeakDb}
-              onChange={(event) => updateSettings({ maxPeakDb: Number(event.target.value) })}
+              onChange={(event) => {
+                const nextCeiling = Number(event.target.value);
+                const currentHeadroom = Math.abs(settings.maxPeakDb);
+                const nextHeadroom = Math.abs(nextCeiling);
+                const headroomDelta = currentHeadroom - nextHeadroom;
+                const nextTarget = Math.min(-11.6, Math.max(-15.5, settings.targetLufsEstimate + headroomDelta * 0.65));
+                updateSettings({
+                  maxPeakDb: nextCeiling,
+                  targetLufsEstimate: nextTarget,
+                  targetRmsDb: nextTarget + 0.75
+                });
+              }}
             />
           </div>
         </div>
@@ -331,6 +342,9 @@ export function PreviewControls({
       {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouvelle Preview en cours.</p>}
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
         <p className="message message-warning">Réglages modifiés. La Preview Master #{previewRevision} reste l’ancienne version tant que tu ne régénères pas.</p>
+      )}
+      {mode === "expert" && (
+        <p className="message message-info">Le slider headroom agit maintenant aussi sur la cible loudness : moins de headroom demandé = rendu plus poussé, plus de headroom = rendu plus prudent.</p>
       )}
       {previewStatus === "ready" && !hasPendingChanges && (
         <p className="message message-success">Preview Master #{previewRevision}{previewRenderedAt ? ` · ${previewRenderedAt}` : ""} prête pour A/B et export.</p>

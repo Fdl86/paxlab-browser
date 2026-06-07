@@ -84,6 +84,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
       })
     : null;
   const activeHeadroom = activeMetrics ? Math.max(0, -activeMetrics.approxTruePeakDb) : null;
+  const renderedHeadroomSummary = previewResult?.report.loudness.headroomSummary ?? null;
   const calibration = previewResult && plan && activeHeadroom !== null
     ? calibrationStatus(previewResult.afterMetrics.estimatedLufs, activeHeadroom, plan)
     : null;
@@ -100,7 +101,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
     <section className="panel dashboard-panel auto-engine-panel calibration-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Auto Engine V3.1</p>
+          <p className="eyebrow">Auto Engine V3.2</p>
           <h2>Dynamic Targeting</h2>
         </div>
         <span className="status-pill">{previewResult ? calibration?.label ?? "Preview analysée" : "Plan auto"}</span>
@@ -152,16 +153,16 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
               <strong>{formatDb(activeMetrics.approxTruePeakDb)}</strong>
             </div>
             <div className="metric-card success">
-              <span>Headroom obtenu</span>
-              <strong>{formatHeadroomFromPeak(activeMetrics.approxTruePeakDb)}</strong>
+              <span>Headroom final</span>
+              <strong>{renderedHeadroomSummary ? `${renderedHeadroomSummary.finalHeadroomDb.toFixed(1)} dB` : formatHeadroomFromPeak(activeMetrics.approxTruePeakDb)}</strong>
             </div>
             <div className="metric-card">
               <span>LRA estimée</span>
               <strong>{activeMetrics.loudnessRangeEstimate.toFixed(1)} LU</strong>
             </div>
             <div className="metric-card">
-              <span>Haut total</span>
-              <strong>{formatPercent(activeMetrics.highTotalRatio)}</strong>
+              <span>Headroom actif moy.</span>
+              <strong>{renderedHeadroomSummary ? `${renderedHeadroomSummary.activeAverageHeadroomDb.toFixed(1)} dB` : "-"}</strong>
             </div>
             <div className="metric-card">
               <span>Mode auto</span>
@@ -177,14 +178,15 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
             <div className="dashboard-delta auto-delta premium-delta">
               <span>Gain obtenu : {formatSigned(previewResult.report.loudness.gainAppliedDb)}</span>
               <span>Écart cible : {lufsDeltaToTarget !== null ? formatSigned(lufsDeltaToTarget, "LUFS") : "-"}</span>
-              <span>Headroom : {activeHeadroom.toFixed(1)} dB / plage {formatHeadroomRange(plan)}</span>
+              <span>Headroom final : {(renderedHeadroomSummary?.finalHeadroomDb ?? activeHeadroom).toFixed(1)} dB / plage {formatHeadroomRange(plan)}</span>
+              <span>Headroom actif : {renderedHeadroomSummary ? `${renderedHeadroomSummary.activeAverageHeadroomDb.toFixed(1)} dB moy. (${renderedHeadroomSummary.activeMinHeadroomDb.toFixed(1)}-${renderedHeadroomSummary.activeMaxHeadroomDb.toFixed(1)})` : "-"}</span>
               <span>Écart headroom : {headroomDeltaToRange !== null ? formatSigned(headroomDeltaToRange) : "-"}</span>
               <span>LRA : {sourceMetrics.loudnessRangeEstimate.toFixed(1)} → {previewResult.afterMetrics.loudnessRangeEstimate.toFixed(1)} LU</span>
             </div>
           )}
 
           <p className="message message-info">
-            Dynamic Targeting ne force pas tous les morceaux vers le même chiffre. Il choisit une plage loudness + headroom selon le fichier, puis indique honnêtement si la Preview est dans la cible, prudente ou partielle.
+            Dynamic Targeting ne force pas tous les morceaux vers le même chiffre. Le headroom final vient du peak max du rendu ; le headroom actif moyen ignore les silences pour donner une lecture plus utile.
           </p>
         </>
       )}

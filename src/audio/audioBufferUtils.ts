@@ -211,3 +211,81 @@ export function formatBytes(bytes: number): string {
 export function formatNumber(value: number): string {
   return value.toLocaleString("fr-FR");
 }
+
+export interface HeadroomSummaryResult {
+  finalHeadroomDb: number;
+  activeAverageHeadroomDb: number;
+  activeMinHeadroomDb: number;
+  activeMaxHeadroomDb: number;
+  activeWindows: number;
+}
+
+function percentile(sortedValues: number[], ratio: number): number {
+  if (!sortedValues.length) {
+    return 0;
+  }
+
+  const index = clamp(Math.round((sortedValues.length - 1) * ratio), 0, sortedValues.length - 1);
+  return sortedValues[index] ?? sortedValues[sortedValues.length - 1] ?? 0;
+}
+
+export function analyzeHeadroomSummary(buffer: AudioBuffer): HeadroomSummaryResult {
+  const globalMetrics = analyzeAudioBuffer(buffer);
+  const finalHeadroomDb = Math.max(0, -globalMetrics.peakDb);
+  const windowSize = Math.max(512, Math.floor(buffer.sampleRate * 0.08));
+  const hopSize = Math.max(256, Math.floor(windowSize / 2));
+  const activeHeadrooms: number[] = [];
+
+  for (let start = 0; start < buffer.length; start += hopSize) {
+    const end = Math.min(buffer.length, start + windowSize);
+    let peak = 0;
+    let sumSquares = 0;
+    let sampleCount = 0;
+
+    for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+      const data = buffer.getChannelData(channel);
+
+      for (let index = start; index < end; index += 1) {
+        const sample = data[index] ?? 0;
+        const abs = Math.abs(sample);
+        peak = Math.max(peak, abs);
+        sumSquares += sample * sample;
+        sampleCount += 1;
+      }
+    }
+
+    const rms = sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0;
+    const peakDb = linearToDb(peak);
+    const rmsDb = linearToDb(rms);
+
+    // On ignore les blancs et les fins de fade, sinon le headroom instantané
+    // paraît énorme et ne décrit plus le rendu utile du morceau.
+    if (peakDb > -42 && rmsDb > -50) {
+      activeHeadrooms.push(Math.max(0, -peakDb));
+    }
+  }
+
+  if (!activeHeadrooms.length) {
+    return {
+      finalHeadroomDb,
+      activeAverageHeadroomDb: finalHeadroomDb,
+      activeMinHeadroomDb: finalHeadroomDb,
+      activeMaxHeadroomDb: finalHeadroomDb,
+      activeWindows: 0
+    };
+  }
+
+  activeHeadrooms.sort((a, b) => a - b);
+  const trimmedStart = Math.floor(activeHeadrooms.length * 0.05);
+  const trimmedEnd = Math.max(trimmedStart + 1, Math.ceil(activeHeadrooms.length * 0.9));
+  const trimmed = activeHeadrooms.slice(trimmedStart, trimmedEnd);
+  const average = trimmed.reduce((sum, value) => sum + value, 0) / Math.max(1, trimmed.length);
+
+  return {
+    finalHeadroomDb,
+    activeAverageHeadroomDb: average,
+    activeMinHeadroomDb: percentile(activeHeadrooms, 0.05),
+    activeMaxHeadroomDb: percentile(activeHeadrooms, 0.85),
+    activeWindows: activeHeadrooms.length
+  };
+}

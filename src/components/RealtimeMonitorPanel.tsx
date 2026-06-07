@@ -1,5 +1,5 @@
 import { useMemo, type CSSProperties, type MouseEvent } from "react";
-import { formatDuration } from "../audio/audioBufferUtils";
+import { analyzeHeadroomSummary, formatDuration } from "../audio/audioBufferUtils";
 import type { PlaybackSource, PreviewStatus, RealtimeMeterState } from "../audio/types";
 
 interface RealtimeMonitorPanelProps {
@@ -51,29 +51,43 @@ function buildWaveformBins(buffer: AudioBuffer | null, bins = 420): WaveformBin[
 
   const channelCount = buffer.numberOfChannels;
   const step = Math.max(1, Math.floor(buffer.length / bins));
-  const waveformBins: WaveformBin[] = [];
+  const rawPeaks: number[] = [];
 
   for (let bin = 0; bin < bins; bin += 1) {
     const start = bin * step;
     const end = Math.min(buffer.length, start + step);
-    let min = 0;
-    let max = 0;
+    let peak = 0;
 
     for (let index = start; index < end; index += 1) {
-      let mono = 0;
+      let channelPeak = 0;
 
       for (let channel = 0; channel < channelCount; channel += 1) {
-        mono += buffer.getChannelData(channel)[index] ?? 0;
+        channelPeak = Math.max(channelPeak, Math.abs(buffer.getChannelData(channel)[index] ?? 0));
       }
 
-      mono /= Math.max(1, channelCount);
-      min = Math.min(min, mono);
-      max = Math.max(max, mono);
+      peak = Math.max(peak, channelPeak);
     }
 
+    rawPeaks.push(Math.min(1, peak));
+  }
+
+  const sorted = [...rawPeaks].sort((a, b) => a - b);
+  const referencePeak = sorted[Math.max(0, Math.floor(sorted.length * 0.97) - 1)] ?? 1;
+  const displayGain = referencePeak > 0 ? Math.min(1.8, 0.82 / referencePeak) : 1;
+  const waveformBins: WaveformBin[] = [];
+
+  for (let index = 0; index < rawPeaks.length; index += 1) {
+    const previous = rawPeaks[index - 1] ?? rawPeaks[index] ?? 0;
+    const current = rawPeaks[index] ?? 0;
+    const next = rawPeaks[index + 1] ?? current;
+    const smoothed = (previous * 0.22 + current * 0.56 + next * 0.22) * displayGain;
+    const amplitude = Math.min(0.96, Math.max(0.012, smoothed));
+
+    // Affichage enveloppe centré : il évite les faux visuels “collés en haut”
+    // quand le signal traité est plus fort ou légèrement asymétrique.
     waveformBins.push({
-      min: Math.max(-1, min),
-      max: Math.min(1, max)
+      min: -amplitude,
+      max: amplitude
     });
   }
 
@@ -145,6 +159,7 @@ export function RealtimeMonitorPanel({
   const activeBuffer = activeSource === "preview" ? previewBuffer ?? originalBuffer : originalBuffer;
   const waveformBins = useMemo(() => buildWaveformBins(activeBuffer), [activeBuffer]);
   const path = useMemo(() => pathFromWaveformBins(waveformBins), [waveformBins]);
+  const headroomSummary = useMemo(() => activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null, [activeBuffer]);
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const outputPercent = Math.min(100, Math.max(0, ((meter.outputDb + 60) / 60) * 100));
   const peakPercent = Math.min(100, Math.max(0, ((meter.peakHoldDb + 60) / 60) * 100));
@@ -285,8 +300,12 @@ export function RealtimeMonitorPanel({
               <strong className={`meter-status ${meter.status}`}>{meterLabel(meter.status)}</strong>
             </div>
             <div>
-              <span>Headroom</span>
-              <strong>{meter.headroomDb.toFixed(1)} dB</strong>
+              <span>Headroom final</span>
+              <strong>{headroomSummary ? headroomSummary.finalHeadroomDb.toFixed(1) : meter.headroomDb.toFixed(1)} dB</strong>
+            </div>
+            <div>
+              <span>Headroom actif moy.</span>
+              <strong>{headroomSummary ? headroomSummary.activeAverageHeadroomDb.toFixed(1) : meter.headroomDb.toFixed(1)} dB</strong>
             </div>
             <div>
               <span>Source</span>
@@ -301,7 +320,7 @@ export function RealtimeMonitorPanel({
       )}
 
       <p className="monitor-note">
-        Indicateurs dynamiques estimés pendant l’écoute. Ils servent au pilotage A/B, pas à une certification LUFS officielle.
+Indicateurs estimés. Le headroom affiché est désormais un résumé stable du fichier actif ; l’output level reste instantané pendant l’écoute.
       </p>
     </section>
   );
