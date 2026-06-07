@@ -1,7 +1,8 @@
 import type { ChangeEvent } from "react";
 import { useState } from "react";
+import { inferAutoMasterPlan } from "../audio/autoTarget";
 import { PREVIEW_PRESETS, getPresetById, getSettingsForPreset, describeSourceRepair } from "../audio/previewPresets";
-import type { PreviewSettings, PreviewStatus, SourceRepairLevel } from "../audio/types";
+import type { PreviewSettings, PreviewStatus, SourceRepairLevel, SourceAnalysisResult } from "../audio/types";
 
 interface PreviewControlsProps {
   settings: PreviewSettings;
@@ -11,6 +12,7 @@ interface PreviewControlsProps {
   hasPendingChanges: boolean;
   previewRevision: number;
   previewRenderedAt: string | null;
+  sourceAnalysis: SourceAnalysisResult | null;
   errorMessage: string | null;
   onSettingsChange: (settings: PreviewSettings) => void;
   onRenderPreview: () => void;
@@ -38,6 +40,7 @@ export function PreviewControls({
   hasPendingChanges,
   previewRevision,
   previewRenderedAt,
+  sourceAnalysis,
   errorMessage,
   onSettingsChange,
   onRenderPreview
@@ -45,6 +48,7 @@ export function PreviewControls({
   const [mode, setMode] = useState<WorkMode>("simple");
   const preset = getPresetById(settings.presetId);
   const isRendering = previewStatus === "rendering";
+  const autoPlan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics) : null;
 
   function updateSettings(partial: Partial<PreviewSettings>) {
     onSettingsChange({
@@ -69,7 +73,7 @@ export function PreviewControls({
       <div className="panel-heading compact-heading">
         <div>
           <p className="eyebrow">Rendu local</p>
-          <h2>Preview Engine V1</h2>
+          <h2>Auto Engine V2</h2>
         </div>
         <div className="mode-toggle" aria-label="Mode de réglage">
           <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
@@ -77,18 +81,22 @@ export function PreviewControls({
         </div>
       </div>
 
-      <div className="control-room-summary">
+      <div className="control-room-summary control-room-summary-v2">
         <div>
-          <span>Cible auto</span>
+          <span>Plan auto</span>
+          <strong>{autoPlan?.profileLabel ?? "Analyse"}</strong>
+        </div>
+        <div>
+          <span>Cible</span>
           <strong>{settings.targetLufsEstimate.toFixed(1)} LUFS est.</strong>
+        </div>
+        <div>
+          <span>Headroom</span>
+          <strong>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</strong>
         </div>
         <div>
           <span>Réparation</span>
           <strong>{describeSourceRepair(settings.sourceRepair).replace("Réparation source ", "")}</strong>
-        </div>
-        <div>
-          <span>Intensité</span>
-          <strong>{settings.intensity} %</strong>
         </div>
       </div>
 
@@ -182,6 +190,41 @@ export function PreviewControls({
               step="1"
               value={settings.density}
               onChange={(event) => updateSettings({ density: Number(event.target.value) })}
+            />
+          </div>
+
+          <div className="slider-row">
+            <div>
+              <label htmlFor="targetLufs">Cible LUFS estimée</label>
+              <span>{settings.targetLufsEstimate.toFixed(1)} LUFS</span>
+            </div>
+            <input
+              id="targetLufs"
+              type="range"
+              min="-14.8"
+              max="-11.8"
+              step="0.1"
+              value={settings.targetLufsEstimate}
+              onChange={(event) => {
+                const target = Number(event.target.value);
+                updateSettings({ targetLufsEstimate: target, targetRmsDb: target + 0.7 });
+              }}
+            />
+          </div>
+
+          <div className="slider-row">
+            <div>
+              <label htmlFor="maxPeakDb">Ceiling / headroom</label>
+              <span>{settings.maxPeakDb.toFixed(1)} dBTP est.</span>
+            </div>
+            <input
+              id="maxPeakDb"
+              type="range"
+              min="-1.8"
+              max="-0.8"
+              step="0.1"
+              value={settings.maxPeakDb}
+              onChange={(event) => updateSettings({ maxPeakDb: Number(event.target.value) })}
             />
           </div>
         </div>

@@ -99,7 +99,12 @@ export function applySafeTargetGain(
 
   const gainForRms = dbToLinear(targetRmsDb - metrics.rmsDb);
   const gainForPeakCeiling = dbToLinear(maxPeakDb - metrics.peakDb);
-  const finalGain = Math.min(gainForRms, gainForPeakCeiling);
+
+  // Dev07 : l'Auto Engine doit pouvoir monter un morceau faible vers sa cible,
+  // puis laisser le limiteur sécuriser les crêtes. On garde toutefois un garde-fou
+  // pour éviter une montée absurde sur une source très silencieuse ou corrompue.
+  const protectedLiftLimit = Math.min(dbToLinear(5.8), Math.max(gainForPeakCeiling * 2.8, dbToLinear(1.2)));
+  const finalGain = Math.min(gainForRms, protectedLiftLimit);
 
   return applyGainToNewBuffer(source, finalGain);
 }

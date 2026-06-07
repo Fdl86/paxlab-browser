@@ -1,4 +1,4 @@
-import { buildSettingsFromAnalysis } from "./autoTarget";
+import { buildSettingsFromAnalysis, inferAutoMasterPlan } from "./autoTarget";
 import { getSettingsForPreset } from "./previewPresets";
 import type { PreviewSettings, SourceAnalysisResult, PreviewRenderResult } from "./types";
 
@@ -32,7 +32,15 @@ export function buildAdvisor(
 
   const metrics = sourceAnalysis.metrics;
   const moves: AdvisorMove[] = [];
+  const plan = inferAutoMasterPlan(metrics);
   const recommended = buildSettingsFromAnalysis(metrics, currentSettings.presetId);
+
+  moves.push({
+    id: "auto-plan",
+    title: `${plan.profileLabel} : ${plan.targetLufsEstimate.toFixed(1)} LUFS est.`,
+    detail: `Headroom cible ${plan.targetHeadroomDb.toFixed(1)} dB, ceiling ${plan.ceilingDb.toFixed(1)} dBTP est., lift prévu ${plan.expectedLiftDb >= 0 ? "+" : ""}${plan.expectedLiftDb.toFixed(1)} dB.`,
+    severity: "info"
+  });
 
   if (metrics.highTotalRatio > 0.38 || metrics.fizzRatio > 0.075) {
     moves.push({
@@ -89,7 +97,7 @@ export function buildAdvisor(
     recommended.stereoWidth = Math.min(recommended.stereoWidth, 96);
   }
 
-  if (!moves.length) {
+  if (moves.length === 1) {
     moves.push({
       id: "clean",
       title: "Source plutôt saine",
@@ -117,10 +125,10 @@ export function buildAdvisor(
 
   const confidence = moves.some((move) => move.severity === "warning") ? "forte" : "correcte";
   const summary = moves.some((move) => move.id === "shimmer")
-    ? "Recommandation : réparation forte et aigus très doux."
+    ? "Recommandation : lift auto avec réparation forte et aigus très doux."
     : moves.some((move) => move.id === "clean")
       ? "Recommandation : traitement léger, source déjà assez propre."
-      : "Recommandation : traitement automatique équilibré.";
+      : `Recommandation : ${plan.profileLabel.toLowerCase()}, cible ${plan.targetLufsEstimate.toFixed(1)} LUFS est.`;
 
   return {
     summary,

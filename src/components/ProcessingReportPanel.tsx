@@ -57,6 +57,14 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.report.loudness.targetLufsEstimate.toFixed(1)} LUFS est.</strong>
             </div>
             <div className="report-card">
+              <span>Headroom cible</span>
+              <strong>{result.report.loudness.targetHeadroomDb.toFixed(1)} dB</strong>
+            </div>
+            <div className="report-card">
+              <span>Headroom obtenu</span>
+              <strong>{result.report.loudness.achievedHeadroomDb.toFixed(1)} dB</strong>
+            </div>
+            <div className="report-card">
               <span>Limiter</span>
               <strong>{result.report.loudness.limiterActive ? "Actif" : "Inactif"}</strong>
             </div>

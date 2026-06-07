@@ -94,6 +94,10 @@ function meterLabel(status: RealtimeMeterState["status"]): string {
     return "Clipping";
   }
 
+  if (status === "limited") {
+    return "Limited";
+  }
+
   if (status === "hot") {
     return "Hot";
   }

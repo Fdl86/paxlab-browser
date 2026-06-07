@@ -12,6 +12,8 @@ export type HighTreatmentId = "soft" | "verySoft" | "neutral" | "open";
 
 export type SourceRepairLevel = "light" | "normal" | "strong";
 
+export type AutoPlanProfile = "preserve" | "balancedLift" | "strongLift" | "protect";
+
 export type ListeningZoneFamily =
   | "Présence 2-5 kHz"
   | "Brillance 5-9 kHz"
@@ -112,6 +114,19 @@ export interface PreviewSettings {
   sourceRepair: SourceRepairLevel;
 }
 
+export interface AutoMasterPlan {
+  profile: AutoPlanProfile;
+  profileLabel: string;
+  targetLufsEstimate: number;
+  targetRmsDb: number;
+  ceilingDb: number;
+  targetHeadroomDb: number;
+  expectedLiftDb: number;
+  compressionIntent: "préserver" | "léger" | "modéré" | "fort prudent";
+  safetyIntent: "normal" | "prudent" | "protecteur";
+  reason: string;
+}
+
 export interface PreviewPreset {
   id: PreviewPresetId;
   label: string;
@@ -145,6 +160,9 @@ export interface ProcessingReport {
     gainAppliedDb: number;
     targetRmsDb: number;
     targetLufsEstimate: number;
+    ceilingDb: number;
+    targetHeadroomDb: number;
+    achievedHeadroomDb: number;
     limiterActive: boolean;
     limiterReductionDb: number;
   };
@@ -170,5 +188,5 @@ export interface RealtimeMeterState {
   peakHoldDb: number;
   headroomDb: number;
   clipping: boolean;
-  status: "silent" | "good" | "hot" | "clipping";
+  status: "silent" | "good" | "hot" | "limited" | "clipping";
 }

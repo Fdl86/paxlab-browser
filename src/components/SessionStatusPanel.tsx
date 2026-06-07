@@ -1,3 +1,4 @@
+import { inferAutoMasterPlan } from "../audio/autoTarget";
 import { formatBytes, formatDuration, formatNumber } from "../audio/audioBufferUtils";
 import type {
   DecodedAudioData,
@@ -53,7 +54,9 @@ export function SessionStatusPanel({
 }: SessionStatusPanelProps) {
   const file = decodedAudio?.file ?? null;
   const info = decodedAudio?.info ?? null;
+  const plan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics) : null;
   const target = previewResult?.settings.targetLufsEstimate ?? previewSettings.targetLufsEstimate;
+  const ceiling = previewResult?.settings.maxPeakDb ?? previewSettings.maxPeakDb;
   const sourceLufs = sourceAnalysis?.metrics.estimatedLufs ?? null;
 
   return (
@@ -81,15 +84,15 @@ export function SessionStatusPanel({
           </div>
 
           <div className="session-card">
-            <span>Taille</span>
-            <strong>{file ? formatBytes(file.sizeBytes) : "-"}</strong>
-            <small>Reste dans le navigateur</small>
+            <span>Plan auto</span>
+            <strong>{plan?.profileLabel ?? "Analyse"}</strong>
+            <small>{sourceLufs !== null ? `Source : ${formatLufs(sourceLufs)}` : "En attente"}</small>
           </div>
 
           <div className="session-card">
-            <span>Cible auto</span>
+            <span>Cible / Headroom</span>
             <strong>{formatLufs(target)}</strong>
-            <small>{sourceLufs !== null ? `Source : ${formatLufs(sourceLufs)}` : "En attente d’analyse"}</small>
+            <small>Ceiling {ceiling.toFixed(1)} dBTP est. · headroom {Math.abs(ceiling).toFixed(1)} dB</small>
           </div>
 
           <div className={hasPendingChanges ? "session-card warning-session-card" : "session-card success-session-card"}>

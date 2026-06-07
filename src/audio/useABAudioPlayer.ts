@@ -89,7 +89,11 @@ function getMeterStatus(rmsDb: number, peakDb: number): RealtimeMeterState["stat
     return "clipping";
   }
 
-  if (peakDb >= -1.1 || rmsDb >= -11) {
+  if (peakDb >= -1.15) {
+    return "limited";
+  }
+
+  if (rmsDb >= -11) {
     return "hot";
   }
 

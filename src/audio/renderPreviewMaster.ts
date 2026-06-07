@@ -366,7 +366,8 @@ export async function renderPreviewMaster(
   const limiter = applyImprovedLimiter(leveledBuffer, settings.maxPeakDb);
   const afterMetrics = analyzeAdvancedAudioBuffer(limiter.buffer);
 
-  const gainAppliedDb = afterMetrics.rmsDb - preGainMetrics.rmsDb;
+  const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
+  const achievedHeadroomDb = Math.max(0, -afterMetrics.approxTruePeakDb);
   const dehissActive = inferDehissActive(beforeMetrics.highTotalRatio, profile);
   const antiFizzReductionDb =
     Math.abs(profile.highShelfGain * 0.58) + Math.abs(profile.fizzDipGain) + profile.dehissReductionDb * 0.35;
@@ -394,7 +395,8 @@ export async function renderPreviewMaster(
     appliedMoves.push("densité harmonique douce");
   }
   appliedMoves.push("compression douce");
-  appliedMoves.push("standardisation de niveau estimée");
+  appliedMoves.push(`auto target ${settings.targetLufsEstimate.toFixed(1)} LUFS est.`);
+  appliedMoves.push(`headroom cible ${Math.abs(settings.maxPeakDb).toFixed(1)} dB`);
   if (limiter.active) {
     appliedMoves.push("limiteur de sécurité");
   }
@@ -433,6 +435,9 @@ export async function renderPreviewMaster(
       gainAppliedDb,
       targetRmsDb: settings.targetRmsDb,
       targetLufsEstimate: settings.targetLufsEstimate,
+      ceilingDb: settings.maxPeakDb,
+      targetHeadroomDb: Math.abs(settings.maxPeakDb),
+      achievedHeadroomDb,
       limiterActive: limiter.active,
       limiterReductionDb: limiter.reductionDb
     },

@@ -275,10 +275,10 @@ export default function App() {
     <main className="app-shell control-room-shell">
       <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev06 Control Room</p>
-          <h1>PAXLAB Control Room</h1>
+          <p className="version">PAXLAB Browser Engine - dev07 Auto Engine V2</p>
+          <h1>PAXLAB Auto Control Room</h1>
           <p className="hero-text">
-            Interface recentrée sur l’écoute : import local, Smart Repair, Preview Master traçable, A/B temps réel et export WAV validé à l’oreille.
+            Auto Engine V2 : analyse plus poussée de la source, cible LUFS estimée dynamique, headroom contrôlé, Preview traçable, A/B temps réel et export WAV local.
           </p>
         </div>
 
@@ -355,6 +355,7 @@ export default function App() {
             hasPendingChanges={hasPendingChanges}
             previewRevision={previewRevision}
             previewRenderedAt={previewRenderedAt}
+            sourceAnalysis={sourceAnalysis}
             errorMessage={previewErrorMessage}
             onSettingsChange={setPreviewSettings}
             onRenderPreview={() => void handleRenderPreview()}
@@ -387,11 +388,11 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev06</p>
-          <h2>Smart Repair, historique Preview et UI Control Room</h2>
+          <p className="eyebrow">Statut dev07</p>
+          <h2>Auto Engine V2, headroom control et rendu auto plus assumé</h2>
         </div>
         <p>
-          Cette version fait basculer l’outil vers un vrai cockpit minimaliste : les réglages importants restent visibles, les versions sont traçables, les conseils sont actionnables, et le monitoring A/B reste central.
+          Cette version pousse l’analyse automatique : le niveau cible, le ceiling, le headroom et l’intensité sont déterminés depuis le fichier source pour proposer d’office une Preview plus proche d’un rendu de comparaison moderne.
         </p>
         <p className="honest-note">
           Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.

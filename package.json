@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.6.0-dev06-control-room",
+  "version": "0.7.0-dev07-auto-engine-v2",
   "type": "module",
   "scripts": {
     "dev": "vite",
