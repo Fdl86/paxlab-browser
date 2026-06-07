@@ -1,38 +1,82 @@
 import { formatDb } from "../audio/audioBufferUtils";
 import { describeHighTreatment } from "../audio/previewPresets";
-import type { PreviewRenderResult } from "../audio/types";
+import type { PreviewRenderResult, SourceAnalysisResult } from "../audio/types";
 
 interface MetricsPanelProps {
   result: PreviewRenderResult | null;
+  sourceAnalysis: SourceAnalysisResult | null;
 }
 
-export function MetricsPanel({ result }: MetricsPanelProps) {
+function formatRatio(value: number): string {
+  return `${(value * 100).toFixed(1)} %`;
+}
+
+function formatLufs(value: number): string {
+  return `${value.toFixed(1)} LUFS est.`;
+}
+
+export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
+  const sourceMetrics = sourceAnalysis?.metrics ?? result?.beforeMetrics ?? null;
+
   return (
     <section className="panel metrics-panel">
       <div className="panel-heading">
         <p className="eyebrow">Mesures indicatives</p>
-        <h2>Avant / Après preview</h2>
+        <h2>Analyse source et avant / après preview</h2>
       </div>
 
-      {!result && (
+      {!sourceMetrics && !result && (
         <div className="empty-state small-empty-state">
-          <p>Aucune Preview Master générée.</p>
-          <span>
-            Les mesures apparaîtront ici après calcul local dans le navigateur.
-          </span>
+          <p>Aucune mesure disponible.</p>
+          <span>Les mesures apparaîtront ici après analyse locale.</span>
         </div>
+      )}
+
+      {sourceMetrics && !result && (
+        <>
+          <div className="metrics-grid">
+            <div className="metric-card">
+              <span>RMS source</span>
+              <strong>{formatDb(sourceMetrics.rmsDb)}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Peak source</span>
+              <strong>{formatDb(sourceMetrics.peakDb)}</strong>
+            </div>
+            <div className="metric-card">
+              <span>LUFS estimé</span>
+              <strong>{formatLufs(sourceMetrics.estimatedLufs)}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Fizz 9-16 kHz</span>
+              <strong>{formatRatio(sourceMetrics.fizzRatio)}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Balance L/R</span>
+              <strong>{formatDb(sourceMetrics.leftRightBalanceDb)}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Corrélation stéréo</span>
+              <strong>{sourceMetrics.stereoCorrelation.toFixed(2)}</strong>
+            </div>
+          </div>
+
+          <p className="message message-info">
+            Analyse source terminée. Génère une Preview Master pour afficher la comparaison avant / après.
+          </p>
+        </>
       )}
 
       {result && (
         <>
           <div className="metrics-grid">
             <div className="metric-card">
-              <span>Original RMS simple</span>
-              <strong>{formatDb(result.beforeMetrics.rmsDb)}</strong>
+              <span>Original LUFS estimé</span>
+              <strong>{formatLufs(result.beforeMetrics.estimatedLufs)}</strong>
             </div>
             <div className="metric-card success">
-              <span>Preview RMS simple</span>
-              <strong>{formatDb(result.afterMetrics.rmsDb)}</strong>
+              <span>Preview LUFS estimé</span>
+              <strong>{formatLufs(result.afterMetrics.estimatedLufs)}</strong>
             </div>
             <div className="metric-card">
               <span>Original peak</span>
@@ -43,12 +87,20 @@ export function MetricsPanel({ result }: MetricsPanelProps) {
               <strong>{formatDb(result.afterMetrics.peakDb)}</strong>
             </div>
             <div className="metric-card">
-              <span>Crest original</span>
+              <span>Original crest</span>
               <strong>{formatDb(result.beforeMetrics.crestFactorDb)}</strong>
             </div>
             <div className="metric-card success">
-              <span>Crest preview</span>
+              <span>Preview crest</span>
               <strong>{formatDb(result.afterMetrics.crestFactorDb)}</strong>
+            </div>
+            <div className="metric-card">
+              <span>Original fizz</span>
+              <strong>{formatRatio(result.beforeMetrics.fizzRatio)}</strong>
+            </div>
+            <div className="metric-card success">
+              <span>Preview fizz</span>
+              <strong>{formatRatio(result.afterMetrics.fizzRatio)}</strong>
             </div>
           </div>
 
@@ -59,7 +111,7 @@ export function MetricsPanel({ result }: MetricsPanelProps) {
           </div>
 
           <p className="message message-info">
-            Ces mesures sont utiles pour comparer, mais ne remplacent pas une analyse LUFS officielle.
+            Ces mesures sont utiles pour comparer. Elles ne remplacent pas une analyse LUFS officielle ou un contrôle mastering externe.
           </p>
         </>
       )}

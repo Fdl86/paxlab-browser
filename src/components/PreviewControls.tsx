@@ -42,11 +42,19 @@ export function PreviewControls({
     <section className="panel controls-panel">
       <div className="panel-heading">
         <p className="eyebrow">Preview Master locale</p>
-        <h2>Réglages audio</h2>
+        <h2>Chaîne automatique V0.6</h2>
+      </div>
+
+      <div className="chain-badges">
+        <span>-13 estimé</span>
+        <span>Anti-fizz</span>
+        <span>De-click</span>
+        <span>EQ M/S</span>
+        <span>Limiteur</span>
       </div>
 
       <div className="control-group">
-        <label htmlFor="preset">Preset</label>
+        <label htmlFor="preset">Profil de rendu</label>
         <select id="preset" value={settings.presetId} onChange={handlePresetChange}>
           {PREVIEW_PRESETS.map((item) => (
             <option key={item.id} value={item.id}>
@@ -58,7 +66,7 @@ export function PreviewControls({
       </div>
 
       <div className="control-group">
-        <label htmlFor="highTreatment">Traitement des aigus</label>
+        <label htmlFor="highTreatment">Brillance / anti-fizz</label>
         <select
           id="highTreatment"
           value={settings.highTreatment}
@@ -68,12 +76,13 @@ export function PreviewControls({
             })
           }
         >
-          <option value="soft">Adoucir les aigus fatigants</option>
-          <option value="neutral">Rester neutre</option>
-          <option value="open">Ouvrir légèrement le haut</option>
+          <option value="verySoft">Très douce</option>
+          <option value="soft">Plus douce</option>
+          <option value="neutral">Naturelle</option>
+          <option value="open">Plus ouverte</option>
         </select>
         <p className="control-help">
-          Les changements de liste ne recalculent pas automatiquement la preview.
+          Changer cette valeur ne relance pas le traitement tant que tu ne valides pas.
         </p>
       </div>
 
@@ -116,8 +125,48 @@ export function PreviewControls({
           }
         />
         <p className="control-help">
-          Référence d’écoute pratique. Ce n’est pas une mesure LUFS officielle.
+          Repère pratique proche -13 estimé. Ce n’est pas une mesure LUFS officielle.
         </p>
+      </div>
+
+      <div className="slider-row">
+        <div>
+          <label htmlFor="stereoWidth">Largeur stéréo</label>
+          <span>{settings.stereoWidth} %</span>
+        </div>
+        <input
+          id="stereoWidth"
+          type="range"
+          min="85"
+          max="112"
+          step="1"
+          value={settings.stereoWidth}
+          onChange={(event) =>
+            updateSettings({
+              stereoWidth: Number(event.target.value)
+            })
+          }
+        />
+      </div>
+
+      <div className="slider-row">
+        <div>
+          <label htmlFor="density">Densité harmonique</label>
+          <span>{settings.density} %</span>
+        </div>
+        <input
+          id="density"
+          type="range"
+          min="0"
+          max="80"
+          step="1"
+          value={settings.density}
+          onChange={(event) =>
+            updateSettings({
+              density: Number(event.target.value)
+            })
+          }
+        />
       </div>
 
       <button
@@ -129,7 +178,7 @@ export function PreviewControls({
         {isRendering
           ? "Génération en cours..."
           : hasPreview
-            ? "Appliquer les réglages"
+            ? "Appliquer les réglages et régénérer"
             : "Générer la Preview Master"}
       </button>
 
@@ -141,7 +190,7 @@ export function PreviewControls({
 
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
         <p className="message message-warning">
-          Réglages modifiés. Clique sur “Appliquer les réglages” pour recalculer la preview.
+          Réglages modifiés. La Preview affichée utilise encore les réglages validés précédents.
         </p>
       )}
 

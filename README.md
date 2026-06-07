@@ -1,20 +1,22 @@
-# PAXLAB Browser Engine - dev02
+# PAXLAB Browser Engine - dev03 XXL hotfix deploy
 
-Application Vite + React + TypeScript deployable sur Cloudflare Pages.
+Application Vite / React / TypeScript hébergée sur Cloudflare Pages.
 
-## Fonctionnalités dev02
+Objectif : analyse et Preview Master locale dans le navigateur pour fichiers WAV / MP3, sans upload serveur.
 
-- Import local WAV / MP3.
-- Décodage local via Web Audio API.
-- Lecteur local Original.
-- Génération d'une Preview Master en mémoire navigateur via OfflineAudioContext.
-- Réglages audio avec bouton d'application manuel.
-- Comparaison A/B Original / Preview Master en conservant la position de lecture.
-- Mesures indicatives RMS simple / peak / crest factor.
-- Aucun upload serveur.
-- Aucun backend.
-- Aucun export audio.
-- Aucune mesure LUFS officielle annoncée.
+## Dev03 XXL
+
+- Import WAV / MP3 local
+- Décodage Web Audio API
+- Analyse source indicative
+- Waveform cliquable
+- Zones d’écoute suggérées
+- Génération Preview Master locale
+- Chaîne automatique V0.6 : anti-fizz, de-click léger, de-clipper prudent, contrôle sub, EQ simplifiée, stéréo, densité, compression, niveau cible estimé, limiteur
+- Comparaison A/B Original / Preview Master
+- Aucun export
+- Aucun upload serveur
+- Aucune mesure LUFS officielle
 
 ## Commandes
 
@@ -26,7 +28,11 @@ npm run build
 
 ## Cloudflare Pages
 
-- Framework preset : None ou Vite si disponible
 - Build command : `npm run build`
-- Build output directory : `dist`
-- Root directory : vide ou `/`
+- Output directory : `dist`
+- Framework preset : `None` ou `Vite` si disponible
+
+
+## Hotfix deploy
+
+Ce package corrige le lockfile npm pour Cloudflare Pages en forçant le registre npm public.
