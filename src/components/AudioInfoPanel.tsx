@@ -1,3 +1,8 @@
+import {
+  formatBytes,
+  formatDuration,
+  formatNumber
+} from "../audio/audioBufferUtils";
 import type { DecodedAudioInfo, DecodeStatus } from "../audio/types";
 
 interface AudioInfoPanelProps {
@@ -5,36 +10,6 @@ interface AudioInfoPanelProps {
   status: DecodeStatus;
   audioInfo: DecodedAudioInfo | null;
   errorMessage: string | null;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) {
-    return "0 o";
-  }
-
-  const units = ["o", "Ko", "Mo", "Go"];
-  const unitIndex = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1
-  );
-
-  const value = bytes / 1024 ** unitIndex;
-
-  return `${value.toLocaleString("fr-FR", {
-    maximumFractionDigits: value >= 10 ? 1 : 2
-  })} ${units[unitIndex]}`;
-}
-
-function formatDuration(seconds: number): string {
-  const totalSeconds = Math.round(seconds);
-  const minutes = Math.floor(totalSeconds / 60);
-  const remainingSeconds = totalSeconds % 60;
-
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-}
-
-function formatNumber(value: number): string {
-  return value.toLocaleString("fr-FR");
 }
 
 export function AudioInfoPanel({

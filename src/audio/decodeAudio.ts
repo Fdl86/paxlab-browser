@@ -1,4 +1,4 @@
-import type { DecodedAudioInfo } from "./types";
+import type { DecodedAudioData, DecodedAudioInfo, LocalAudioFileInfo } from "./types";
 
 type AudioContextConstructor = typeof AudioContext;
 
@@ -9,7 +9,7 @@ type WindowWithWebkitAudioContext = Window &
 
 let sharedAudioContext: AudioContext | null = null;
 
-function getAudioContext(): AudioContext {
+export function getAudioContext(): AudioContext {
   const audioWindow = window as WindowWithWebkitAudioContext;
   const AudioContextClass =
     audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
@@ -27,18 +27,41 @@ function getAudioContext(): AudioContext {
   return sharedAudioContext;
 }
 
-export async function decodeAudioFile(file: File): Promise<DecodedAudioInfo> {
+export async function ensureAudioContextRunning(): Promise<AudioContext> {
+  const audioContext = getAudioContext();
+
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+
+  return audioContext;
+}
+
+export async function decodeAudioFile(file: File): Promise<DecodedAudioData> {
   const audioContext = getAudioContext();
   const arrayBuffer = await file.arrayBuffer();
 
   try {
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
 
-    return {
+    const fileInfo: LocalAudioFileInfo = {
+      name: file.name,
+      sizeBytes: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    };
+
+    const info: DecodedAudioInfo = {
       durationSeconds: audioBuffer.duration,
       sampleRate: audioBuffer.sampleRate,
       numberOfChannels: audioBuffer.numberOfChannels,
       length: audioBuffer.length
+    };
+
+    return {
+      file: fileInfo,
+      info,
+      audioBuffer
     };
   } catch {
     throw new Error(
