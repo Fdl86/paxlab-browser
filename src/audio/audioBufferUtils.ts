@@ -97,16 +97,76 @@ export function applySafeTargetGain(
     return cloneAudioBuffer(source);
   }
 
-  const gainForRms = dbToLinear(targetRmsDb - metrics.rmsDb);
-  const gainForPeakCeiling = dbToLinear(maxPeakDb - metrics.peakDb);
+  const requiredLiftDb = targetRmsDb - metrics.rmsDb;
+  const gainForRms = dbToLinear(requiredLiftDb);
+  const peakCeilingLiftDb = maxPeakDb - metrics.peakDb;
 
-  // Dev07 : l'Auto Engine doit pouvoir monter un morceau faible vers sa cible,
-  // puis laisser le limiteur sécuriser les crêtes. On garde toutefois un garde-fou
-  // pour éviter une montée absurde sur une source très silencieuse ou corrompue.
-  const protectedLiftLimit = Math.min(dbToLinear(5.8), Math.max(gainForPeakCeiling * 2.8, dbToLinear(1.2)));
-  const finalGain = Math.min(gainForRms, protectedLiftLimit);
+  // Dev07.1 : un fichier Suno très bas doit pouvoir être réellement poussé vers
+  // sa cible automatique. On autorise donc une marge au-dessus du ceiling avant
+  // limiteur, mais avec un garde-fou absolu pour éviter les sources corrompues.
+  const limiterWorkRoomDb = requiredLiftDb > 6 ? 2.6 : 1.8;
+  const protectedLiftLimitDb = clamp(
+    Math.max(1.2, peakCeilingLiftDb + limiterWorkRoomDb),
+    1.2,
+    9.8
+  );
+  const finalGain = Math.min(gainForRms, dbToLinear(protectedLiftLimitDb));
 
   return applyGainToNewBuffer(source, finalGain);
+}
+
+export function removeDcOffset(source: AudioBuffer): { buffer: AudioBuffer; maxOffset: number } {
+  const processed = new AudioBuffer({
+    numberOfChannels: source.numberOfChannels,
+    length: source.length,
+    sampleRate: source.sampleRate
+  });
+
+  let maxOffset = 0;
+
+  for (let channel = 0; channel < source.numberOfChannels; channel += 1) {
+    const input = source.getChannelData(channel);
+    const output = processed.getChannelData(channel);
+    let sum = 0;
+
+    for (let index = 0; index < input.length; index += 1) {
+      sum += input[index];
+    }
+
+    const offset = sum / Math.max(1, input.length);
+    maxOffset = Math.max(maxOffset, Math.abs(offset));
+
+    for (let index = 0; index < input.length; index += 1) {
+      output[index] = clamp(input[index] - offset, -1, 1);
+    }
+  }
+
+  return { buffer: processed, maxOffset };
+}
+
+export function applyTinyEdgeFade(source: AudioBuffer, fadeMs = 8): AudioBuffer {
+  const processed = cloneAudioBuffer(source);
+  const fadeLength = Math.min(
+    Math.floor((source.sampleRate * fadeMs) / 1000),
+    Math.floor(source.length / 2)
+  );
+
+  if (fadeLength <= 1) {
+    return processed;
+  }
+
+  for (let channel = 0; channel < processed.numberOfChannels; channel += 1) {
+    const data = processed.getChannelData(channel);
+
+    for (let index = 0; index < fadeLength; index += 1) {
+      const fadeIn = index / fadeLength;
+      const fadeOut = (fadeLength - index) / fadeLength;
+      data[index] *= fadeIn;
+      data[data.length - 1 - index] *= fadeOut;
+    }
+  }
+
+  return processed;
 }
 
 export function formatDb(value: number): string {

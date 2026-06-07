@@ -85,17 +85,23 @@ export function inferAutoMasterPlan(metrics: AdvancedAudioMetrics): AutoMasterPl
     safetyIntent = "prudent";
     reason = "Source déjà assez forte : légère mise en forme sans chercher à écraser.";
   } else if (veryQuiet && !compact) {
-    targetLufsEstimate = -12.0;
+    targetLufsEstimate = -12.1;
     profile = "strongLift";
     profileLabel = "Auto lift fort";
     compressionIntent = "fort prudent";
-    reason = "Source faible et encore dynamique : gain plus assumé, puis ceiling sécurisé.";
+    reason = "Source très basse et encore dynamique : gain assumé, ceiling proche de -1 dBTP estimé.";
+  } else if (veryQuiet) {
+    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.7;
+    profile = "strongLift";
+    profileLabel = "Auto lift contrôlé";
+    compressionIntent = compact ? "modéré" : "fort prudent";
+    reason = "Source très basse mais compacte : montée franche avec headroom protégé.";
   } else if (quiet) {
-    targetLufsEstimate = fatiguingHigh ? -12.5 : -12.3;
+    targetLufsEstimate = fatiguingHigh ? -12.6 : -12.3;
     profile = "strongLift";
     profileLabel = "Auto lift";
     compressionIntent = compact ? "modéré" : "fort prudent";
-    reason = "Source sous le niveau cible : montée proche de +3 dB et headroom contrôlé.";
+    reason = "Source sous le niveau cible : montée automatique et headroom contrôlé.";
   } else if (moderate) {
     targetLufsEstimate = fatiguingHigh ? -12.9 : -12.6;
     profile = "balancedLift";
@@ -108,8 +114,12 @@ export function inferAutoMasterPlan(metrics: AdvancedAudioMetrics): AutoMasterPl
     targetLufsEstimate -= 0.3;
   }
 
-  if (veryCompact && targetLufsEstimate > -13.4) {
+  if (veryCompact && !veryQuiet && targetLufsEstimate > -13.4) {
     targetLufsEstimate = -13.4;
+  }
+
+  if (veryCompact && veryQuiet && targetLufsEstimate > -12.9) {
+    targetLufsEstimate = -12.9;
   }
 
   const targetRmsDb = targetLufsToRmsTarget(metrics, targetLufsEstimate);
@@ -121,7 +131,7 @@ export function inferAutoMasterPlan(metrics: AdvancedAudioMetrics): AutoMasterPl
     targetRmsDb: oneDecimal(targetRmsDb),
     ceilingDb: oneDecimal(ceilingDb),
     targetHeadroomDb: oneDecimal(Math.abs(ceilingDb)),
-    expectedLiftDb: oneDecimal(clamp(targetLufsEstimate - metrics.estimatedLufs, -1.8, 5.5)),
+    expectedLiftDb: oneDecimal(clamp(targetLufsEstimate - metrics.estimatedLufs, -1.8, 8.8)),
     compressionIntent,
     safetyIntent,
     reason
@@ -158,7 +168,7 @@ export function buildSettingsFromAnalysis(
         ? "soft"
         : base.highTreatment;
 
-  const liftPush = clamp(plan.expectedLiftDb, 0, 5.5);
+  const liftPush = clamp(plan.expectedLiftDb, 0, 8.8);
   const intensity = clamp(
     base.intensity +
       liftPush * 3.2 +

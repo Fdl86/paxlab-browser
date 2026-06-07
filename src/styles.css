@@ -384,3 +384,9 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   .advisor-actions { grid-template-columns: 1fr; }
   h1 { font-size: clamp(2rem, 12vw, 3.4rem); }
 }
+
+.monitor-waveform .waveform-zero {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}

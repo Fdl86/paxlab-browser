@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.7.0-dev07-auto-engine-v2",
+  "version": "0.7.1-dev07-waveform-integrity",
   "type": "module",
   "scripts": {
     "dev": "vite",

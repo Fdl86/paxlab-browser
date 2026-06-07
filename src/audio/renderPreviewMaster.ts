@@ -4,9 +4,11 @@ import {
 import {
   analyzeAudioBuffer,
   applySafeTargetGain,
+  applyTinyEdgeFade,
   clamp,
   dbToLinear,
-  linearToDb
+  linearToDb,
+  removeDcOffset
 } from "./audioBufferUtils";
 import { getPresetById } from "./previewPresets";
 import type { PreviewRenderResult, PreviewSettings, ProcessingReport } from "./types";
@@ -364,7 +366,9 @@ export async function renderPreviewMaster(
     settings.maxPeakDb
   );
   const limiter = applyImprovedLimiter(leveledBuffer, settings.maxPeakDb);
-  const afterMetrics = analyzeAdvancedAudioBuffer(limiter.buffer);
+  const dcCorrection = removeDcOffset(limiter.buffer);
+  const finalBuffer = applyTinyEdgeFade(dcCorrection.buffer);
+  const afterMetrics = analyzeAdvancedAudioBuffer(finalBuffer);
 
   const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
   const achievedHeadroomDb = Math.max(0, -afterMetrics.approxTruePeakDb);
@@ -399,6 +403,9 @@ export async function renderPreviewMaster(
   appliedMoves.push(`headroom cible ${Math.abs(settings.maxPeakDb).toFixed(1)} dB`);
   if (limiter.active) {
     appliedMoves.push("limiteur de sécurité");
+  }
+  if (dcCorrection.maxOffset > 0.0008) {
+    appliedMoves.push("recentrage DC offset");
   }
 
   const renderTimeMs = performance.now() - startedAt;
@@ -447,7 +454,7 @@ export async function renderPreviewMaster(
   };
 
   return {
-    buffer: limiter.buffer,
+    buffer: finalBuffer,
     beforeMetrics,
     afterMetrics,
     renderTimeMs,

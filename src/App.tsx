@@ -275,7 +275,7 @@ export default function App() {
     <main className="app-shell control-room-shell">
       <header className="hero studio-hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev07 Auto Engine V2</p>
+          <p className="version">PAXLAB Browser Engine - dev07.1 Waveform Integrity</p>
           <h1>PAXLAB Auto Control Room</h1>
           <p className="hero-text">
             Auto Engine V2 : analyse plus poussée de la source, cible LUFS estimée dynamique, headroom contrôlé, Preview traçable, A/B temps réel et export WAV local.
@@ -388,11 +388,11 @@ export default function App() {
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev07</p>
-          <h2>Auto Engine V2, headroom control et rendu auto plus assumé</h2>
+          <p className="eyebrow">Statut dev07.1</p>
+          <h2>Waveform Integrity, DC offset guard et Auto Push</h2>
         </div>
         <p>
-          Cette version pousse l’analyse automatique : le niveau cible, le ceiling, le headroom et l’intensité sont déterminés depuis le fichier source pour proposer d’office une Preview plus proche d’un rendu de comparaison moderne.
+          Cette version corrige la représentation waveform, recentre le signal après rendu, garde un headroom fiable et pousse davantage les sources très basses vers la cible automatique.
         </p>
         <p className="honest-note">
           Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.

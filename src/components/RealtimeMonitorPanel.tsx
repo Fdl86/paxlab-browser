@@ -1,4 +1,4 @@
-import type { CSSProperties, MouseEvent } from "react";
+import { useMemo, type CSSProperties, type MouseEvent } from "react";
 import { formatDuration } from "../audio/audioBufferUtils";
 import type { PlaybackSource, PreviewStatus, RealtimeMeterState } from "../audio/types";
 
@@ -39,50 +39,63 @@ function formatLufs(value: number): string {
   return value.toFixed(1);
 }
 
-function buildPeaks(buffer: AudioBuffer | null, bins = 340): number[] {
+interface WaveformBin {
+  min: number;
+  max: number;
+}
+
+function buildWaveformBins(buffer: AudioBuffer | null, bins = 420): WaveformBin[] {
   if (!buffer || buffer.length <= 0) {
     return [];
   }
 
   const channelCount = buffer.numberOfChannels;
   const step = Math.max(1, Math.floor(buffer.length / bins));
-  const peaks: number[] = [];
+  const waveformBins: WaveformBin[] = [];
 
   for (let bin = 0; bin < bins; bin += 1) {
     const start = bin * step;
     const end = Math.min(buffer.length, start + step);
-    let peak = 0;
+    let min = 0;
+    let max = 0;
 
-    for (let channel = 0; channel < channelCount; channel += 1) {
-      const data = buffer.getChannelData(channel);
-      for (let index = start; index < end; index += 1) {
-        peak = Math.max(peak, Math.abs(data[index]));
+    for (let index = start; index < end; index += 1) {
+      let mono = 0;
+
+      for (let channel = 0; channel < channelCount; channel += 1) {
+        mono += buffer.getChannelData(channel)[index] ?? 0;
       }
+
+      mono /= Math.max(1, channelCount);
+      min = Math.min(min, mono);
+      max = Math.max(max, mono);
     }
 
-    peaks.push(peak);
+    waveformBins.push({
+      min: Math.max(-1, min),
+      max: Math.min(1, max)
+    });
   }
 
-  const maxPeak = Math.max(...peaks, 1e-6);
-  return peaks.map((peak) => peak / maxPeak);
+  return waveformBins;
 }
 
-function pathFromPeaks(peaks: number[], width = 860, height = 110): string {
-  if (!peaks.length) {
+function pathFromWaveformBins(waveformBins: WaveformBin[], width = 860, height = 110): string {
+  if (!waveformBins.length) {
     return "";
   }
 
   const center = height / 2;
-  const scale = height * 0.44;
-  const step = width / Math.max(1, peaks.length - 1);
-  const top = peaks.map(
-    (peak, index) =>
-      `${index === 0 ? "M" : "L"}${(index * step).toFixed(2)},${(center - peak * scale).toFixed(2)}`
+  const scale = height * 0.46;
+  const step = width / Math.max(1, waveformBins.length - 1);
+  const top = waveformBins.map(
+    (bin, index) =>
+      `${index === 0 ? "M" : "L"}${(index * step).toFixed(2)},${(center - bin.max * scale).toFixed(2)}`
   );
-  const bottom = peaks
+  const bottom = waveformBins
     .map(
-      (peak, index) =>
-        `L${((peaks.length - 1 - index) * step).toFixed(2)},${(center + peak * scale).toFixed(2)}`
+      (bin, index) =>
+        `L${((waveformBins.length - 1 - index) * step).toFixed(2)},${(center - bin.min * scale).toFixed(2)}`
     )
     .join(" ");
 
@@ -130,8 +143,8 @@ export function RealtimeMonitorPanel({
   onSwitchSource
 }: RealtimeMonitorPanelProps) {
   const activeBuffer = activeSource === "preview" ? previewBuffer ?? originalBuffer : originalBuffer;
-  const peaks = buildPeaks(activeBuffer);
-  const path = pathFromPeaks(peaks);
+  const waveformBins = useMemo(() => buildWaveformBins(activeBuffer), [activeBuffer]);
+  const path = useMemo(() => pathFromWaveformBins(waveformBins), [waveformBins]);
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const outputPercent = Math.min(100, Math.max(0, ((meter.outputDb + 60) / 60) * 100));
   const peakPercent = Math.min(100, Math.max(0, ((meter.peakHoldDb + 60) / 60) * 100));
@@ -216,6 +229,7 @@ export function RealtimeMonitorPanel({
               </div>
             </div>
             <svg viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true">
+              <line className="waveform-zero" x1="0" y1="55" x2="860" y2="55" />
               <path d={path} />
             </svg>
             <div className="playhead" />
