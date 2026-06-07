@@ -14,12 +14,13 @@ import type {
   PreviewStatus,
   SourceAnalysisResult
 } from "./audio/types";
-import { AudioInfoPanel } from "./components/AudioInfoPanel";
 import { MasterDashboard } from "./components/MasterDashboard";
+import { ExportPanel } from "./components/ExportPanel";
 import { MetricsPanel } from "./components/MetricsPanel";
 import { RealtimeMonitorPanel } from "./components/RealtimeMonitorPanel";
 import { PreviewControls } from "./components/PreviewControls";
 import { ProcessingReportPanel } from "./components/ProcessingReportPanel";
+import { SessionStatusPanel } from "./components/SessionStatusPanel";
 import { UploadPanel } from "./components/UploadPanel";
 
 function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings): boolean {
@@ -237,11 +238,11 @@ export default function App() {
     <main className="app-shell">
       <header className="hero">
         <div>
-          <p className="version">PAXLAB Browser Engine - dev04.1 Render Guard</p>
+          <p className="version">PAXLAB Browser Engine - dev05.1 Clickless A/B</p>
           <h1>PAXLAB Browser Engine</h1>
           <p className="hero-text">
             Moteur navigateur local pour importer un fichier audio IA, analyser le fichier,
-            générer une Preview Master en mémoire, puis comparer Original / Preview Master en A/B.
+            générer une Preview Master en mémoire, comparer Original / Preview Master en A/B, puis exporter localement la version validée.
           </p>
         </div>
 
@@ -255,20 +256,28 @@ export default function App() {
         </div>
       </header>
 
-      <div className="layout two-columns">
+      <div className="layout two-columns compact-top-layout">
         <UploadPanel
           selectedFile={selectedFile}
           isDecoding={decodeStatus === "loading"}
           onFileSelected={setSelectedFile}
         />
 
-        <AudioInfoPanel
-          file={selectedFile}
-          status={decodeStatus}
-          audioInfo={decodedAudio?.info ?? null}
-          errorMessage={decodeErrorMessage}
+        <SessionStatusPanel
+          decodedAudio={decodedAudio}
+          sourceAnalysis={sourceAnalysis}
+          previewResult={previewResult}
+          previewSettings={previewSettings}
+          previewStatus={previewStatus}
+          previewRevision={previewRevision}
+          previewRenderedAt={previewRenderedAt}
+          hasPendingChanges={hasPendingChanges}
         />
       </div>
+
+      {decodeStatus === "error" && decodeErrorMessage && (
+        <p className="message message-error standalone-message">{decodeErrorMessage}</p>
+      )}
 
       {analysisStatus === "running" && (
         <p className="message message-info standalone-message">
@@ -302,7 +311,7 @@ export default function App() {
         onSwitchSource={(source) => void player.switchSource(source)}
       />
 
-      <div className="layout two-columns wide-second">
+      <div className="layout three-columns control-room-layout">
         <PreviewControls
           settings={previewSettings}
           previewStatus={previewStatus}
@@ -317,24 +326,32 @@ export default function App() {
         />
 
         <ProcessingReportPanel result={previewResult} />
+
+        <ExportPanel
+          sourceFileName={selectedFile?.name ?? null}
+          previewBuffer={previewResult?.buffer ?? null}
+          previewRevision={previewRevision}
+          previewRenderedAt={previewRenderedAt}
+          hasPendingChanges={hasPendingChanges}
+          isRendering={previewStatus === "rendering"}
+          onBeforeExport={player.stop}
+        />
       </div>
 
       <MetricsPanel result={previewResult} sourceAnalysis={sourceAnalysis} />
 
       <section className="panel next-panel">
         <div className="panel-heading">
-          <p className="eyebrow">Statut dev04</p>
-          <h2>Monitoring temps réel et A/B propre</h2>
+          <p className="eyebrow">Statut dev05.1</p>
+          <h2>Control Room, export local et traçabilité Preview</h2>
         </div>
 
         <p>
-          Cette version recentre l’outil sur le cœur utile : lecture A/B claire, waveform, monitoring dynamique pendant l’écoute, cible automatique issue de l’analyse et rendu Preview Master local.
+          Cette version verrouille le flux de travail : session claire, lecture A/B, monitoring dynamique, génération traçable de la Preview Master et export WAV local de la version validée.
         </p>
 
         <p className="honest-note">
-          Aucun export audio n’est proposé. La Preview Master est une version de comparaison
-          générée localement, à valider à l’écoute. Les mesures LUFS, true peak et streaming
-          check restent indicatives.
+          L’export WAV est généré localement depuis la Preview en mémoire. La Preview Master reste une version de comparaison à valider à l’écoute. Les mesures LUFS, true peak et streaming check restent indicatives.
         </p>
       </section>
     </main>

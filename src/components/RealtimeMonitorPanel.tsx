@@ -130,6 +130,7 @@ export function RealtimeMonitorPanel({
   const outputPercent = Math.min(100, Math.max(0, ((meter.outputDb + 60) / 60) * 100));
   const peakPercent = Math.min(100, Math.max(0, ((meter.peakHoldDb + 60) / 60) * 100));
   const previewLabel = previewRevision > 0 ? `Preview Master #${previewRevision}` : "Preview Master";
+  const previewInlineTime = previewRenderedAt ? `Version générée à ${previewRenderedAt}` : null;
   const nowPlayingLabel = activeSource === "original" ? "Original Source" : previewLabel;
   const previewStatusLabel =
     previewStatus === "rendering"
@@ -137,7 +138,7 @@ export function RealtimeMonitorPanel({
       : previewStatus === "ready"
         ? hasPendingChanges
           ? `#${previewRevision} à régénérer`
-          : `Prête #${previewRevision}`
+          : `#${previewRevision}${previewRenderedAt ? ` · ${previewRenderedAt}` : ""}`
         : "Non générée";
 
   function handleClick(event: MouseEvent<HTMLDivElement>) {
@@ -174,11 +175,13 @@ export function RealtimeMonitorPanel({
       <div className="now-playing-bar">
         <div>
           <p className="eyebrow">Lecture active</p>
-          <h2>{nowPlayingLabel}</h2>
+          <h2>
+            {nowPlayingLabel}
+            {activeSource === "preview" && previewInlineTime && (
+              <small className="inline-render-time">{previewInlineTime}</small>
+            )}
+          </h2>
           <span>{fileName ?? "Aucun fichier audio chargé"}</span>
-          {activeSource === "preview" && previewRenderedAt && (
-            <small>Version générée à {previewRenderedAt}</small>
-          )}
         </div>
         <strong className={isPlaying ? "live-pill live" : "live-pill"}>
           {isPlaying ? "En lecture" : "Pause"}

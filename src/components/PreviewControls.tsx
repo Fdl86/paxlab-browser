@@ -52,7 +52,7 @@ export function PreviewControls({
     <section className="panel controls-panel">
       <div className="panel-heading">
         <p className="eyebrow">Preview Master locale</p>
-        <h2>Chaîne automatique V0.7</h2>
+        <h2>Chaîne automatique V0.8</h2>
       </div>
 
       <div className="chain-badges">
@@ -196,8 +196,8 @@ export function PreviewControls({
 
       {previewStatus === "ready" && !hasPendingChanges && (
         <p className="message message-success">
-          Preview Master #{previewRevision} générée{previewRenderedAt ? ` à ${previewRenderedAt}` : ""}.
-          Elle est sélectionnée pour la prochaine lecture. Aucun export n’est créé.
+          Preview Master #{previewRevision}{previewRenderedAt ? ` · version générée à ${previewRenderedAt}` : ""}.
+          Elle est sélectionnée pour la prochaine lecture et peut être exportée localement.
         </p>
       )}
 

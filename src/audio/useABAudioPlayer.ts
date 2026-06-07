@@ -23,6 +23,9 @@ interface UseABAudioPlayerResult {
 }
 
 const SILENCE_DB = -90;
+const SWITCH_FADE_SECONDS = 0.028;
+const STOP_FADE_SECONDS = 0.018;
+const START_FADE_SECONDS = 0.018;
 
 const initialMeter: RealtimeMeterState = {
   instantPeakDb: SILENCE_DB,
@@ -38,6 +41,13 @@ const initialMeter: RealtimeMeterState = {
 interface ShortTermWindow {
   time: number;
   square: number;
+}
+
+interface PlaybackVoice {
+  sourceNode: AudioBufferSourceNode;
+  gainNode: GainNode;
+  analyser: AnalyserNode;
+  token: number;
 }
 
 function getBufferForSource(
@@ -88,6 +98,53 @@ function getMeterStatus(rmsDb: number, peakDb: number): RealtimeMeterState["stat
   return "good";
 }
 
+function scheduleVoiceStop(voice: PlaybackVoice, fadeSeconds: number): void {
+  const audioContext = getAudioContext();
+  const now = audioContext.currentTime;
+  const safeFade = Math.max(0, fadeSeconds);
+
+  voice.sourceNode.onended = null;
+
+  try {
+    voice.gainNode.gain.cancelScheduledValues(now);
+    voice.gainNode.gain.setValueAtTime(voice.gainNode.gain.value, now);
+
+    if (safeFade > 0) {
+      voice.gainNode.gain.linearRampToValueAtTime(0.0001, now + safeFade);
+    } else {
+      voice.gainNode.gain.setValueAtTime(0.0001, now);
+    }
+  } catch {
+    // Certains navigateurs peuvent refuser une automation si le noeud est déjà arrêté.
+  }
+
+  try {
+    voice.sourceNode.stop(now + safeFade + 0.006);
+  } catch {
+    // Un AudioBufferSourceNode ne peut être stoppé qu'une seule fois.
+  }
+
+  window.setTimeout(() => {
+    try {
+      voice.sourceNode.disconnect();
+    } catch {
+      // Déjà déconnecté.
+    }
+
+    try {
+      voice.gainNode.disconnect();
+    } catch {
+      // Déjà déconnecté.
+    }
+
+    try {
+      voice.analyser.disconnect();
+    } catch {
+      // Déjà déconnecté.
+    }
+  }, Math.ceil((safeFade + 0.08) * 1000));
+}
+
 export function useABAudioPlayer({
   originalBuffer,
   previewBuffer
@@ -97,8 +154,8 @@ export function useABAudioPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [meter, setMeter] = useState<RealtimeMeterState>(initialMeter);
 
-  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
-  const activeNodesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const currentVoiceRef = useRef<PlaybackVoice | null>(null);
+  const activeVoicesRef = useRef<Set<PlaybackVoice>>(new Set());
   const analyserRef = useRef<AnalyserNode | null>(null);
   const analyserDataRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const startContextTimeRef = useRef(0);
@@ -145,6 +202,13 @@ export function useABAudioPlayer({
     setMeter(initialMeter);
   }, []);
 
+  const resetIntegratedMeterOnly = useCallback(() => {
+    shortTermWindowsRef.current = [];
+    integratedSquareSumRef.current = 0;
+    integratedFrameCountRef.current = 0;
+    peakHoldDbRef.current = SILENCE_DB;
+  }, []);
+
   const readCurrentOffset = useCallback(() => {
     const sourceBuffer = getBufferForSource(
       activeSourceRef.current,
@@ -165,30 +229,28 @@ export function useABAudioPlayer({
     return Math.min(Math.max(startOffsetRef.current + elapsed, 0), sourceBuffer.duration);
   }, []);
 
-  const stopEverySource = useCallback(() => {
+  const fadeOutExistingVoices = useCallback((fadeSeconds: number) => {
     playbackTokenRef.current += 1;
 
-    for (const node of activeNodesRef.current) {
-      try {
-        node.onended = null;
-        node.stop(0);
-      } catch {
-        // Un AudioBufferSourceNode ne peut être stoppé qu'une seule fois.
-      }
-
-      try {
-        node.disconnect();
-      } catch {
-        // Déjà déconnecté.
-      }
+    for (const voice of activeVoicesRef.current) {
+      scheduleVoiceStop(voice, fadeSeconds);
     }
 
-    activeNodesRef.current.clear();
-    sourceNodeRef.current = null;
+    activeVoicesRef.current.clear();
+    currentVoiceRef.current = null;
   }, []);
 
+  const stopEverySource = useCallback(
+    (fadeSeconds = 0) => {
+      fadeOutExistingVoices(fadeSeconds);
+      analyserRef.current = null;
+      analyserDataRef.current = null;
+    },
+    [fadeOutExistingVoices]
+  );
+
   const startSource = useCallback(
-    async (sourceName: PlaybackSource, offset: number) => {
+    async (sourceName: PlaybackSource, offset: number, stopExisting = true) => {
       const sourceBuffer = getBufferForSource(
         sourceName,
         originalBufferRef.current,
@@ -199,56 +261,71 @@ export function useABAudioPlayer({
         return;
       }
 
-      stopEverySource();
+      if (stopExisting) {
+        stopEverySource();
+      }
 
       const safeOffset = Math.min(Math.max(offset, 0), Math.max(sourceBuffer.duration - 0.02, 0));
       const audioContext = await ensureAudioContextRunning();
       const sourceNode = audioContext.createBufferSource();
+      const gainNode = audioContext.createGain();
       const analyser = audioContext.createAnalyser();
+      const token = playbackTokenRef.current + 1;
 
+      playbackTokenRef.current = token;
+      sourceNode.buffer = sourceBuffer;
       analyser.fftSize = 2048;
       analyser.smoothingTimeConstant = 0.55;
-      analyserRef.current = analyser;
-      analyserDataRef.current = new Float32Array(new ArrayBuffer(analyser.fftSize * Float32Array.BYTES_PER_ELEMENT));
+      gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(1, audioContext.currentTime + START_FADE_SECONDS);
 
-      const token = playbackTokenRef.current;
-      sourceNode.buffer = sourceBuffer;
       sourceNode
+        .connect(gainNode)
         .connect(analyser)
         .connect(audioContext.destination);
 
+      const voice: PlaybackVoice = {
+        sourceNode,
+        gainNode,
+        analyser,
+        token
+      };
+
+      analyserRef.current = analyser;
+      analyserDataRef.current = new Float32Array(
+        new ArrayBuffer(analyser.fftSize * Float32Array.BYTES_PER_ELEMENT)
+      );
+
       sourceNode.onended = () => {
-        if (token !== playbackTokenRef.current || sourceNodeRef.current !== sourceNode) {
+        activeVoicesRef.current.delete(voice);
+
+        if (token !== playbackTokenRef.current || currentVoiceRef.current !== voice) {
           return;
         }
 
-        activeNodesRef.current.delete(sourceNode);
-        sourceNodeRef.current = null;
+        currentVoiceRef.current = null;
         setIsPlaying(false);
         isPlayingRef.current = false;
         setCurrentTime(sourceBuffer.duration);
       };
 
       sourceNode.start(0, safeOffset);
-      activeNodesRef.current.add(sourceNode);
-      sourceNodeRef.current = sourceNode;
+      activeVoicesRef.current.add(voice);
+      currentVoiceRef.current = voice;
       startOffsetRef.current = safeOffset;
       startContextTimeRef.current = audioContext.currentTime;
-      shortTermWindowsRef.current = [];
-      integratedSquareSumRef.current = 0;
-      integratedFrameCountRef.current = 0;
-      peakHoldDbRef.current = SILENCE_DB;
+      resetIntegratedMeterOnly();
       setCurrentTime(safeOffset);
       currentTimeRef.current = safeOffset;
       setIsPlaying(true);
       isPlayingRef.current = true;
     },
-    [stopEverySource]
+    [resetIntegratedMeterOnly, stopEverySource]
   );
 
   const pause = useCallback(() => {
     const offset = readCurrentOffset();
-    stopEverySource();
+    stopEverySource(STOP_FADE_SECONDS);
     setCurrentTime(offset);
     currentTimeRef.current = offset;
     setIsPlaying(false);
@@ -257,7 +334,7 @@ export function useABAudioPlayer({
   }, [readCurrentOffset, resetMeter, stopEverySource]);
 
   const stop = useCallback(() => {
-    stopEverySource();
+    stopEverySource(STOP_FADE_SECONDS);
     setCurrentTime(0);
     currentTimeRef.current = 0;
     setIsPlaying(false);
@@ -302,7 +379,7 @@ export function useABAudioPlayer({
       const safeTime = Math.min(Math.max(nextTime, 0), sourceBuffer.duration);
       const wasPlaying = isPlayingRef.current;
 
-      stopEverySource();
+      stopEverySource(STOP_FADE_SECONDS);
       setCurrentTime(safeTime);
       currentTimeRef.current = safeTime;
       setIsPlaying(false);
@@ -331,23 +408,30 @@ export function useABAudioPlayer({
         return;
       }
 
-      const offset = Math.min(readCurrentOffset(), nextBuffer.duration);
+      const offset = Math.min(readCurrentOffset(), Math.max(nextBuffer.duration - 0.02, 0));
       const wasPlaying = isPlayingRef.current;
 
-      stopEverySource();
+      if (wasPlaying) {
+        fadeOutExistingVoices(SWITCH_FADE_SECONDS);
+      } else {
+        stopEverySource();
+      }
+
       setActiveSourceState(nextSource);
       activeSourceRef.current = nextSource;
       setCurrentTime(offset);
       currentTimeRef.current = offset;
       setIsPlaying(false);
       isPlayingRef.current = false;
-      resetMeter();
+      resetIntegratedMeterOnly();
 
       if (wasPlaying) {
-        await startSource(nextSource, offset);
+        await startSource(nextSource, offset, false);
+      } else {
+        resetMeter();
       }
     },
-    [readCurrentOffset, resetMeter, startSource, stopEverySource]
+    [fadeOutExistingVoices, readCurrentOffset, resetIntegratedMeterOnly, resetMeter, startSource, stopEverySource]
   );
 
   const updateMeter = useCallback(() => {

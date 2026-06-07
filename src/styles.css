@@ -1117,3 +1117,168 @@ input[type="range"] {
 }
 
 .now-playing-bar small { display: block; margin-top: 6px; color: #d4af37; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; }
+
+/* DEV05 - Control Room */
+.compact-top-layout {
+  grid-template-columns: 0.9fr 1.1fr;
+}
+
+.session-panel .empty-state {
+  min-height: 230px;
+}
+
+.session-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 12px;
+}
+
+.session-card {
+  min-height: 106px;
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.large-session-card {
+  grid-column: span 2;
+}
+
+.session-card span,
+.export-status-card span {
+  color: #d4af37;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.session-card strong,
+.export-status-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #fff8e8;
+  overflow-wrap: anywhere;
+}
+
+.session-card small {
+  display: block;
+  margin-top: 7px;
+  color: #b9b3a7;
+  line-height: 1.45;
+}
+
+.success-session-card {
+  border-color: rgba(80, 200, 140, 0.24);
+  background: rgba(80, 200, 140, 0.07);
+}
+
+.warning-session-card {
+  border-color: rgba(255, 190, 70, 0.26);
+  background: rgba(255, 190, 70, 0.075);
+}
+
+.control-room-layout {
+  grid-template-columns: 1fr 0.9fr 0.9fr;
+}
+
+.inline-render-time {
+  display: inline-flex;
+  margin-left: 10px;
+  padding: 5px 8px;
+  vertical-align: middle;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 999px;
+  color: #d4af37;
+  background: rgba(212, 175, 55, 0.08);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.now-playing-bar small.inline-render-time {
+  display: inline-flex;
+  margin-top: 0;
+}
+
+.export-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.export-status-card {
+  padding: 15px;
+  border: 1px solid rgba(80, 200, 140, 0.22);
+  border-radius: 18px;
+  background: rgba(80, 200, 140, 0.07);
+}
+
+.export-status-card p {
+  margin: 9px 0 0;
+  color: #c9c2b5;
+  line-height: 1.55;
+}
+
+.export-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.export-actions button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 58px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 16px;
+  color: #17130a;
+  background: linear-gradient(135deg, #f2d574, #d4af37);
+  font-weight: 950;
+  text-align: left;
+  box-shadow: 0 14px 30px rgba(212, 175, 55, 0.15);
+}
+
+.export-actions button + button {
+  color: #fff8e8;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+
+.export-actions small {
+  color: inherit;
+  opacity: 0.78;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+@media (max-width: 1080px) {
+  .compact-top-layout,
+  .control-room-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .session-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .large-session-card {
+    grid-column: span 1;
+  }
+
+  .inline-render-time {
+    display: inline-flex;
+    margin: 8px 0 0;
+  }
+
+  .export-actions button {
+    display: grid;
+  }
+}
