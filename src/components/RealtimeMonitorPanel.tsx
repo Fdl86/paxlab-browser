@@ -266,7 +266,7 @@ export function RealtimeMonitorPanel({
 
       <div className="now-playing-bar">
         <div>
-          <p className="eyebrow">Lecture active</p>
+          <p className="eyebrow">En écoute</p>
           <h2>
             {nowPlayingLabel}
             {activeSource === "preview" && previewInlineTime && (
@@ -292,7 +292,7 @@ export function RealtimeMonitorPanel({
           <div className="monitor-waveform" onClick={handleClick} style={{ "--playhead": `${progress}%` } as CSSProperties}>
             <div className="waveform-label-row">
               <div className="waveform-label-left">
-                <span>Waveform</span>
+                <span>Signal</span>
                 <small>{waveformViewMode === "structure" ? "Vue structure RMS" : "Vue niveau comparé"}</small>
               </div>
               <div className="waveform-actions">
@@ -353,17 +353,17 @@ export function RealtimeMonitorPanel({
 
           <div className="realtime-grid">
             <div className="meter-card primary-meter">
-              <span>Peak lecture</span>
+              <span>Peak</span>
               <strong>{formatDb(meter.peakHoldDb)}</strong>
               <small>dBTP est.</small>
             </div>
             <div className="meter-card primary-meter">
-              <span>LUFS lecture</span>
+              <span>LUFS</span>
               <strong>{formatLufs(meter.integratedLufsEstimate)}</strong>
               <small>mesure depuis play</small>
             </div>
             <div className="meter-card primary-meter">
-              <span>Short-term lecture</span>
+              <span>Short-term</span>
               <strong>{formatLufs(meter.shortTermLufsEstimate)}</strong>
               <small>fenêtre env. 3 s</small>
             </div>
@@ -391,11 +391,11 @@ export function RealtimeMonitorPanel({
               <strong>{headroomSummary ? headroomSummary.activeAverageHeadroomDb.toFixed(1) : meter.headroomDb.toFixed(1)} dB</strong>
             </div>
             <div>
-              <span>Source</span>
+              <span>Écoute</span>
               <strong>{nowPlayingLabel}</strong>
             </div>
             <div>
-              <span>Preview</span>
+              <span>Version</span>
               <strong>{previewStatusLabel}</strong>
             </div>
           </div>

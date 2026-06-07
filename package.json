@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "0.8.4-dev08-4-meter-clarity",
+  "version": "0.9.0-dev09-wow-ux",
   "type": "module",
   "scripts": {
     "dev": "vite",

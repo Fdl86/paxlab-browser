@@ -128,8 +128,8 @@ export function PreviewControls({
     <section className="panel controls-panel pro-controls-panel dynamic-controls-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Rendu local</p>
-          <h2>Auto Engine V3.4</h2>
+          <p className="eyebrow">Action</p>
+          <h2>Réglages rapides</h2>
         </div>
         <div className="mode-toggle" aria-label="Mode de réglage">
           <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
@@ -161,7 +161,7 @@ export function PreviewControls({
       </div>
 
       <div className="segmented-control-block">
-        <span>Orientation automatique</span>
+        <span>Type de rendu</span>
         <div className="segmented-control auto-intensity-control">
           {(["safe", "balanced", "impact"] as AutoIntensityId[]).map((value) => (
             <button
@@ -175,7 +175,7 @@ export function PreviewControls({
           ))}
         </div>
         <p className="control-help">
-          Prudent garde plus de marge. Équilibré est le mode par défaut. Impact pousse plus fort si le fichier le permet.
+          Prudent protège. Équilibré est le choix simple. Impact pousse plus fort quand le fichier le permet.
         </p>
       </div>
 
@@ -192,7 +192,7 @@ export function PreviewControls({
       </label>
 
       <div className="control-group">
-        <label htmlFor="preset">Profil de rendu</label>
+        <label htmlFor="preset">Profil</label>
         <select id="preset" value={settings.presetId} onChange={handlePresetChange}>
           {PREVIEW_PRESETS.map((item) => (
             <option key={item.id} value={item.id}>
@@ -204,7 +204,7 @@ export function PreviewControls({
       </div>
 
       <div className="segmented-control-block">
-        <span>Réparation source</span>
+        <span>Nettoyage source</span>
         <div className="segmented-control">
           {(["light", "normal", "strong"] as SourceRepairLevel[]).map((level) => (
             <button
@@ -222,7 +222,7 @@ export function PreviewControls({
 
       <div className="slider-row primary-slider-row">
         <div>
-          <label htmlFor="intensity">Intensité globale</label>
+          <label htmlFor="intensity">Intensité</label>
           <span>{settings.intensity} %</span>
         </div>
         <input
@@ -339,10 +339,10 @@ export function PreviewControls({
         onClick={onRenderPreview}
       >
         {isRendering
-          ? "Génération en cours..."
+          ? "Génération..."
           : hasPreview
-            ? "Appliquer et régénérer"
-            : "Générer la Preview Master"}
+            ? "Régénérer"
+            : "Générer la Preview"}
       </button>
 
       {!hasAudio && <p className="message message-info">Importe un fichier audio pour activer la génération locale.</p>}

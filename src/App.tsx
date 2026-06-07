@@ -273,29 +273,68 @@ export default function App() {
     setShouldSelectPreviewAfterRender(false);
   }, [player, previewResult, previewStatus, shouldSelectPreviewAfterRender]);
 
+  const workflowStep = !decodedAudio ? 1 : previewResult ? 3 : previewStatus === "rendering" ? 2 : 2;
+  const mainCtaLabel = !decodedAudio
+    ? "1. Importe un morceau"
+    : previewStatus === "rendering"
+      ? "2. Génération en cours"
+      : previewResult
+        ? "3. Compare et exporte"
+        : "2. Génère la Preview";
+
   return (
-    <main className="app-shell control-room-shell">
-      <header className="hero studio-hero">
-        <div>
-          <p className="version">PAXLAB Browser Engine - dev08.4 Meter Clarity</p>
-          <h1>PAXLAB Instant Control Room</h1>
+    <main className="app-shell ux-shell">
+      <header className="ux-hero-wow">
+        <div className="ux-hero-copy">
+          <p className="version">PAXLAB Browser Engine - dev09 Wow UX</p>
+          <h1>PAXLAB Master Room</h1>
           <p className="hero-text">
-            Auto Engine V3.4 : meters de lecture clarifiés, waveform structurelle et résultat global séparé du monitoring temps réel.
+            Un workflow simple : importe un morceau, choisis le rendu, génère une Preview Master, compare en A/B et exporte en WAV. Traitement local, sans upload serveur.
           </p>
+          <div className="ux-trust-row">
+            <span>Local browser</span>
+            <span>Preview non destructive</span>
+            <span>WAV export</span>
+          </div>
         </div>
 
-        <div className="privacy-card studio-status-card">
-          <span>Session active</span>
-          <strong>{formatRevisionLabel(previewRevision, previewRenderedAt)}</strong>
+        <div className="ux-now-card">
+          <span>Étape actuelle</span>
+          <strong>{mainCtaLabel}</strong>
           <p>
             {hasPendingChanges
-              ? "Réglages modifiés : régénère pour travailler sur la bonne version."
-              : "Traitement local, non destructif, aucune API externe."}
+              ? "Réglages modifiés : clique sur régénérer pour mettre la Preview à jour."
+              : previewRevision > 0
+                ? formatRevisionLabel(previewRevision, previewRenderedAt)
+                : "Glisse un fichier WAV ou MP3 pour commencer."}
           </p>
         </div>
       </header>
 
-      <div className="studio-command-bar">
+      <section className="ux-stepper" aria-label="Workflow PAXLAB">
+        <div className={workflowStep >= 1 ? "ux-step active" : "ux-step"}>
+          <b>1</b>
+          <span>Importer</span>
+          <small>WAV ou MP3</small>
+        </div>
+        <div className={workflowStep >= 2 ? "ux-step active" : "ux-step"}>
+          <b>2</b>
+          <span>Générer</span>
+          <small>Auto / Impact / Anti-fatigue</small>
+        </div>
+        <div className={workflowStep >= 3 ? "ux-step active" : "ux-step"}>
+          <b>3</b>
+          <span>Comparer</span>
+          <small>A/B instantané</small>
+        </div>
+        <div className={previewResult && !hasPendingChanges ? "ux-step active" : "ux-step"}>
+          <b>4</b>
+          <span>Exporter</span>
+          <small>WAV local</small>
+        </div>
+      </section>
+
+      <section className="ux-top-grid">
         <UploadPanel selectedFile={selectedFile} isDecoding={decodeStatus === "loading"} onFileSelected={setSelectedFile} />
         <SessionStatusPanel
           decodedAudio={decodedAudio}
@@ -307,14 +346,14 @@ export default function App() {
           previewRenderedAt={previewRenderedAt}
           hasPendingChanges={hasPendingChanges}
         />
-      </div>
+      </section>
 
       {decodeStatus === "error" && decodeErrorMessage && <p className="message message-error standalone-message">{decodeErrorMessage}</p>}
       {analysisStatus === "running" && <p className="message message-info standalone-message">Analyse locale en cours : niveau, spectre, stéréo et cible automatique.</p>}
       {analysisStatus === "error" && analysisErrorMessage && <p className="message message-error standalone-message">{analysisErrorMessage}</p>}
 
-      <section className="studio-main-grid">
-        <div className="studio-monitor-column">
+      <section className="ux-workbench">
+        <div className="ux-listening-zone">
           <RealtimeMonitorPanel
             fileName={selectedFile?.name ?? null}
             originalBuffer={decodedAudio?.audioBuffer ?? null}
@@ -335,20 +374,9 @@ export default function App() {
             onSeek={player.seek}
             onSwitchSource={(source) => void player.switchSource(source)}
           />
-
-          <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} previewSettings={previewSettings} />
         </div>
 
-        <div className="studio-side-column">
-          <SmartAdvisorPanel
-            sourceAnalysis={sourceAnalysis}
-            previewResult={previewResult}
-            settings={previewSettings}
-            isRendering={previewStatus === "rendering"}
-            onApplySettings={handleApplyRecommended}
-            onApplyAndRender={handleApplyRecommendedAndRender}
-          />
-
+        <aside className="ux-action-zone">
           <PreviewControls
             settings={previewSettings}
             previewStatus={previewStatus}
@@ -363,44 +391,53 @@ export default function App() {
             onSettingsChange={setPreviewSettings}
             onRenderPreview={() => void handleRenderPreview()}
           />
+
+          <ExportPanel
+            sourceFileName={selectedFile?.name ?? null}
+            previewBuffer={previewResult?.buffer ?? null}
+            previewRevision={previewRevision}
+            previewRenderedAt={previewRenderedAt}
+            hasPendingChanges={hasPendingChanges}
+            isRendering={previewStatus === "rendering"}
+            onBeforeExport={player.stop}
+          />
+        </aside>
+      </section>
+
+      {previewHistory.length > 0 && (
+        <section className="ux-history-row">
+          <PreviewHistoryPanel
+            items={previewHistory}
+            activeRevision={previewRevision}
+            isRendering={previewStatus === "rendering"}
+            onSelect={handleSelectHistory}
+          />
+        </section>
+      )}
+
+      <details className="ux-details-drawer">
+        <summary>
+          <span>Analyse avancée</span>
+          <small>Ouvrir les détails techniques, le conseil automatique et le rapport de traitement</small>
+        </summary>
+        <div className="ux-details-grid">
+          <SmartAdvisorPanel
+            sourceAnalysis={sourceAnalysis}
+            previewResult={previewResult}
+            settings={previewSettings}
+            isRendering={previewStatus === "rendering"}
+            onApplySettings={handleApplyRecommended}
+            onApplyAndRender={handleApplyRecommendedAndRender}
+          />
+          <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} previewSettings={previewSettings} />
+          <ProcessingReportPanel result={previewResult} />
+          <MetricsPanel result={previewResult} sourceAnalysis={sourceAnalysis} />
         </div>
-      </section>
+      </details>
 
-      <section className="studio-lower-grid">
-        <PreviewHistoryPanel
-          items={previewHistory}
-          activeRevision={previewRevision}
-          isRendering={previewStatus === "rendering"}
-          onSelect={handleSelectHistory}
-        />
-
-        <ProcessingReportPanel result={previewResult} />
-
-        <ExportPanel
-          sourceFileName={selectedFile?.name ?? null}
-          previewBuffer={previewResult?.buffer ?? null}
-          previewRevision={previewRevision}
-          previewRenderedAt={previewRenderedAt}
-          hasPendingChanges={hasPendingChanges}
-          isRendering={previewStatus === "rendering"}
-          onBeforeExport={player.stop}
-        />
-      </section>
-
-      <MetricsPanel result={previewResult} sourceAnalysis={sourceAnalysis} />
-
-      <section className="panel next-panel">
-        <div className="panel-heading">
-          <p className="eyebrow">Statut dev08.4</p>
-          <h2>Meter Clarity : lecture courante et résultat global séparés</h2>
-        </div>
-        <p>
-          Cette version clarifie les meters pendant l’écoute et stabilise la waveform pour éviter les faux effets de zoom. Le résultat global reste affiché dans les panneaux Rendu local et Auto Engine.
-        </p>
-        <p className="honest-note">
-          Les mesures LUFS et true peak restent indicatives. La Preview Master est une version locale de comparaison à valider à l’écoute avant export.
-        </p>
-      </section>
+      <p className="ux-footer-note">
+        Mesures indicatives navigateur. La Preview Master est une version locale de comparaison à valider à l’écoute.
+      </p>
     </main>
   );
 }
