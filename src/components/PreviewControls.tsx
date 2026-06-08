@@ -106,7 +106,8 @@ export function PreviewControls({
   const autoPlan = sourceAnalysis
     ? inferAutoMasterPlan(sourceAnalysis.metrics, {
         autoIntensity: settings.autoIntensity,
-        antiFatigue: settings.antiFatigue
+        antiFatigue: settings.antiFatigue,
+        spacePreserve: settings.spacePreserve
       })
     : null;
 
@@ -123,7 +124,8 @@ export function PreviewControls({
 
     const rebuilt = buildSettingsFromAnalysis(sourceAnalysis.metrics, nextBase.presetId, {
       autoIntensity: nextBase.autoIntensity,
-      antiFatigue: nextBase.antiFatigue
+      antiFatigue: nextBase.antiFatigue,
+      spacePreserve: nextBase.spacePreserve
     });
 
     onSettingsChange({
@@ -131,7 +133,8 @@ export function PreviewControls({
       ...partial,
       presetId: nextBase.presetId,
       autoIntensity: nextBase.autoIntensity,
-      antiFatigue: nextBase.antiFatigue
+      antiFatigue: nextBase.antiFatigue,
+      spacePreserve: nextBase.spacePreserve
     });
   }
 
@@ -149,7 +152,8 @@ export function PreviewControls({
     if (sourceAnalysis) {
       const rebuilt = buildSettingsFromAnalysis(sourceAnalysis.metrics, nextPresetId, {
         autoIntensity: nextPresetSettings.autoIntensity,
-        antiFatigue: nextPresetSettings.antiFatigue
+        antiFatigue: nextPresetSettings.antiFatigue,
+        spacePreserve: nextPresetSettings.spacePreserve
       });
       onSettingsChange(rebuilt);
       return;
@@ -244,6 +248,11 @@ export function PreviewControls({
               <strong>{settings.antiFatigue ? "Activé" : "Off"}</strong>
               <small>{settings.antiFatigue ? "AI Shimmer Control actif" : "Désactivé"}</small>
             </div>
+            <div>
+              <span>Espace</span>
+              <strong>{settings.spacePreserve ? "Préservé" : "Standard"}</strong>
+              <small>{settings.spacePreserve ? "Limiteur plus doux" : "Rendu validé"}</small>
+            </div>
           </div>
 
           <div className="segmented-control-block">
@@ -271,6 +280,18 @@ export function PreviewControls({
             <span>
               <strong>Aigus fatigants</strong>
               <small>AI Shimmer Control : calme le fizz, la brillance dure et les cymbales IA qui piquent.</small>
+            </span>
+          </label>
+
+          <label className={settings.spacePreserve ? "fatigue-toggle space-toggle active" : "fatigue-toggle space-toggle"}>
+            <input
+              type="checkbox"
+              checked={settings.spacePreserve}
+              onChange={(event) => rebuildAutoSettings({ spacePreserve: event.target.checked })}
+            />
+            <span>
+              <strong>Préserver l’espace</strong>
+              <small>Mode expert : limiteur plus doux, headroom plus large et sensation moins écrasée.</small>
             </span>
           </label>
 

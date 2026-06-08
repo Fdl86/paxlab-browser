@@ -12,6 +12,7 @@ import type {
 export interface AutoPlanOptions {
   autoIntensity?: AutoIntensityId;
   antiFatigue?: boolean;
+  spacePreserve?: boolean;
 }
 
 function spectralCorrectionFor(metrics: AdvancedAudioMetrics): number {
@@ -91,6 +92,7 @@ export function inferAutoMasterPlan(
 ): AutoMasterPlan {
   const autoIntensity = options.autoIntensity ?? "balanced";
   const antiFatigue = Boolean(options.antiFatigue);
+  const spacePreserve = Boolean(options.spacePreserve);
   const { clipped, veryCompact, compact, fatiguingHigh } = inferSafety(metrics, antiFatigue);
   const ultraQuiet = metrics.estimatedLufs <= -19;
   const veryQuiet = metrics.estimatedLufs <= -17;
@@ -167,6 +169,12 @@ export function inferAutoMasterPlan(
 
   targetLufsEstimate += intensityTargetShift(autoIntensity, antiFatigue);
 
+  if (spacePreserve) {
+    targetLufsEstimate -= autoIntensity === "impact" ? 0.45 : 0.35;
+    compressionIntent = compressionIntent === "fort prudent" ? "modéré" : compressionIntent === "modéré" ? "léger" : compressionIntent;
+    reason = `${reason} Préserver l’espace actif : PAXLAB garde plus de respiration et limite moins fort.`;
+  }
+
   if (autoIntensity === "impact" && veryCompact && !veryQuiet) {
     targetLufsEstimate = Math.min(targetLufsEstimate, -13.2);
   }
@@ -230,7 +238,8 @@ export function buildSettingsFromAnalysis(
   const base = getSettingsForPreset(presetId);
   const autoIntensity = options.autoIntensity ?? base.autoIntensity ?? "balanced";
   const antiFatigue = options.antiFatigue ?? base.antiFatigue ?? false;
-  const plan = inferAutoMasterPlan(metrics, { autoIntensity, antiFatigue });
+  const spacePreserve = options.spacePreserve ?? base.spacePreserve ?? false;
+  const plan = inferAutoMasterPlan(metrics, { autoIntensity, antiFatigue, spacePreserve });
 
   const highTreatment = antiFatigue
     ? "verySoft"
@@ -259,6 +268,7 @@ export function buildSettingsFromAnalysis(
       (autoIntensity === "impact" ? 5 : 0) -
       (autoIntensity === "safe" ? 6 : 0) -
       (antiFatigue ? 5 : 0) -
+      (spacePreserve ? 9 : 0) -
       (metrics.crestFactorDb < 7 ? 8 : 0),
     12,
     66
@@ -281,6 +291,7 @@ export function buildSettingsFromAnalysis(
     density: Math.round(density),
     sourceRepair: inferSourceRepair(metrics, antiFatigue),
     autoIntensity,
-    antiFatigue
+    antiFatigue,
+    spacePreserve
   };
 }

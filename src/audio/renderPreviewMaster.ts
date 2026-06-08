@@ -63,6 +63,7 @@ function repairLabel(settings: PreviewSettings): string {
 
 function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
   const amount = clamp(settings.intensity / 100, 0, 1);
+  const spaceFactor = settings.spacePreserve ? 0.78 : 1;
   const repair = repairMultiplier(settings) * (settings.antiFatigue ? 1.18 : 1);
 
   const highTreatmentGain =
@@ -89,7 +90,7 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
 
   return {
     highShelfGain: highTreatmentGain * amount * presetWeight,
-    harshDipGain: (settings.antiFatigue ? -3.1 : -2.3) * amount * presetWeight * repair,
+    harshDipGain: (settings.antiFatigue ? -3.1 : -2.3) * amount * presetWeight * repair * spaceFactor,
     fizzDipGain:
       settings.highTreatment === "verySoft"
         ? (settings.antiFatigue ? -4.2 : -3.2) * amount * repair
@@ -102,9 +103,9 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
     presenceGain: settings.highTreatment === "open" ? 0.65 * amount : (settings.antiFatigue ? -0.75 : -0.45) * amount,
     lowShelfGain: settings.presetId === "open" ? -0.35 * amount : 0.45 * amount + powerBoost,
     subControlFrequency: settings.presetId === "power" ? 30 : 34,
-    compressorThreshold: -23 + 8 * (1 - amount) - settings.density * 0.04,
-    compressorRatio: 1.45 + 1.05 * amount + settings.density * 0.012,
-    makeupGain: 1 + 0.08 * amount + settings.density * 0.0018 + (settings.autoIntensity === "impact" ? 0.035 : 0),
+    compressorThreshold: -23 + 8 * (1 - amount) - settings.density * 0.04 + (settings.spacePreserve ? 1.4 : 0),
+    compressorRatio: (1.45 + 1.05 * amount + settings.density * 0.012) * (settings.spacePreserve ? 0.84 : 1),
+    makeupGain: 1 + 0.08 * amount + settings.density * (settings.spacePreserve ? 0.001 : 0.0018) + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.035 : 0),
     dehissReductionDb:
       (settings.highTreatment === "verySoft"
         ? 2.2
@@ -273,13 +274,14 @@ function applyPostLoudnessCalibration(
   targetLufsEstimate: number,
   maxPeakDb: number,
   autoIntensity: PreviewSettings["autoIntensity"],
-  antiFatigue: boolean
+  antiFatigue: boolean,
+  spacePreserve: boolean
 ): { buffer: AudioBuffer; limiterActive: boolean; limiterReductionDb: number; correctionGainDb: number } {
   let current = source;
   let limiterActive = false;
   let limiterReductionDb = 0;
   let correctionGainDb = 0;
-  const maxExtraDb = autoIntensity === "impact" ? 4.2 : antiFatigue || autoIntensity === "safe" ? 2.2 : 3.2;
+  const maxExtraDb = (autoIntensity === "impact" ? 4.2 : antiFatigue || autoIntensity === "safe" ? 2.2 : 3.2) * (spacePreserve ? 0.62 : 1);
 
   for (let pass = 0; pass < 3; pass += 1) {
     const metrics = analyzeAdvancedAudioBuffer(current);
@@ -292,7 +294,7 @@ function applyPostLoudnessCalibration(
     const currentHeadroomDb = Math.max(0, -metrics.approxTruePeakDb);
     const ceilingHeadroomDb = Math.abs(maxPeakDb);
     const roomBeforeLimiterDb = Math.max(0, currentHeadroomDb - ceilingHeadroomDb);
-    const limiterAllowanceDb = autoIntensity === "impact" ? 1.8 : antiFatigue || autoIntensity === "safe" ? 0.8 : 1.25;
+    const limiterAllowanceDb = (autoIntensity === "impact" ? 1.8 : antiFatigue || autoIntensity === "safe" ? 0.8 : 1.25) * (spacePreserve ? 0.45 : 1);
     const passGainDb = clamp(
       Math.min(loudnessGapDb, roomBeforeLimiterDb + limiterAllowanceDb, maxExtraDb - correctionGainDb),
       0,
@@ -411,20 +413,25 @@ export async function renderPreviewMaster(
 
   const renderedBuffer = await offlineContext.startRendering();
   const stereoBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
-  const densityBuffer = applyGentleDensity(stereoBuffer, settings.density);
+  const effectiveDensity = settings.spacePreserve ? Math.round(settings.density * 0.54) : settings.density;
+  const effectiveMaxPeakDb = settings.spacePreserve ? Math.min(settings.maxPeakDb, -2.0) : settings.maxPeakDb;
+  const effectiveTargetLufs = settings.spacePreserve ? settings.targetLufsEstimate - 0.45 : settings.targetLufsEstimate;
+  const effectiveTargetRmsDb = settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
+  const densityBuffer = applyGentleDensity(stereoBuffer, effectiveDensity);
   const preGainMetrics = analyzeAudioBuffer(densityBuffer);
   const leveledBuffer = applySafeTargetGain(
     densityBuffer,
-    settings.targetRmsDb,
-    settings.maxPeakDb
+    effectiveTargetRmsDb,
+    effectiveMaxPeakDb
   );
-  const firstLimiter = applyImprovedLimiter(leveledBuffer, settings.maxPeakDb);
+  const firstLimiter = applyImprovedLimiter(leveledBuffer, effectiveMaxPeakDb);
   const calibrated = applyPostLoudnessCalibration(
     firstLimiter.buffer,
-    settings.targetLufsEstimate,
-    settings.maxPeakDb,
+    effectiveTargetLufs,
+    effectiveMaxPeakDb,
     settings.autoIntensity,
-    settings.antiFatigue
+    settings.antiFatigue,
+    settings.spacePreserve
   );
   const limiter = {
     buffer: calibrated.buffer,
@@ -465,8 +472,11 @@ export async function renderPreviewMaster(
     appliedMoves.push("densité harmonique douce");
   }
   appliedMoves.push("compression douce");
-  appliedMoves.push(`auto target ${settings.targetLufsEstimate.toFixed(1)} LUFS est.`);
-  appliedMoves.push(`ceiling ${settings.maxPeakDb.toFixed(1)} dBTP est.`);
+  appliedMoves.push(`auto target ${effectiveTargetLufs.toFixed(1)} LUFS est.`);
+  appliedMoves.push(`ceiling ${effectiveMaxPeakDb.toFixed(1)} dBTP est.`);
+  if (settings.spacePreserve) {
+    appliedMoves.push("préservation de l’espace / limiteur plus doux");
+  }
   if (calibrated.correctionGainDb > 0.15) {
     appliedMoves.push(`calibration loudness +${calibrated.correctionGainDb.toFixed(1)} dB`);
   }
@@ -488,7 +498,7 @@ export async function renderPreviewMaster(
           : settings.highTreatment === "open"
             ? "Plus ouverte"
             : "Naturelle",
-    targetLabel: `${settings.targetLufsEstimate.toFixed(1)} LUFS estimé / RMS indicatif`,
+    targetLabel: `${effectiveTargetLufs.toFixed(1)} LUFS estimé / RMS indicatif`,
     appliedMoves,
     cleanup: {
       declipActive: cleanup.declipActive,
@@ -504,19 +514,19 @@ export async function renderPreviewMaster(
       antiFizzReductionDb,
       subControlActive: profile.subControlFrequency > 30,
       stereoControlActive: settings.stereoWidth !== 100,
-      densityActive: settings.density > 0,
+      densityActive: effectiveDensity > 0,
       compressionActive: true
     },
     loudness: {
       gainAppliedDb,
-      targetRmsDb: settings.targetRmsDb,
-      targetLufsEstimate: settings.targetLufsEstimate,
-      targetLufsMinEstimate: settings.targetLufsEstimate - (settings.autoIntensity === "safe" || settings.antiFatigue ? 1.15 : 0.9),
-      targetLufsMaxEstimate: settings.targetLufsEstimate + (settings.autoIntensity === "impact" ? 0.45 : 0.35),
-      ceilingDb: settings.maxPeakDb,
-      targetHeadroomDb: Math.abs(settings.maxPeakDb),
-      targetHeadroomMinDb: Math.max(1, Math.abs(settings.maxPeakDb) - 0.4),
-      targetHeadroomMaxDb: settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
+      targetRmsDb: effectiveTargetRmsDb,
+      targetLufsEstimate: effectiveTargetLufs,
+      targetLufsMinEstimate: effectiveTargetLufs - (settings.autoIntensity === "safe" || settings.antiFatigue || settings.spacePreserve ? 1.15 : 0.9),
+      targetLufsMaxEstimate: effectiveTargetLufs + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.45 : 0.35),
+      ceilingDb: effectiveMaxPeakDb,
+      targetHeadroomDb: Math.abs(effectiveMaxPeakDb),
+      targetHeadroomMinDb: Math.max(1, Math.abs(effectiveMaxPeakDb) - 0.4),
+      targetHeadroomMaxDb: settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
       achievedHeadroomDb,
       headroomSummary,
       limiterActive: limiter.active,

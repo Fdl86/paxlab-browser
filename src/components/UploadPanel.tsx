@@ -57,7 +57,7 @@ export function UploadPanel({
     <section className="panel upload-panel hero-upload-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Étape 1</p>
+          <p className="eyebrow">Upload local</p>
           <h2>Dépose ton morceau</h2>
         </div>
         <span className="status-pill">Local</span>
@@ -89,9 +89,9 @@ export function UploadPanel({
           onChange={(event) => handleFile(event.target.files?.[0])}
         />
 
-        <span className="drop-zone-icon" aria-hidden="true">+</span>
-        <span className="drop-zone-title">Clique ou glisse un WAV / MP3</span>
-        <span className="drop-zone-subtitle">Le fichier reste dans ton navigateur. Rien n’est envoyé sur un serveur.</span>
+        <span className="drop-zone-icon" aria-hidden="true">↥</span>
+        <span className="drop-zone-title">Glisse ton WAV / MP3</span>
+        <span className="drop-zone-subtitle">Analyse et Preview sont générées localement, sans upload serveur.</span>
       </label>
 
       {localWarning && <p className="message message-warning">{localWarning}</p>}

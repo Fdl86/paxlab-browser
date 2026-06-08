@@ -17,7 +17,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       density: 44,
       sourceRepair: "normal",
       autoIntensity: "balanced",
-      antiFatigue: false
+      antiFatigue: false,
+      spacePreserve: false
     }
   },
   {
@@ -36,7 +37,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       density: 36,
       sourceRepair: "strong",
       autoIntensity: "safe",
-      antiFatigue: true
+      antiFatigue: true,
+      spacePreserve: false
     }
   },
   {
@@ -55,7 +57,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       density: 30,
       sourceRepair: "light",
       autoIntensity: "balanced",
-      antiFatigue: false
+      antiFatigue: false,
+      spacePreserve: false
     }
   },
   {
@@ -74,7 +77,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       density: 52,
       sourceRepair: "normal",
       autoIntensity: "impact",
-      antiFatigue: false
+      antiFatigue: false,
+      spacePreserve: false
     }
   },
   {
@@ -93,7 +97,8 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       density: 24,
       sourceRepair: "light",
       autoIntensity: "balanced",
-      antiFatigue: false
+      antiFatigue: false,
+      spacePreserve: false
     }
   }
 ];

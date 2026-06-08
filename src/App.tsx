@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { analyzeSource } from "./audio/advancedAnalysis";
 import { buildSettingsFromAnalysis } from "./audio/autoTarget";
 import { decodeAudioFile } from "./audio/decodeAudio";
@@ -41,7 +41,8 @@ function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings):
     left.density === right.density &&
     left.sourceRepair === right.sourceRepair &&
     left.autoIntensity === right.autoIntensity &&
-    left.antiFatigue === right.antiFatigue
+    left.antiFatigue === right.antiFatigue &&
+    left.spacePreserve === right.spacePreserve
   );
 }
 
@@ -51,6 +52,66 @@ function formatRevisionLabel(revision: number, renderedAt: string | null): strin
   }
 
   return `Preview Master #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
+}
+
+const RENDER_STEPS = [
+  "Chargement local du fichier",
+  "Analyse du morceau",
+  "Cible automatique",
+  "Correction du spectre",
+  "Optimisation de la dynamique",
+  "Normalisation du niveau",
+  "Sécurité peak",
+  "Préparation du WAV"
+];
+
+function ProcessingOverlay({ isVisible }: { isVisible: boolean }) {
+  const [progress, setProgress] = useState(8);
+
+  useEffect(() => {
+    if (!isVisible) {
+      setProgress(8);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setProgress((value) => {
+        if (value >= 94) {
+          return value;
+        }
+
+        return Math.min(94, value + 7 + Math.random() * 7);
+      });
+    }, 230);
+
+    return () => window.clearInterval(interval);
+  }, [isVisible]);
+
+  if (!isVisible) {
+    return null;
+  }
+
+  const activeIndex = Math.min(RENDER_STEPS.length - 1, Math.floor((progress / 100) * RENDER_STEPS.length));
+
+  return (
+    <div className="studio-processing-overlay" role="status" aria-live="polite">
+      <div className="studio-processing-card">
+        <div className="processing-orb" aria-hidden="true" />
+        <p className="eyebrow">Traitement local</p>
+        <h2>Préparation de la Preview</h2>
+        <p>Le moteur ajuste le rendu dans ton navigateur. Aucun upload, aucune API externe.</p>
+        <div className="processing-progress" style={{ "--progress": `${progress}%` } as CSSProperties}>
+          <span />
+        </div>
+        <strong>{Math.round(progress)} % · {RENDER_STEPS[activeIndex]}</strong>
+        <div className="processing-steps">
+          {RENDER_STEPS.map((step, index) => (
+            <span key={step} className={index <= activeIndex ? "done" : ""}>{step}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function App() {
@@ -281,26 +342,33 @@ export default function App() {
       : previewResult
         ? "Comparer et exporter"
         : "Générer la Preview";
+  const stageLabel = !decodedAudio ? "Import" : previewStatus === "rendering" ? "Rendu" : previewResult ? "Résultat" : "Réglages";
+  const readySummary = previewResult && !hasPendingChanges
+    ? `${previewResult.afterMetrics.estimatedLufs.toFixed(1)} LUFS est. · HR ${(previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb).toFixed(1)} dB`
+    : null;
 
   return (
-    <main className="app-shell ux-shell">
-      <header className="ux-hero-wow">
+    <main className="app-shell ux-shell studio-pro-shell">
+      <ProcessingOverlay isVisible={previewStatus === "rendering"} />
+      <header className="ux-hero-wow studio-hero-pro">
         <div className="ux-hero-copy">
-          <p className="version">PAXLAB Browser Engine - dev10 Simple UX</p>
-          <h1>PAXLAB Master Room</h1>
+          <p className="version">PAXLAB Browser Engine - dev11 Studio UX Pro</p>
+          <h1>Preview Master locale, simple et puissante.</h1>
           <p className="hero-text">
-            Dépose ton morceau, choisis Propre, Équilibré ou Impact, puis compare la Preview en A/B. Simple en façade, expert si besoin, toujours local dans ton navigateur.
+            Importe un morceau IA, choisis un rendu, génère une Preview, compare en A/B et exporte en WAV. Le son validé reste local dans ton navigateur.
           </p>
-          <div className="ux-trust-row">
-            <span>Traitement local</span>
+          <div className="ux-trust-row studio-trust-row">
+            <span>100 % local</span>
             <span>A/B instantané</span>
+            <span>Impact + anti-fatigue</span>
             <span>Export WAV</span>
           </div>
         </div>
 
-        <div className="ux-now-card">
-          <span>Étape actuelle</span>
+        <div className="ux-now-card studio-command-card">
+          <span>{stageLabel}</span>
           <strong>{mainCtaLabel}</strong>
+          {readySummary && <em>{readySummary}</em>}
           <p>
             {hasPendingChanges
               ? "Réglages modifiés : clique sur régénérer pour mettre la Preview à jour."
@@ -311,7 +379,7 @@ export default function App() {
         </div>
       </header>
 
-      <section className="ux-stepper" aria-label="Workflow PAXLAB">
+      <section className="ux-stepper studio-stepper" aria-label="Workflow PAXLAB">
         <div className={workflowStep >= 1 ? "ux-step active" : "ux-step"}>
           <b>1</b>
           <span>Importer</span>
@@ -334,7 +402,7 @@ export default function App() {
         </div>
       </section>
 
-      <section className="ux-top-grid">
+      <section className="ux-top-grid studio-start-grid">
         <UploadPanel selectedFile={selectedFile} isDecoding={decodeStatus === "loading"} onFileSelected={setSelectedFile} />
         <SessionStatusPanel
           decodedAudio={decodedAudio}
@@ -352,8 +420,8 @@ export default function App() {
       {analysisStatus === "running" && <p className="message message-info standalone-message">Analyse locale en cours : niveau, spectre, stéréo et cible automatique.</p>}
       {analysisStatus === "error" && analysisErrorMessage && <p className="message message-error standalone-message">{analysisErrorMessage}</p>}
 
-      <section className="ux-workbench">
-        <div className="ux-listening-zone">
+      <section className="ux-workbench studio-workbench-pro">
+        <div className="ux-listening-zone studio-listening-stage">
           <RealtimeMonitorPanel
             fileName={selectedFile?.name ?? null}
             originalBuffer={decodedAudio?.audioBuffer ?? null}
@@ -376,7 +444,7 @@ export default function App() {
           />
         </div>
 
-        <aside className="ux-action-zone">
+        <aside className="ux-action-zone studio-action-rail">
           <PreviewControls
             settings={previewSettings}
             previewStatus={previewStatus}
@@ -415,10 +483,10 @@ export default function App() {
         </section>
       )}
 
-      <details className="ux-details-drawer">
+      <details className="ux-details-drawer studio-expert-drawer">
         <summary>
           <span>Analyse avancée</span>
-          <small>Ouvrir les détails techniques, le conseil automatique et le rapport de traitement</small>
+          <small>Mesures, conseil automatique, rapport de traitement et détails avancés</small>
         </summary>
         <div className="ux-details-grid">
           <SmartAdvisorPanel
@@ -436,7 +504,7 @@ export default function App() {
       </details>
 
       <p className="ux-footer-note">
-        Mesures indicatives navigateur. La Preview Master est une version locale de comparaison à valider à l’écoute.
+        Mesures indicatives navigateur. Preview locale de comparaison, à valider à l’écoute.
       </p>
     </main>
   );

@@ -34,11 +34,13 @@ export function buildAdvisor(
   const moves: AdvisorMove[] = [];
   const plan = inferAutoMasterPlan(metrics, {
     autoIntensity: currentSettings.autoIntensity,
-    antiFatigue: currentSettings.antiFatigue
+    antiFatigue: currentSettings.antiFatigue,
+    spacePreserve: currentSettings.spacePreserve
   });
   const recommended = buildSettingsFromAnalysis(metrics, currentSettings.presetId, {
     autoIntensity: currentSettings.autoIntensity,
-    antiFatigue: currentSettings.antiFatigue
+    antiFatigue: currentSettings.antiFatigue,
+    spacePreserve: currentSettings.spacePreserve
   });
 
   moves.push({
@@ -117,7 +119,8 @@ export function buildAdvisor(
       targetRmsDb: recommended.targetRmsDb,
       sourceRepair: "light",
       autoIntensity: currentSettings.autoIntensity,
-      antiFatigue: currentSettings.antiFatigue
+      antiFatigue: currentSettings.antiFatigue,
+      spacePreserve: currentSettings.spacePreserve
     });
   }
 
