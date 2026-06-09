@@ -1,11 +1,24 @@
+import type { CSSProperties } from "react";
 import { inferAutoMasterPlan } from "../audio/autoTarget";
-import { formatDb, formatDuration } from "../audio/audioBufferUtils";
+import { formatDb } from "../audio/audioBufferUtils";
 import type { AutoMasterPlan, PreviewRenderResult, PreviewSettings, SourceAnalysisResult } from "../audio/types";
 
 interface MasterDashboardProps {
   sourceAnalysis: SourceAnalysisResult | null;
   previewResult: PreviewRenderResult | null;
   previewSettings: PreviewSettings;
+}
+
+type ObjectiveTone = "success" | "warning" | "neutral" | "danger";
+
+interface ObjectiveItem {
+  label: string;
+  target: string;
+  result: string;
+  status: string;
+  tone: ObjectiveTone;
+  marker: number;
+  note: string;
 }
 
 function formatLufs(value: number): string {
@@ -20,10 +33,6 @@ function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)} %`;
 }
 
-function formatHeadroomFromPeak(peakDb: number): string {
-  return `${Math.max(0, -peakDb).toFixed(1)} dB`;
-}
-
 function formatLufsRange(plan: AutoMasterPlan): string {
   return `${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)}`;
 }
@@ -32,173 +41,240 @@ function formatHeadroomRange(plan: AutoMasterPlan): string {
   return `${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB`;
 }
 
-function calibrationStatus(
-  lufs: number,
-  headroom: number,
-  plan: AutoMasterPlan
-): { label: string; tone: "success" | "warning" | "neutral"; detail: string } {
-  const lufsInRange = lufs >= plan.targetLufsMinEstimate && lufs <= plan.targetLufsMaxEstimate;
-  const headroomInRange = headroom >= plan.targetHeadroomMinDb && headroom <= plan.targetHeadroomMaxDb;
-  const lufsMissing = plan.targetLufsMinEstimate - lufs;
-  const headroomExcess = headroom - plan.targetHeadroomMaxDb;
-  const tooHot = headroom < plan.targetHeadroomMinDb - 0.25;
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value));
+}
 
-  if (lufsInRange && headroomInRange) {
-    return {
-      label: "Cible atteinte",
-      tone: "success",
-      detail: "Loudness et headroom sont dans la plage prévue."
-    };
+function rangeMarker(value: number, min: number, max: number): number {
+  if (max === min) {
+    return 50;
   }
 
-  if (tooHot) {
-    return {
-      label: "Sécurité prioritaire",
-      tone: "warning",
-      detail: `Headroom trop serré de ${Math.abs(headroom - plan.targetHeadroomMinDb).toFixed(1)} dB.`
-    };
-  }
+  return clampPercent(((value - min) / (max - min)) * 100);
+}
 
-  if (lufsMissing > 1.3 && headroomInRange) {
-    return {
-      label: "Rendu contrôlé",
-      tone: "neutral",
-      detail: `Headroom respecté, mais loudness plus bas de ${lufsMissing.toFixed(1)} LUFS pour éviter d’écraser.`
-    };
-  }
+function getObjectiveToneClass(tone: ObjectiveTone): string {
+  return `visual-objective ${tone}`;
+}
 
-  if (lufsMissing > 1.3 || headroomExcess > 1.4) {
-    return {
-      label: "Cible partielle",
-      tone: "warning",
-      detail: `Il reste environ ${Math.max(0, lufsMissing).toFixed(1)} LUFS ou ${Math.max(0, headroomExcess).toFixed(1)} dB de marge.`
-    };
-  }
+function lufsObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
+  const value = result.afterMetrics.estimatedLufs;
+  const isInRange = value >= plan.targetLufsMinEstimate && value <= plan.targetLufsMaxEstimate;
+  const isTooHot = value > plan.targetLufsMaxEstimate + 0.5;
 
   return {
-    label: "Rendu prudent",
-    tone: "neutral",
-    detail: "La Preview garde volontairement un peu plus de marge."
+    label: "LUFS",
+    target: `${formatLufsRange(plan)} LUFS`,
+    result: value.toFixed(1),
+    status: isInRange ? "Atteint" : isTooHot ? "À vérifier" : "Partiel",
+    tone: isInRange ? "success" : isTooHot ? "warning" : "neutral",
+    marker: rangeMarker(value, plan.targetLufsMinEstimate - 1.5, plan.targetLufsMaxEstimate + 1.5),
+    note: isInRange ? "Dans la plage prévue." : isTooHot ? "Plus fort que la plage prévue." : "Rendu plus prudent."
   };
+}
+
+function headroomObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
+  const summary = result.report.loudness.headroomSummary;
+  const value = summary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb;
+  const isInRange = value >= plan.targetHeadroomMinDb && value <= plan.targetHeadroomMaxDb;
+  const tooTight = value < plan.targetHeadroomMinDb - 0.25;
+
+  return {
+    label: "Headroom",
+    target: formatHeadroomRange(plan),
+    result: `${value.toFixed(1)} dB`,
+    status: isInRange ? "Atteint" : tooTight ? "Serré" : "Prudent",
+    tone: isInRange ? "success" : tooTight ? "warning" : "neutral",
+    marker: rangeMarker(value, Math.max(0, plan.targetHeadroomMinDb - 1.5), plan.targetHeadroomMaxDb + 1.5),
+    note: isInRange ? "Marge dans la plage prévue." : tooTight ? "Marge très serrée." : "Marge plus large."
+  };
+}
+
+function peakObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
+  const value = result.afterMetrics.approxTruePeakDb;
+  const ceiling = result.settings.maxPeakDb ?? plan.ceilingDb;
+  const isSafe = value <= ceiling + 0.25;
+  const nearCeiling = value > ceiling - 0.8 && isSafe;
+
+  return {
+    label: "Peak",
+    target: `≤ ${formatDb(ceiling)}`,
+    result: formatDb(value),
+    status: isSafe ? nearCeiling ? "Contrôlé" : "Sécurisé" : "À vérifier",
+    tone: isSafe ? "success" : "warning",
+    marker: rangeMarker(value, -8, 0),
+    note: isSafe ? "Le plafond n’est pas dépassé." : "Peak au-dessus du plafond prévu."
+  };
+}
+
+function fizzObjective(result: PreviewRenderResult): ObjectiveItem {
+  const before = result.beforeMetrics.fizzRatio;
+  const after = result.afterMetrics.fizzRatio;
+  const reduction = before > 0 ? (before - after) / before : 0;
+  const softened = after <= before * 0.98;
+
+  return {
+    label: "Aigus IA",
+    target: result.settings.antiFatigue ? "Réduction prioritaire" : "Contrôle doux",
+    result: `${formatPercent(before)} → ${formatPercent(after)}`,
+    status: softened ? "Adouci" : "Stable",
+    tone: softened ? "success" : "neutral",
+    marker: clampPercent(100 - Math.max(0, reduction) * 100),
+    note: softened ? "Fizz / brillance réduits." : "Pas de dureté excessive détectée."
+  };
+}
+
+function dynamicsObjective(result: PreviewRenderResult): ObjectiveItem {
+  const before = result.beforeMetrics.crestFactorDb;
+  const after = result.afterMetrics.crestFactorDb;
+  const delta = before - after;
+  const tooDense = after < 7;
+  const controlled = !tooDense && delta >= -0.5;
+
+  return {
+    label: "Dynamique",
+    target: "Densifier sans écraser",
+    result: `${before.toFixed(1)} → ${after.toFixed(1)} dB`,
+    status: controlled ? "Contrôlée" : tooDense ? "Dense" : "Préservée",
+    tone: tooDense ? "warning" : "success",
+    marker: rangeMarker(after, 6, 15),
+    note: tooDense ? "Rendu très dense à vérifier à l’écoute." : "Dynamique cohérente pour la Preview."
+  };
+}
+
+function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string {
+  const gain = result.report.loudness.gainAppliedDb;
+  const headroom = result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb;
+
+  if (result.settings.antiFatigue) {
+    return `PAXLAB a privilégié un rendu ${result.settings.autoIntensity === "impact" ? "puissant" : "contrôlé"}, avec réduction des aigus fatigants et headroom final à ${headroom.toFixed(1)} dB.`;
+  }
+
+  if (result.settings.autoIntensity === "impact") {
+    return `Source compatible avec un lift fort : gain ${formatSigned(gain)}, plage LUFS visée ${formatLufsRange(plan)} et headroom final à ${headroom.toFixed(1)} dB.`;
+  }
+
+  if (result.settings.autoIntensity === "safe") {
+    return `PAXLAB a choisi une approche propre : plus de marge, moins de densité forcée et un rendu à valider tranquillement à l’écoute.`;
+  }
+
+  return `PAXLAB a choisi un rendu équilibré : niveau renforcé, peak sécurisé et dynamique gardée sous contrôle.`;
 }
 
 export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings }: MasterDashboardProps) {
   const sourceMetrics = sourceAnalysis?.metrics ?? previewResult?.beforeMetrics ?? null;
-  const activeMetrics = previewResult?.afterMetrics ?? sourceMetrics;
   const plan = sourceMetrics
     ? inferAutoMasterPlan(sourceMetrics, {
         autoIntensity: previewResult?.settings.autoIntensity ?? previewSettings.autoIntensity,
         antiFatigue: previewResult?.settings.antiFatigue ?? previewSettings.antiFatigue
       })
     : null;
-  const activeHeadroom = activeMetrics ? Math.max(0, -activeMetrics.approxTruePeakDb) : null;
-  const renderedHeadroomSummary = previewResult?.report.loudness.headroomSummary ?? null;
-  const calibrationHeadroom = renderedHeadroomSummary?.finalHeadroomDb ?? activeHeadroom;
-  const calibration = previewResult && plan && calibrationHeadroom !== null
-    ? calibrationStatus(previewResult.afterMetrics.estimatedLufs, calibrationHeadroom, plan)
-    : null;
-  const lufsDeltaToTarget = previewResult && plan ? previewResult.afterMetrics.estimatedLufs - plan.targetLufsEstimate : null;
-  const headroomDeltaToRange = previewResult && plan && activeHeadroom !== null
-    ? activeHeadroom < plan.targetHeadroomMinDb
-      ? activeHeadroom - plan.targetHeadroomMinDb
-      : activeHeadroom > plan.targetHeadroomMaxDb
-        ? activeHeadroom - plan.targetHeadroomMaxDb
-        : 0
-    : null;
 
-  return (
-    <section className="panel dashboard-panel auto-engine-panel calibration-panel">
-      <div className="panel-heading compact-heading">
-        <div>
-          <p className="eyebrow">Auto Engine V3.4</p>
-          <h2>Dynamic Targeting</h2>
+  if (!sourceMetrics || !plan) {
+    return (
+      <section className="panel dashboard-panel visual-report-panel">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">Rapport de Preview</p>
+            <h2>Objectifs du rendu</h2>
+          </div>
+          <span className="status-pill">En attente</span>
         </div>
-        <span className="status-pill">{previewResult ? calibration?.label ?? "Preview analysée" : "Plan auto"}</span>
-      </div>
-
-      {!activeMetrics && (
         <div className="empty-state small-empty-state">
           <p>Aucune analyse disponible.</p>
-          <span>Importe un fichier audio pour calculer la cible, le ceiling et le headroom.</span>
+          <span>Importe un fichier audio pour afficher le rapport de Preview.</span>
         </div>
-      )}
+      </section>
+    );
+  }
 
-      {activeMetrics && plan && (
-        <>
-          <div className="calibration-hero dynamic-target-hero">
-            <div>
-              <span>Décision automatique</span>
-              <strong>{plan.profileLabel}</strong>
-              <small>{plan.reason}</small>
-            </div>
-            <div>
-              <span>Objectif loudness</span>
-              <strong>{formatLufsRange(plan)}</strong>
-              <small>Objectif initial {formatLufs(plan.targetLufsEstimate)}</small>
-            </div>
-            <div>
-              <span>Plage headroom</span>
-              <strong>{formatHeadroomRange(plan)}</strong>
-              <small>Ceiling {formatDb(previewResult?.settings.maxPeakDb ?? plan.ceilingDb)}</small>
-            </div>
-            <div className={calibration ? `calibration-score ${calibration.tone}` : "calibration-score neutral"}>
-              <span>Résultat</span>
-              <strong>{calibration?.label ?? "En attente"}</strong>
-              <small>{calibration?.detail ?? `Lift prévu ${formatSigned(plan.expectedLiftDb)}`}</small>
-            </div>
+  if (!previewResult) {
+    return (
+      <section className="panel dashboard-panel visual-report-panel">
+        <div className="panel-heading compact-heading">
+          <div>
+            <p className="eyebrow">Rapport de Preview</p>
+            <h2>Choix automatique du rendu</h2>
           </div>
-
-          <div className="metrics-grid dashboard-grid compact-metrics-grid">
-            <div className="metric-card">
-              <span>Source LUFS</span>
-              <strong>{sourceMetrics ? formatLufs(sourceMetrics.estimatedLufs) : "-"}</strong>
-            </div>
-            <div className="metric-card success">
-              <span>{previewResult ? "Preview LUFS" : "LUFS actif"}</span>
-              <strong>{formatLufs(activeMetrics.estimatedLufs)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>True Peak approx.</span>
-              <strong>{formatDb(activeMetrics.approxTruePeakDb)}</strong>
-            </div>
-            <div className="metric-card success">
-              <span>Headroom final</span>
-              <strong>{renderedHeadroomSummary ? `${renderedHeadroomSummary.finalHeadroomDb.toFixed(1)} dB` : formatHeadroomFromPeak(activeMetrics.approxTruePeakDb)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>LRA estimée</span>
-              <strong>{activeMetrics.loudnessRangeEstimate.toFixed(1)} LU</strong>
-            </div>
-            <div className="metric-card">
-              <span>Headroom actif moy.</span>
-              <strong>{renderedHeadroomSummary ? `${renderedHeadroomSummary.activeAverageHeadroomDb.toFixed(1)} dB` : "-"}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Mode auto</span>
-              <strong>{(previewResult?.settings.autoIntensity ?? previewSettings.autoIntensity) === "impact" ? "Impact" : (previewResult?.settings.autoIntensity ?? previewSettings.autoIntensity) === "safe" ? "Prudent" : "Équilibré"}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Aigus fatigants</span>
-              <strong>{(previewResult?.settings.antiFatigue ?? previewSettings.antiFatigue) ? "Activé" : "Off"}</strong>
-            </div>
+          <span className="status-pill">Plan auto</span>
+        </div>
+        <div className="visual-decision-card">
+          <span>Pourquoi ce rendu ?</span>
+          <strong>{plan.profileLabel}</strong>
+          <p>{plan.reason}</p>
+          <div className="visual-chip-row">
+            <span>Objectif {formatLufsRange(plan)} LUFS</span>
+            <span>Headroom {formatHeadroomRange(plan)}</span>
+            <span>Ceiling {formatDb(plan.ceilingDb)}</span>
           </div>
+        </div>
+      </section>
+    );
+  }
 
-          {previewResult && sourceMetrics && activeHeadroom !== null && (
-            <div className="dashboard-delta auto-delta premium-delta">
-              <span>Gain obtenu : {formatSigned(previewResult.report.loudness.gainAppliedDb)}</span>
-              <span>Écart objectif : {lufsDeltaToTarget !== null ? formatSigned(lufsDeltaToTarget, "LUFS") : "-"}</span>
-              <span>Headroom final : {(renderedHeadroomSummary?.finalHeadroomDb ?? activeHeadroom).toFixed(1)} dB / plage {formatHeadroomRange(plan)}</span>
-              <span>Headroom actif : {renderedHeadroomSummary ? `${renderedHeadroomSummary.activeAverageHeadroomDb.toFixed(1)} dB moy. (${renderedHeadroomSummary.activeMinHeadroomDb.toFixed(1)}-${renderedHeadroomSummary.activeMaxHeadroomDb.toFixed(1)})` : "-"}</span>
-              <span>Écart headroom : {headroomDeltaToRange !== null ? formatSigned(headroomDeltaToRange) : "-"}</span>
-              <span>LRA : {sourceMetrics.loudnessRangeEstimate.toFixed(1)} → {previewResult.afterMetrics.loudnessRangeEstimate.toFixed(1)} LU</span>
+  const headroom = previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb;
+  const lufs = previewResult.afterMetrics.estimatedLufs;
+  const objectiveItems = [
+    lufsObjective(previewResult, plan),
+    headroomObjective(previewResult, plan),
+    peakObjective(previewResult, plan),
+    fizzObjective(previewResult),
+    dynamicsObjective(previewResult)
+  ];
+  const successfulItems = objectiveItems.filter((item) => item.tone === "success").length;
+  const globalStatus = successfulItems >= 4 ? "Objectifs validés" : successfulItems >= 3 ? "Rendu contrôlé" : "À vérifier";
+
+  return (
+    <section className="panel dashboard-panel visual-report-panel">
+      <div className="panel-heading compact-heading visual-report-heading">
+        <div>
+          <p className="eyebrow">Rapport de Preview</p>
+          <h2>Objectifs et résultat</h2>
+        </div>
+        <span className="status-pill">{globalStatus}</span>
+      </div>
+
+      <div className="visual-summary-strip" aria-label="Résumé du rendu">
+        <div>
+          <span>Gain obtenu</span>
+          <strong>{formatSigned(previewResult.report.loudness.gainAppliedDb)}</strong>
+        </div>
+        <div>
+          <span>LUFS rendu</span>
+          <strong>{lufs.toFixed(1)}</strong>
+        </div>
+        <div>
+          <span>Headroom</span>
+          <strong>{headroom.toFixed(1)} dB</strong>
+        </div>
+        <div>
+          <span>Aigus</span>
+          <strong>{previewResult.afterMetrics.fizzRatio < previewResult.beforeMetrics.fizzRatio ? "Adoucis" : "Stables"}</strong>
+        </div>
+      </div>
+
+      <div className="visual-objectives-grid" aria-label="Objectifs atteints indicateur par indicateur">
+        {objectiveItems.map((item) => (
+          <article key={item.label} className={getObjectiveToneClass(item.tone)}>
+            <div className="visual-objective-topline">
+              <span>{item.label}</span>
+              <b>{item.status}</b>
             </div>
-          )}
+            <strong>{item.result}</strong>
+            <small>Objectif : {item.target}</small>
+            <div className="visual-range-bar" style={{ "--marker": `${item.marker}%` } as CSSProperties} aria-hidden="true">
+              <i />
+            </div>
+            <p>{item.note}</p>
+          </article>
+        ))}
+      </div>
 
-          <p className="message message-info">
-            Dynamic Targeting ne force pas tous les morceaux vers le même chiffre. Ce panneau affiche le résumé global du rendu, tandis que le bloc de lecture affiche seulement les mesures courantes pendant l’écoute.
-          </p>
-        </>
-      )}
+      <div className="visual-decision-card compact">
+        <span>Pourquoi ce rendu ?</span>
+        <strong>{plan.profileLabel}</strong>
+        <p>{decisionCopy(previewResult, plan)}</p>
+      </div>
     </section>
   );
 }

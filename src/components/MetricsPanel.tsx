@@ -1,5 +1,5 @@
+import type { CSSProperties } from "react";
 import { formatDb } from "../audio/audioBufferUtils";
-import { describeHighTreatment } from "../audio/previewPresets";
 import type { PreviewRenderResult, SourceAnalysisResult } from "../audio/types";
 
 interface MetricsPanelProps {
@@ -15,14 +15,78 @@ function formatLufs(value: number): string {
   return `${value.toFixed(1)} LUFS est.`;
 }
 
+function formatDelta(value: number, suffix = ""): string {
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)}${suffix}`;
+}
+
+function clampPercent(value: number): number {
+  return Math.min(100, Math.max(0, value));
+}
+
+function normalizeLufs(value: number): number {
+  return clampPercent(((value + 24) / 16) * 100);
+}
+
+function normalizePeak(value: number): number {
+  return clampPercent(((value + 12) / 12) * 100);
+}
+
+function normalizePercent(value: number): number {
+  return clampPercent(value * 2600);
+}
+
+function normalizeCrest(value: number): number {
+  return clampPercent(((value - 4) / 14) * 100);
+}
+
+function ComparisonRow({
+  label,
+  original,
+  preview,
+  delta,
+  originalScore,
+  previewScore
+}: {
+  label: string;
+  original: string;
+  preview: string;
+  delta: string;
+  originalScore: number;
+  previewScore: number;
+}) {
+  return (
+    <article className="before-after-row">
+      <div className="before-after-label">
+        <strong>{label}</strong>
+        <span>{delta}</span>
+      </div>
+      <div className="before-after-bars">
+        <div className="before-after-bar original" style={{ "--value": `${originalScore}%` } as CSSProperties}>
+          <span>Original</span>
+          <i />
+          <b>{original}</b>
+        </div>
+        <div className="before-after-bar preview" style={{ "--value": `${previewScore}%` } as CSSProperties}>
+          <span>Preview</span>
+          <i />
+          <b>{preview}</b>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
   const sourceMetrics = sourceAnalysis?.metrics ?? result?.beforeMetrics ?? null;
 
   return (
-    <section className="panel metrics-panel">
-      <div className="panel-heading">
-        <p className="eyebrow">Mesures indicatives</p>
-        <h2>Analyse source et avant / après preview</h2>
+    <section className="panel metrics-panel visual-before-after-panel">
+      <div className="panel-heading compact-heading">
+        <div>
+          <p className="eyebrow">Avant / Après</p>
+          <h2>Ce que la Preview a changé</h2>
+        </div>
+        {result && <span className="status-pill">Mesures estimées</span>}
       </div>
 
       {!sourceMetrics && !result && (
@@ -34,88 +98,72 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
 
       {sourceMetrics && !result && (
         <>
-          <div className="metrics-grid">
-            <div className="metric-card">
-              <span>RMS source</span>
-              <strong>{formatDb(sourceMetrics.rmsDb)}</strong>
+          <div className="source-measure-strip">
+            <div>
+              <span>LUFS source</span>
+              <strong>{formatLufs(sourceMetrics.estimatedLufs)}</strong>
             </div>
-            <div className="metric-card">
+            <div>
               <span>Peak source</span>
               <strong>{formatDb(sourceMetrics.peakDb)}</strong>
             </div>
-            <div className="metric-card">
-              <span>LUFS estimé</span>
-              <strong>{formatLufs(sourceMetrics.estimatedLufs)}</strong>
-            </div>
-            <div className="metric-card">
+            <div>
               <span>Fizz 9-16 kHz</span>
               <strong>{formatRatio(sourceMetrics.fizzRatio)}</strong>
             </div>
-            <div className="metric-card">
-              <span>Balance L/R</span>
-              <strong>{formatDb(sourceMetrics.leftRightBalanceDb)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Corrélation stéréo</span>
-              <strong>{sourceMetrics.stereoCorrelation.toFixed(2)}</strong>
-            </div>
           </div>
-
           <p className="message message-info">
-            Analyse source terminée. Génère une Preview Master pour afficher la comparaison avant / après.
+            Analyse source terminée. Génère une Preview pour afficher le comparatif graphique avant / après.
           </p>
         </>
       )}
 
       {result && (
         <>
-          <div className="metrics-grid">
-            <div className="metric-card">
-              <span>Original LUFS estimé</span>
-              <strong>{formatLufs(result.beforeMetrics.estimatedLufs)}</strong>
-            </div>
-            <div className="metric-card success">
-              <span>Preview LUFS estimé</span>
-              <strong>{formatLufs(result.afterMetrics.estimatedLufs)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Original peak</span>
-              <strong>{formatDb(result.beforeMetrics.peakDb)}</strong>
-            </div>
-            <div className="metric-card success">
-              <span>Preview peak</span>
-              <strong>{formatDb(result.afterMetrics.peakDb)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Original crest</span>
-              <strong>{formatDb(result.beforeMetrics.crestFactorDb)}</strong>
-            </div>
-            <div className="metric-card success">
-              <span>Preview crest</span>
-              <strong>{formatDb(result.afterMetrics.crestFactorDb)}</strong>
-            </div>
-            <div className="metric-card">
-              <span>Original fizz</span>
-              <strong>{formatRatio(result.beforeMetrics.fizzRatio)}</strong>
-            </div>
-            <div className="metric-card success">
-              <span>Preview fizz</span>
-              <strong>{formatRatio(result.afterMetrics.fizzRatio)}</strong>
-            </div>
+          <div className="before-after-list">
+            <ComparisonRow
+              label="Niveau perçu"
+              original={formatLufs(result.beforeMetrics.estimatedLufs)}
+              preview={formatLufs(result.afterMetrics.estimatedLufs)}
+              delta={formatDelta(result.afterMetrics.estimatedLufs - result.beforeMetrics.estimatedLufs, " LUFS")}
+              originalScore={normalizeLufs(result.beforeMetrics.estimatedLufs)}
+              previewScore={normalizeLufs(result.afterMetrics.estimatedLufs)}
+            />
+            <ComparisonRow
+              label="Peak"
+              original={formatDb(result.beforeMetrics.peakDb)}
+              preview={formatDb(result.afterMetrics.peakDb)}
+              delta={formatDelta(result.afterMetrics.peakDb - result.beforeMetrics.peakDb, " dB")}
+              originalScore={normalizePeak(result.beforeMetrics.peakDb)}
+              previewScore={normalizePeak(result.afterMetrics.peakDb)}
+            />
+            <ComparisonRow
+              label="Aigus IA / fizz"
+              original={formatRatio(result.beforeMetrics.fizzRatio)}
+              preview={formatRatio(result.afterMetrics.fizzRatio)}
+              delta={`${formatRatio(Math.max(0, result.beforeMetrics.fizzRatio - result.afterMetrics.fizzRatio))} retiré`}
+              originalScore={normalizePercent(result.beforeMetrics.fizzRatio)}
+              previewScore={normalizePercent(result.afterMetrics.fizzRatio)}
+            />
+            <ComparisonRow
+              label="Dynamique"
+              original={formatDb(result.beforeMetrics.crestFactorDb)}
+              preview={formatDb(result.afterMetrics.crestFactorDb)}
+              delta={result.afterMetrics.crestFactorDb < result.beforeMetrics.crestFactorDb ? "Plus dense" : "Préservée"}
+              originalScore={normalizeCrest(result.beforeMetrics.crestFactorDb)}
+              previewScore={normalizeCrest(result.afterMetrics.crestFactorDb)}
+            />
           </div>
 
-          <div className="render-summary">
+          <div className="visual-chip-row visual-metric-chips">
             <span>Rendu local : {(result.renderTimeMs / 1000).toFixed(2)} s</span>
-            <span>{describeHighTreatment(result.settings.highTreatment)}</span>
-            <span>Cible centrale : {result.settings.targetLufsEstimate.toFixed(1)} LUFS est.</span>
-            <span>Ceiling : {result.settings.maxPeakDb.toFixed(1)} dBTP est. / plage headroom {result.report.loudness.targetHeadroomMinDb?.toFixed(1) ?? "-"} à {result.report.loudness.targetHeadroomMaxDb?.toFixed(1) ?? "-"} dB</span>
+            <span>Gain obtenu : {formatDelta(result.report.loudness.gainAppliedDb, " dB")}</span>
             <span>Headroom final : {(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB</span>
-            <span>Headroom actif moy. : {result.report.loudness.headroomSummary ? result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1) : "-"} dB</span>
-            <span>Gain obtenu : {result.report.loudness.gainAppliedDb >= 0 ? "+" : ""}{result.report.loudness.gainAppliedDb.toFixed(1)} dB approx.</span>
+            <span>Headroom actif : {result.report.loudness.headroomSummary ? result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1) : "-"} dB moy.</span>
           </div>
 
           <p className="message message-info">
-            Ces mesures sont utiles pour comparer. Elles ne remplacent pas une analyse LUFS officielle ou un contrôle mastering externe.
+            Ces graphiques sont indicatifs. Ils servent à comprendre la Preview, sans remplacer une mesure LUFS officielle.
           </p>
         </>
       )}
