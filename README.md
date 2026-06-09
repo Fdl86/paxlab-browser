@@ -1,20 +1,18 @@
-# PAXLAB Browser Engine - dev11 Studio UX Pro
+# PAXLAB Browser Engine - dev12 Guided Studio UX
 
-Application Vite / React / TypeScript pour Preview Master locale dans le navigateur.
+Application Vite / React / TypeScript pour générer une Preview Master locale dans le navigateur.
 
-## Dev11
+## Dev12
 
-- Refonte UI/UX majeure Studio UX Pro.
-- Écran d’arrivée plus premium et plus compact.
-- Workflow plus évident : importer, générer, comparer, exporter.
-- Overlay de génération avec étapes de traitement locales.
-- Mode Simple par défaut : Propre / Équilibré / Impact + Aigus fatigants.
-- Mode Expert rangé proprement.
-- Nouvelle option Expert : Préserver l’espace.
-- Le son actuel reste conservé par défaut.
-- Impact conservé.
-- Anti-fatigue conservé.
-- Export WAV local conservé.
+- Refonte d’architecture UI/UX en parcours guidé.
+- Avant import : landing premium sans studio vide.
+- Après import : choix simple du rendu Propre / Équilibré / Impact.
+- Option Aigus fatigants conservée et visible.
+- Pendant traitement : overlay local premium avec étapes.
+- Après génération : bloc A/B central, export WAV visible, historique repliable.
+- Mode Expert déplacé dans un accordéon, fermé par défaut.
+- Historique des previews conservé, mais moins envahissant.
+- Moteur audio conservé : Propre, Équilibré, Impact, Aigus fatigants, Préserver l’espace.
 - Aucun upload serveur.
 - Aucune API externe.
 - Mesures LUFS / true peak indicatives uniquement.

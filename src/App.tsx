@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { analyzeSource } from "./audio/advancedAnalysis";
 import { buildSettingsFromAnalysis } from "./audio/autoTarget";
+import { formatBytes, formatDuration } from "./audio/audioBufferUtils";
 import { decodeAudioFile } from "./audio/decodeAudio";
+import { DEFAULT_PREVIEW_SETTINGS } from "./audio/previewPresets";
 import { renderPreviewMaster } from "./audio/renderPreviewMaster";
 import { useABAudioPlayer } from "./audio/useABAudioPlayer";
-import { DEFAULT_PREVIEW_SETTINGS } from "./audio/previewPresets";
 import type {
   AnalysisStatus,
+  AutoIntensityId,
   DecodedAudioData,
   DecodeStatus,
   PreviewRenderResult,
@@ -21,9 +23,45 @@ import { PreviewControls } from "./components/PreviewControls";
 import { PreviewHistoryPanel, type PreviewHistoryItem } from "./components/PreviewHistoryPanel";
 import { ProcessingReportPanel } from "./components/ProcessingReportPanel";
 import { RealtimeMonitorPanel } from "./components/RealtimeMonitorPanel";
-import { SessionStatusPanel } from "./components/SessionStatusPanel";
 import { SmartAdvisorPanel } from "./components/SmartAdvisorPanel";
 import { UploadPanel } from "./components/UploadPanel";
+
+const RENDER_STEPS = [
+  "Chargement local",
+  "Analyse du morceau",
+  "Cible automatique",
+  "Correction du spectre",
+  "Optimisation dynamique",
+  "Normalisation du niveau",
+  "Sécurité peak",
+  "Préparation WAV"
+];
+
+const SIMPLE_RENDERS: Array<{
+  id: AutoIntensityId;
+  label: string;
+  title: string;
+  text: string;
+}> = [
+  {
+    id: "safe",
+    label: "Propre",
+    title: "Naturel et confortable",
+    text: "Garde plus de marge et évite de trop pousser."
+  },
+  {
+    id: "balanced",
+    label: "Équilibré",
+    title: "Le choix recommandé",
+    text: "Plus net, plus stable, sans perdre la respiration."
+  },
+  {
+    id: "impact",
+    label: "Impact",
+    title: "Plus fort et plus dense",
+    text: "Basses plus présentes et rendu plus massif."
+  }
+];
 
 function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings): boolean {
   if (!left) {
@@ -46,43 +84,41 @@ function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings):
   );
 }
 
-function formatRevisionLabel(revision: number, renderedAt: string | null): string {
-  if (revision <= 0) {
-    return "Aucune Preview";
+function intensityLabel(value: AutoIntensityId): string {
+  if (value === "safe") {
+    return "Propre";
   }
 
-  return `Preview Master #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
+  if (value === "impact") {
+    return "Impact";
+  }
+
+  return "Équilibré";
 }
 
-const RENDER_STEPS = [
-  "Chargement local du fichier",
-  "Analyse du morceau",
-  "Cible automatique",
-  "Correction du spectre",
-  "Optimisation de la dynamique",
-  "Normalisation du niveau",
-  "Sécurité peak",
-  "Préparation du WAV"
-];
+function sourceAcceptsAudio(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return name.endsWith(".wav") || name.endsWith(".mp3") || file.type.startsWith("audio/");
+}
 
 function ProcessingOverlay({ isVisible }: { isVisible: boolean }) {
-  const [progress, setProgress] = useState(8);
+  const [progress, setProgress] = useState(7);
 
   useEffect(() => {
     if (!isVisible) {
-      setProgress(8);
+      setProgress(7);
       return;
     }
 
     const interval = window.setInterval(() => {
       setProgress((value) => {
-        if (value >= 94) {
+        if (value >= 96) {
           return value;
         }
 
-        return Math.min(94, value + 7 + Math.random() * 7);
+        return Math.min(96, value + 8 + Math.random() * 9);
       });
-    }, 230);
+    }, 180);
 
     return () => window.clearInterval(interval);
   }, [isVisible]);
@@ -94,23 +130,263 @@ function ProcessingOverlay({ isVisible }: { isVisible: boolean }) {
   const activeIndex = Math.min(RENDER_STEPS.length - 1, Math.floor((progress / 100) * RENDER_STEPS.length));
 
   return (
-    <div className="studio-processing-overlay" role="status" aria-live="polite">
-      <div className="studio-processing-card">
+    <div className="guided-processing-overlay" role="status" aria-live="polite">
+      <div className="guided-processing-card">
         <div className="processing-orb" aria-hidden="true" />
         <p className="eyebrow">Traitement local</p>
         <h2>Préparation de la Preview</h2>
-        <p>Le moteur ajuste le rendu dans ton navigateur. Aucun upload, aucune API externe.</p>
-        <div className="processing-progress" style={{ "--progress": `${progress}%` } as CSSProperties}>
+        <p>Le rendu est généré dans ton navigateur. Aucun serveur, aucun upload.</p>
+        <div className="guided-progress" style={{ "--progress": `${progress}%` } as CSSProperties}>
           <span />
         </div>
         <strong>{Math.round(progress)} % · {RENDER_STEPS[activeIndex]}</strong>
-        <div className="processing-steps">
+        <div className="guided-processing-steps">
           {RENDER_STEPS.map((step, index) => (
             <span key={step} className={index <= activeIndex ? "done" : ""}>{step}</span>
           ))}
         </div>
       </div>
     </div>
+  );
+}
+
+function WorkflowStepper({ step }: { step: 1 | 2 | 3 | 4 }) {
+  const steps = [
+    { id: 1, label: "Importer", help: "WAV ou MP3" },
+    { id: 2, label: "Générer", help: "Choix simple" },
+    { id: 3, label: "Comparer", help: "A/B" },
+    { id: 4, label: "Exporter", help: "WAV local" }
+  ];
+
+  return (
+    <section className="guided-stepper" aria-label="Workflow PAXLAB">
+      {steps.map((item) => (
+        <div key={item.id} className={step >= item.id ? "guided-step active" : "guided-step"}>
+          <b>{item.id}</b>
+          <span>{item.label}</span>
+          <small>{item.help}</small>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function SourceLoadedCard({
+  decodedAudio,
+  onFileSelected
+}: {
+  decodedAudio: DecodedAudioData;
+  onFileSelected: (file: File) => void;
+}) {
+  function handleChange(file: File | undefined) {
+    if (!file || !sourceAcceptsAudio(file)) {
+      return;
+    }
+
+    onFileSelected(file);
+  }
+
+  return (
+    <section className="panel guided-source-card">
+      <div>
+        <p className="eyebrow">Morceau chargé</p>
+        <h2>{decodedAudio.file.name}</h2>
+        <p>{formatDuration(decodedAudio.info.durationSeconds)} · {decodedAudio.info.sampleRate.toLocaleString("fr-FR")} Hz · {decodedAudio.info.numberOfChannels} canal{decodedAudio.info.numberOfChannels > 1 ? "x" : ""}</p>
+      </div>
+      <label className="secondary-file-button">
+        Changer de fichier
+        <input
+          type="file"
+          accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
+          onChange={(event) => handleChange(event.target.files?.[0])}
+        />
+      </label>
+    </section>
+  );
+}
+
+function RenderChoiceCard({
+  settings,
+  sourceAnalysis,
+  hasAudio,
+  hasPreview,
+  hasPendingChanges,
+  previewStatus,
+  previewErrorMessage,
+  onSettingsChange,
+  onRenderPreview
+}: {
+  settings: PreviewSettings;
+  sourceAnalysis: SourceAnalysisResult | null;
+  hasAudio: boolean;
+  hasPreview: boolean;
+  hasPendingChanges: boolean;
+  previewStatus: PreviewStatus;
+  previewErrorMessage: string | null;
+  onSettingsChange: (settings: PreviewSettings) => void;
+  onRenderPreview: () => void;
+}) {
+  const isRendering = previewStatus === "rendering";
+
+  function rebuild(partial: Partial<PreviewSettings>) {
+    const base = {
+      ...settings,
+      ...partial
+    };
+
+    if (!sourceAnalysis) {
+      onSettingsChange(base);
+      return;
+    }
+
+    const rebuilt = buildSettingsFromAnalysis(sourceAnalysis.metrics, base.presetId, {
+      autoIntensity: base.autoIntensity,
+      antiFatigue: base.antiFatigue,
+      spacePreserve: base.spacePreserve
+    });
+
+    onSettingsChange({
+      ...rebuilt,
+      ...partial,
+      presetId: base.presetId,
+      autoIntensity: base.autoIntensity,
+      antiFatigue: base.antiFatigue,
+      spacePreserve: base.spacePreserve
+    });
+  }
+
+  const buttonLabel = isRendering
+    ? "Préparation en cours..."
+    : hasPreview
+      ? hasPendingChanges
+        ? "Régénérer la Preview"
+        : "Générer une autre Preview"
+      : "Générer la Preview";
+
+  return (
+    <section className="panel guided-render-card">
+      <div className="guided-card-heading">
+        <div>
+          <p className="eyebrow">Rendu</p>
+          <h2>Choisis le rendu</h2>
+        </div>
+        <span className="status-pill">Mode simple</span>
+      </div>
+
+      <div className="guided-render-options" aria-label="Choix du rendu">
+        {SIMPLE_RENDERS.map((render) => (
+          <button
+            key={render.id}
+            type="button"
+            className={settings.autoIntensity === render.id ? "guided-render-option active" : "guided-render-option"}
+            disabled={!hasAudio || isRendering}
+            onClick={() => rebuild({ autoIntensity: render.id })}
+          >
+            <strong>{render.label}</strong>
+            <span>{render.title}</span>
+            <small>{render.text}</small>
+          </button>
+        ))}
+      </div>
+
+      <label className={settings.antiFatigue ? "guided-fatigue active" : "guided-fatigue"}>
+        <input
+          type="checkbox"
+          disabled={!hasAudio || isRendering}
+          checked={settings.antiFatigue}
+          onChange={(event) => rebuild({ antiFatigue: event.target.checked })}
+        />
+        <span>
+          <strong>Aigus fatigants</strong>
+          <small>Calme les brillances agressives et les cymbales IA qui piquent.</small>
+        </span>
+      </label>
+
+      <button
+        type="button"
+        className="primary-button guided-main-cta"
+        disabled={!hasAudio || isRendering}
+        onClick={onRenderPreview}
+      >
+        {buttonLabel}
+        <small>Traitement local, version de comparaison à valider à l’écoute</small>
+      </button>
+
+      {hasPendingChanges && hasPreview && (
+        <p className="message message-warning">Les réglages ont changé. Régénère pour mettre la Preview à jour.</p>
+      )}
+      {previewStatus === "error" && previewErrorMessage && (
+        <p className="message message-error">{previewErrorMessage}</p>
+      )}
+    </section>
+  );
+}
+
+function PreviewReadyCard({
+  previewResult,
+  settings,
+  revision,
+  renderedAt,
+  hasPendingChanges
+}: {
+  previewResult: PreviewRenderResult;
+  settings: PreviewSettings;
+  revision: number;
+  renderedAt: string | null;
+  hasPendingChanges: boolean;
+}) {
+  const headroom = previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb;
+  const label = intensityLabel(settings.autoIntensity);
+
+  return (
+    <section className={hasPendingChanges ? "guided-ready-card pending" : "guided-ready-card"}>
+      <div>
+        <p className="eyebrow">Preview prête</p>
+        <h2>{hasPendingChanges ? "Preview à régénérer" : "Version de comparaison prête"}</h2>
+        <p>
+          Preview #{revision}{renderedAt ? ` · ${renderedAt}` : ""} · {label}{settings.antiFatigue ? " · Aigus fatigants" : ""}
+        </p>
+      </div>
+      <div className="guided-ready-metrics">
+        <span><b>{previewResult.afterMetrics.estimatedLufs.toFixed(1)}</b> LUFS est.</span>
+        <span><b>{headroom.toFixed(1)}</b> dB HR</span>
+        <span><b>{hasPendingChanges ? "À jour ?" : "OK"}</b> statut</span>
+      </div>
+    </section>
+  );
+}
+
+function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => void }) {
+  return (
+    <>
+      <header className="guided-landing-hero">
+        <p className="version">PAXLAB Browser Engine - dev12 Guided Studio UX</p>
+        <h1>Améliore tes morceaux IA localement.</h1>
+        <p>
+          Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
+        </p>
+        <div className="guided-trust-row">
+          <span>Local navigateur</span>
+          <span>Aucun upload</span>
+          <span>A/B Original / Preview</span>
+          <span>Export WAV</span>
+        </div>
+      </header>
+
+      <section className="guided-landing-grid">
+        <UploadPanel selectedFile={null} isDecoding={false} onFileSelected={onFileSelected} />
+        <div className="panel guided-workflow-card">
+          <p className="eyebrow">Workflow</p>
+          <h2>Simple, rapide, contrôlé</h2>
+          <ol>
+            <li><b>Importer</b><span>Charge ton morceau IA.</span></li>
+            <li><b>Choisir</b><span>Propre, Équilibré ou Impact.</span></li>
+            <li><b>Comparer</b><span>Écoute Original / Preview en A/B.</span></li>
+            <li><b>Exporter</b><span>Récupère ton WAV local.</span></li>
+          </ol>
+        </div>
+      </section>
+    </>
   );
 }
 
@@ -124,9 +400,7 @@ export default function App() {
   const [sourceAnalysis, setSourceAnalysis] = useState<SourceAnalysisResult | null>(null);
   const [analysisErrorMessage, setAnalysisErrorMessage] = useState<string | null>(null);
 
-  const [previewSettings, setPreviewSettings] = useState<PreviewSettings>({
-    ...DEFAULT_PREVIEW_SETTINGS
-  });
+  const [previewSettings, setPreviewSettings] = useState<PreviewSettings>({ ...DEFAULT_PREVIEW_SETTINGS });
   const [appliedPreviewSettings, setAppliedPreviewSettings] = useState<PreviewSettings | null>(null);
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>("idle");
   const [previewResult, setPreviewResult] = useState<PreviewRenderResult | null>(null);
@@ -334,178 +608,176 @@ export default function App() {
     setShouldSelectPreviewAfterRender(false);
   }, [player, previewResult, previewStatus, shouldSelectPreviewAfterRender]);
 
-  const workflowStep = !decodedAudio ? 1 : previewResult ? 3 : previewStatus === "rendering" ? 2 : 2;
-  const mainCtaLabel = !decodedAudio
-    ? "Importer un morceau"
-    : previewStatus === "rendering"
-      ? "Génération en cours"
-      : previewResult
-        ? "Comparer et exporter"
-        : "Générer la Preview";
-  const stageLabel = !decodedAudio ? "Import" : previewStatus === "rendering" ? "Rendu" : previewResult ? "Résultat" : "Réglages";
-  const readySummary = previewResult && !hasPendingChanges
-    ? `${previewResult.afterMetrics.estimatedLufs.toFixed(1)} LUFS est. · HR ${(previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb).toFixed(1)} dB`
-    : null;
+  const workflowStep: 1 | 2 | 3 | 4 = !decodedAudio ? 1 : previewResult ? 4 : previewStatus === "rendering" ? 2 : 2;
+  const readySettings = previewResult?.settings ?? previewSettings;
 
   return (
-    <main className="app-shell ux-shell studio-pro-shell">
+    <main className="guided-shell">
       <ProcessingOverlay isVisible={previewStatus === "rendering"} />
-      <header className="ux-hero-wow studio-hero-pro">
-        <div className="ux-hero-copy">
-          <p className="version">PAXLAB Browser Engine - dev11 Studio UX Pro</p>
-          <h1>Preview Master locale, simple et puissante.</h1>
-          <p className="hero-text">
-            Importe un morceau IA, choisis un rendu, génère une Preview, compare en A/B et exporte en WAV. Le son validé reste local dans ton navigateur.
-          </p>
-          <div className="ux-trust-row studio-trust-row">
-            <span>100 % local</span>
-            <span>A/B instantané</span>
-            <span>Impact + anti-fatigue</span>
-            <span>Export WAV</span>
-          </div>
-        </div>
 
-        <div className="ux-now-card studio-command-card">
-          <span>{stageLabel}</span>
-          <strong>{mainCtaLabel}</strong>
-          {readySummary && <em>{readySummary}</em>}
-          <p>
-            {hasPendingChanges
-              ? "Réglages modifiés : clique sur régénérer pour mettre la Preview à jour."
-              : previewRevision > 0
-                ? formatRevisionLabel(previewRevision, previewRenderedAt)
-                : "Commence par déposer un WAV ou MP3."}
-          </p>
-        </div>
-      </header>
-
-      <section className="ux-stepper studio-stepper" aria-label="Workflow PAXLAB">
-        <div className={workflowStep >= 1 ? "ux-step active" : "ux-step"}>
-          <b>1</b>
-          <span>Importer</span>
-          <small>WAV ou MP3</small>
-        </div>
-        <div className={workflowStep >= 2 ? "ux-step active" : "ux-step"}>
-          <b>2</b>
-          <span>Générer</span>
-          <small>Propre / Équilibré / Impact</small>
-        </div>
-        <div className={workflowStep >= 3 ? "ux-step active" : "ux-step"}>
-          <b>3</b>
-          <span>Comparer</span>
-          <small>A/B instantané</small>
-        </div>
-        <div className={previewResult && !hasPendingChanges ? "ux-step active" : "ux-step"}>
-          <b>4</b>
-          <span>Exporter</span>
-          <small>WAV local</small>
-        </div>
-      </section>
-
-      <section className="ux-top-grid studio-start-grid">
-        <UploadPanel selectedFile={selectedFile} isDecoding={decodeStatus === "loading"} onFileSelected={setSelectedFile} />
-        <SessionStatusPanel
-          decodedAudio={decodedAudio}
-          sourceAnalysis={sourceAnalysis}
-          previewResult={previewResult}
-          previewSettings={previewSettings}
-          previewStatus={previewStatus}
-          previewRevision={previewRevision}
-          previewRenderedAt={previewRenderedAt}
-          hasPendingChanges={hasPendingChanges}
-        />
-      </section>
-
-      {decodeStatus === "error" && decodeErrorMessage && <p className="message message-error standalone-message">{decodeErrorMessage}</p>}
-      {analysisStatus === "running" && <p className="message message-info standalone-message">Analyse locale en cours : niveau, spectre, stéréo et cible automatique.</p>}
-      {analysisStatus === "error" && analysisErrorMessage && <p className="message message-error standalone-message">{analysisErrorMessage}</p>}
-
-      <section className="ux-workbench studio-workbench-pro">
-        <div className="ux-listening-zone studio-listening-stage">
-          <RealtimeMonitorPanel
-            fileName={selectedFile?.name ?? null}
-            originalBuffer={decodedAudio?.audioBuffer ?? null}
-            previewBuffer={previewResult?.buffer ?? null}
-            activeSource={player.activeSource}
-            currentTime={player.currentTime}
-            duration={player.duration}
-            isPlaying={player.isPlaying}
-            isSwitching={player.isSwitching}
-            canUsePreview={player.canPlayPreview}
-            previewStatus={previewStatus}
-            previewRevision={previewRevision}
-            previewRenderedAt={previewRenderedAt}
-            hasPendingChanges={hasPendingChanges}
-            meter={player.meter}
-            onPlayPause={() => void player.playPause()}
-            onStop={player.stop}
-            onSeek={player.seek}
-            onSwitchSource={(source) => void player.switchSource(source)}
-          />
-        </div>
-
-        <aside className="ux-action-zone studio-action-rail">
-          <PreviewControls
-            settings={previewSettings}
-            previewStatus={previewStatus}
-            hasAudio={Boolean(decodedAudio)}
-            hasPreview={Boolean(previewResult)}
-            hasPendingChanges={hasPendingChanges}
-            previewRevision={previewRevision}
-            previewRenderedAt={previewRenderedAt}
-            sourceAnalysis={sourceAnalysis}
-            previewResult={previewResult}
-            errorMessage={previewErrorMessage}
-            onSettingsChange={setPreviewSettings}
-            onRenderPreview={() => void handleRenderPreview()}
-          />
-
-          <ExportPanel
-            sourceFileName={selectedFile?.name ?? null}
-            previewBuffer={previewResult?.buffer ?? null}
-            previewRevision={previewRevision}
-            previewRenderedAt={previewRenderedAt}
-            hasPendingChanges={hasPendingChanges}
-            isRendering={previewStatus === "rendering"}
-            onBeforeExport={player.stop}
-          />
-        </aside>
-      </section>
-
-      {previewHistory.length > 0 && (
-        <section className="ux-history-row">
-          <PreviewHistoryPanel
-            items={previewHistory}
-            activeRevision={previewRevision}
-            isRendering={previewStatus === "rendering"}
-            onSelect={handleSelectHistory}
-          />
-        </section>
+      {!decodedAudio && (
+        <SimpleLanding onFileSelected={setSelectedFile} />
       )}
 
-      <details className="ux-details-drawer studio-expert-drawer">
-        <summary>
-          <span>Analyse avancée</span>
-          <small>Mesures, conseil automatique, rapport de traitement et détails avancés</small>
-        </summary>
-        <div className="ux-details-grid">
-          <SmartAdvisorPanel
-            sourceAnalysis={sourceAnalysis}
-            previewResult={previewResult}
-            settings={previewSettings}
-            isRendering={previewStatus === "rendering"}
-            onApplySettings={handleApplyRecommended}
-            onApplyAndRender={handleApplyRecommendedAndRender}
-          />
-          <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} previewSettings={previewSettings} />
-          <ProcessingReportPanel result={previewResult} />
-          <MetricsPanel result={previewResult} sourceAnalysis={sourceAnalysis} />
-        </div>
-      </details>
+      {decodedAudio && (
+        <>
+          <header className="guided-studio-header">
+            <div>
+              <p className="version">PAXLAB Browser Engine - dev12 Guided Studio UX</p>
+              <h1>Studio local</h1>
+              <p>Un parcours simple : choisis un rendu, génère une Preview, compare à l’écoute, exporte en WAV.</p>
+            </div>
+            <div className="guided-mini-trust">
+              <span>Local</span>
+              <span>Aucun upload</span>
+              <span>Preview à valider</span>
+            </div>
+          </header>
 
-      <p className="ux-footer-note">
-        Mesures indicatives navigateur. Preview locale de comparaison, à valider à l’écoute.
-      </p>
+          <WorkflowStepper step={workflowStep} />
+
+          {decodeStatus === "error" && decodeErrorMessage && <p className="message message-error standalone-message">{decodeErrorMessage}</p>}
+          {analysisStatus === "running" && <p className="message message-info standalone-message">Analyse locale en cours : niveau, spectre et cible automatique.</p>}
+          {analysisStatus === "error" && analysisErrorMessage && <p className="message message-error standalone-message">{analysisErrorMessage}</p>}
+
+          {!previewResult && (
+            <section className="guided-config-grid">
+              <SourceLoadedCard decodedAudio={decodedAudio} onFileSelected={setSelectedFile} />
+              <RenderChoiceCard
+                settings={previewSettings}
+                sourceAnalysis={sourceAnalysis}
+                hasAudio={Boolean(decodedAudio)}
+                hasPreview={Boolean(previewResult)}
+                hasPendingChanges={hasPendingChanges}
+                previewStatus={previewStatus}
+                previewErrorMessage={previewErrorMessage}
+                onSettingsChange={setPreviewSettings}
+                onRenderPreview={() => void handleRenderPreview()}
+              />
+            </section>
+          )}
+
+          {previewResult && (
+            <>
+              <PreviewReadyCard
+                previewResult={previewResult}
+                settings={readySettings}
+                revision={previewRevision}
+                renderedAt={previewRenderedAt}
+                hasPendingChanges={hasPendingChanges}
+              />
+
+              <section className="guided-result-grid">
+                <div className="guided-ab-stage">
+                  <RealtimeMonitorPanel
+                    fileName={selectedFile?.name ?? null}
+                    originalBuffer={decodedAudio.audioBuffer}
+                    previewBuffer={previewResult.buffer}
+                    activeSource={player.activeSource}
+                    currentTime={player.currentTime}
+                    duration={player.duration}
+                    isPlaying={player.isPlaying}
+                    isSwitching={player.isSwitching}
+                    canUsePreview={player.canPlayPreview}
+                    previewStatus={previewStatus}
+                    previewRevision={previewRevision}
+                    previewRenderedAt={previewRenderedAt}
+                    hasPendingChanges={hasPendingChanges}
+                    meter={player.meter}
+                    onPlayPause={() => void player.playPause()}
+                    onStop={player.stop}
+                    onSeek={player.seek}
+                    onSwitchSource={(source) => void player.switchSource(source)}
+                  />
+                </div>
+
+                <aside className="guided-result-side">
+                  <RenderChoiceCard
+                    settings={previewSettings}
+                    sourceAnalysis={sourceAnalysis}
+                    hasAudio={Boolean(decodedAudio)}
+                    hasPreview={Boolean(previewResult)}
+                    hasPendingChanges={hasPendingChanges}
+                    previewStatus={previewStatus}
+                    previewErrorMessage={previewErrorMessage}
+                    onSettingsChange={setPreviewSettings}
+                    onRenderPreview={() => void handleRenderPreview()}
+                  />
+                  <ExportPanel
+                    sourceFileName={selectedFile?.name ?? null}
+                    previewBuffer={previewResult.buffer}
+                    previewRevision={previewRevision}
+                    previewRenderedAt={previewRenderedAt}
+                    hasPendingChanges={hasPendingChanges}
+                    isRendering={previewStatus === "rendering"}
+                    onBeforeExport={player.stop}
+                  />
+                </aside>
+              </section>
+            </>
+          )}
+
+          <section className="guided-accordions">
+            {previewHistory.length > 0 && (
+              <details className="guided-accordion">
+                <summary>
+                  <span>Historique des previews</span>
+                  <small>{previewHistory.length} version{previewHistory.length > 1 ? "s" : ""} comparable{previewHistory.length > 1 ? "s" : ""}</small>
+                </summary>
+                <PreviewHistoryPanel
+                  items={previewHistory}
+                  activeRevision={previewRevision}
+                  isRendering={previewStatus === "rendering"}
+                  onSelect={handleSelectHistory}
+                />
+              </details>
+            )}
+
+            <details className="guided-accordion">
+              <summary>
+                <span>Réglages experts</span>
+                <small>Préserver l’espace, intensité, headroom et nettoyage source</small>
+              </summary>
+              <PreviewControls
+                settings={previewSettings}
+                previewStatus={previewStatus}
+                hasAudio={Boolean(decodedAudio)}
+                hasPreview={Boolean(previewResult)}
+                hasPendingChanges={hasPendingChanges}
+                previewRevision={previewRevision}
+                previewRenderedAt={previewRenderedAt}
+                sourceAnalysis={sourceAnalysis}
+                previewResult={previewResult}
+                errorMessage={previewErrorMessage}
+                onSettingsChange={setPreviewSettings}
+                onRenderPreview={() => void handleRenderPreview()}
+              />
+            </details>
+
+            <details className="guided-accordion">
+              <summary>
+                <span>Détails techniques</span>
+                <small>Conseil automatique, rapport de traitement et mesures</small>
+              </summary>
+              <div className="guided-details-grid">
+                <SmartAdvisorPanel
+                  sourceAnalysis={sourceAnalysis}
+                  previewResult={previewResult}
+                  settings={previewSettings}
+                  isRendering={previewStatus === "rendering"}
+                  onApplySettings={handleApplyRecommended}
+                  onApplyAndRender={handleApplyRecommendedAndRender}
+                />
+                <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} previewSettings={previewSettings} />
+                <ProcessingReportPanel result={previewResult} />
+                <MetricsPanel result={previewResult} sourceAnalysis={sourceAnalysis} />
+              </div>
+            </details>
+          </section>
+        </>
+      )}
+
+      <p className="ux-footer-note guided-footer-note">Mesures indicatives navigateur. Preview locale de comparaison, à valider à l’écoute.</p>
     </main>
   );
 }

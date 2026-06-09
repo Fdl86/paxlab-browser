@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev11-studio-ux-pro",
+  "version": "1.0.0-dev12-guided-studio-ux",
   "type": "module",
   "scripts": {
     "dev": "vite",
