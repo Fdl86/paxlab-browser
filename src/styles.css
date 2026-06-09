@@ -4264,3 +4264,34 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
     grid-template-columns: 60px minmax(0, 1fr) 90px;
   }
 }
+
+/* DEV14.x - Fix objectifs report layout */
+.visual-objectives-grid {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.visual-objective {
+  min-width: 0 !important;
+}
+
+.visual-objective-topline {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 6px !important;
+  align-items: start !important;
+}
+
+.visual-objective-topline span {
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+}
+
+.visual-objective-topline b {
+  justify-self: start !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  line-height: 1.1 !important;
+  font-size: 0.68rem !important;
+  padding: 4px 7px !important;
+}
