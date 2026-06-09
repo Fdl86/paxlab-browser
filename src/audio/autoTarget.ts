@@ -15,10 +15,6 @@ export interface AutoPlanOptions {
   spacePreserve?: boolean;
 }
 
-function spectralCorrectionFor(metrics: AdvancedAudioMetrics): number {
-  return clamp((metrics.highTotalRatio - 0.28) * 2.2, -0.9, 1.1);
-}
-
 function oneDecimal(value: number): number {
   return Number(value.toFixed(1));
 }
@@ -98,8 +94,9 @@ export function inferTargetLufs(metrics: AdvancedAudioMetrics): number {
 }
 
 export function targetLufsToRmsTarget(metrics: AdvancedAudioMetrics, targetLufs: number): number {
-  const correction = spectralCorrectionFor(metrics);
-  return clamp(targetLufs + 0.75 - correction, -17.2, -10.6);
+  const lufsRmsDelta = clamp(metrics.estimatedLufs - metrics.rmsDb, -1.5, 5.8);
+  const safetyBias = targetLufs <= -14 ? -0.15 : 0;
+  return clamp(targetLufs - lufsRmsDelta + safetyBias, -20.5, -9.2);
 }
 
 export function inferAutoMasterPlan(
@@ -110,11 +107,11 @@ export function inferAutoMasterPlan(
   const antiFatigue = Boolean(options.antiFatigue);
   const spacePreserve = Boolean(options.spacePreserve);
   const { clipped, veryCompact, compact, fatiguingHigh } = inferSafety(metrics, antiFatigue);
-  const ultraQuiet = metrics.estimatedLufs <= -19;
-  const veryQuiet = metrics.estimatedLufs <= -17;
-  const quiet = metrics.estimatedLufs <= -15.2;
-  const moderate = metrics.estimatedLufs <= -13.4;
-  const alreadyLoud = metrics.estimatedLufs > -12.2;
+  const ultraQuiet = metrics.estimatedLufs <= -22;
+  const veryQuiet = metrics.estimatedLufs <= -18;
+  const quiet = metrics.estimatedLufs <= -15.5;
+  const moderate = metrics.estimatedLufs <= -13.2;
+  const alreadyLoud = metrics.estimatedLufs > -11.3;
   const ceilingPlan = inferCeiling(metrics, autoIntensity, antiFatigue);
 
   let targetLufsEstimate = -13.1;
@@ -125,65 +122,65 @@ export function inferAutoMasterPlan(
   let reason = "Niveau source moyen : montée de niveau contrôlée, puis headroom dynamique selon sécurité.";
 
   if (autoIntensity === "youtube") {
-    targetLufsEstimate = clipped || veryCompact || fatiguingHigh ? -14.4 : compact ? -14.2 : -14.0;
+    targetLufsEstimate = clipped || veryCompact || fatiguingHigh ? -14.6 : compact ? -14.5 : -14.4;
     profile = "youtubeMix";
     profileLabel = "Mix YouTube";
     compressionIntent = compact || veryCompact ? "léger" : "modéré";
     safetyIntent = clipped || fatiguingHigh ? "prudent" : "normal";
-    reason = "Preset YouTube : PAXLAB vise -14 LUFS intégré max estimé, un peak plus prudent, un grave stabilisé et des aigus IA contrôlés pour l’upload vidéo.";
+    reason = "Preset YouTube : PAXLAB vise un LUFS intégré sous -14 avec clamp final, un peak plus prudent, un grave stabilisé et des aigus IA contrôlés pour l’upload vidéo.";
   } else if (clipped) {
-    targetLufsEstimate = -14.4;
+    targetLufsEstimate = -13.6;
     profile = "protect";
     profileLabel = "Auto protecteur";
     compressionIntent = "léger";
     safetyIntent = "protecteur";
     reason = "Pics déjà proches du plafond : PAXLAB privilégie la réparation et garde plus de marge.";
   } else if (alreadyLoud && veryCompact) {
-    targetLufsEstimate = -14.2;
+    targetLufsEstimate = -12.8;
     profile = "preserve";
     profileLabel = "Auto préservation";
     compressionIntent = "préserver";
     safetyIntent = "prudent";
     reason = "Source déjà forte et compacte : le traitement évite de pousser inutilement.";
   } else if (alreadyLoud) {
-    targetLufsEstimate = fatiguingHigh ? -13.9 : -13.6;
+    targetLufsEstimate = fatiguingHigh ? -13.0 : -12.4;
     profile = "preserve";
     profileLabel = "Auto prudent";
     compressionIntent = "léger";
     safetyIntent = "prudent";
     reason = "Source déjà assez forte : mise en forme et sécurité, sans course au volume.";
   } else if (ultraQuiet && !compact) {
-    targetLufsEstimate = fatiguingHigh ? -12.9 : -12.4;
+    targetLufsEstimate = fatiguingHigh ? -12.1 : -11.5;
     profile = "strongLift";
     profileLabel = "Auto lift très fort";
     compressionIntent = "fort prudent";
     reason = "Source très basse : PAXLAB peut pousser franchement, avec contrôle de headroom.";
   } else if (ultraQuiet) {
-    targetLufsEstimate = fatiguingHigh ? -13.4 : -12.9;
+    targetLufsEstimate = fatiguingHigh ? -12.7 : -12.1;
     profile = "strongLift";
     profileLabel = "Auto lift fort contrôlé";
     compressionIntent = compact ? "modéré" : "fort prudent";
     reason = "Source très basse mais compacte : gain important, avec marge plus prudente.";
   } else if (veryQuiet && !compact) {
-    targetLufsEstimate = fatiguingHigh ? -12.8 : -12.4;
+    targetLufsEstimate = fatiguingHigh ? -12.1 : -11.6;
     profile = "strongLift";
     profileLabel = "Auto lift fort";
     compressionIntent = "fort prudent";
     reason = "Source basse et dynamique : rapprochement d’une Preview plus dense.";
   } else if (veryQuiet) {
-    targetLufsEstimate = fatiguingHigh ? -13.2 : -12.8;
+    targetLufsEstimate = fatiguingHigh ? -12.5 : -12.0;
     profile = "strongLift";
     profileLabel = "Auto lift contrôlé";
     compressionIntent = compact ? "modéré" : "fort prudent";
     reason = "Source basse mais déjà dense : lift contrôlé pour préserver l’écoute.";
   } else if (quiet) {
-    targetLufsEstimate = fatiguingHigh ? -13.0 : -12.7;
+    targetLufsEstimate = fatiguingHigh ? -12.4 : -12.0;
     profile = "strongLift";
     profileLabel = "Auto lift";
     compressionIntent = compact ? "modéré" : "fort prudent";
     reason = "Source sous le niveau cible : montée automatique et marge contrôlée.";
   } else if (moderate) {
-    targetLufsEstimate = fatiguingHigh ? -13.2 : -12.9;
+    targetLufsEstimate = fatiguingHigh ? -12.6 : -12.2;
     profile = "balancedLift";
     profileLabel = "Auto équilibré";
     compressionIntent = compact ? "léger" : "modéré";
@@ -206,7 +203,7 @@ export function inferAutoMasterPlan(
   }
 
   if (autoIntensity === "impact" && veryCompact && !veryQuiet) {
-    targetLufsEstimate = Math.min(targetLufsEstimate, -13.2);
+    targetLufsEstimate = Math.min(targetLufsEstimate, -11.2);
   }
 
   if (autoIntensity === "youtube") {
@@ -223,12 +220,16 @@ export function inferAutoMasterPlan(
   }
 
   targetLufsEstimate = autoIntensity === "youtube"
-    ? clamp(targetLufsEstimate, -15.2, -14.0)
-    : clamp(targetLufsEstimate, -15.2, autoIntensity === "impact" && !antiFatigue ? -11.8 : -12.2);
+    ? clamp(targetLufsEstimate, -15.4, -14.4)
+    : clamp(
+        targetLufsEstimate,
+        autoIntensity === "safe" || antiFatigue ? -15.2 : -14.4,
+        autoIntensity === "impact" && !antiFatigue ? -10.4 : autoIntensity === "safe" || antiFatigue ? -12.9 : -11.4
+      );
 
   const targetRmsDb = targetLufsToRmsTarget(metrics, targetLufsEstimate);
-  const lufsToleranceLow = autoIntensity === "youtube" ? 0.75 : autoIntensity === "safe" ? 1.1 : antiFatigue ? 1.2 : 0.9;
-  const lufsToleranceHigh = autoIntensity === "youtube" ? Math.max(0, -14.0 - targetLufsEstimate) : autoIntensity === "impact" ? 0.45 : 0.35;
+  const lufsToleranceLow = autoIntensity === "youtube" ? 0.55 : autoIntensity === "safe" ? 0.9 : antiFatigue ? 1.0 : 0.75;
+  const lufsToleranceHigh = autoIntensity === "youtube" ? Math.max(0.1, -14.0 - targetLufsEstimate) : autoIntensity === "impact" ? 0.5 : 0.4;
 
   return {
     profile,

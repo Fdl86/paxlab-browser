@@ -207,9 +207,199 @@ function averageSpectrum(buffer: AudioBuffer): SpectrumRatios {
   };
 }
 
-function estimateLoudnessFromRms(rmsDb: number, highTotalRatio: number): number {
-  const spectralCorrection = clamp((highTotalRatio - 0.28) * 2.2, -0.9, 1.1);
-  return rmsDb - 0.7 + spectralCorrection;
+interface BiquadCoefficients {
+  b0: number;
+  b1: number;
+  b2: number;
+  a1: number;
+  a2: number;
+}
+
+interface BiquadState {
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
+}
+
+interface IntegratedLoudnessEstimate {
+  integratedLufs: number;
+  shortTermLufs: number;
+  loudnessRange: number;
+}
+
+function createBiquadState(): BiquadState {
+  return { x1: 0, x2: 0, y1: 0, y2: 0 };
+}
+
+function processBiquadSample(input: number, coefficients: BiquadCoefficients, state: BiquadState): number {
+  const output =
+    coefficients.b0 * input +
+    coefficients.b1 * state.x1 +
+    coefficients.b2 * state.x2 -
+    coefficients.a1 * state.y1 -
+    coefficients.a2 * state.y2;
+
+  state.x2 = state.x1;
+  state.x1 = input;
+  state.y2 = state.y1;
+  state.y1 = output;
+
+  return output;
+}
+
+function normalizeBiquad(b0: number, b1: number, b2: number, a0: number, a1: number, a2: number): BiquadCoefficients {
+  return {
+    b0: b0 / a0,
+    b1: b1 / a0,
+    b2: b2 / a0,
+    a1: a1 / a0,
+    a2: a2 / a0
+  };
+}
+
+function createHighPassCoefficients(sampleRate: number, frequency: number, q: number): BiquadCoefficients {
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cosOmega = Math.cos(omega);
+  const sinOmega = Math.sin(omega);
+  const alpha = sinOmega / (2 * q);
+
+  const b0 = (1 + cosOmega) / 2;
+  const b1 = -(1 + cosOmega);
+  const b2 = (1 + cosOmega) / 2;
+  const a0 = 1 + alpha;
+  const a1 = -2 * cosOmega;
+  const a2 = 1 - alpha;
+
+  return normalizeBiquad(b0, b1, b2, a0, a1, a2);
+}
+
+function createHighShelfCoefficients(sampleRate: number, frequency: number, gainDb: number): BiquadCoefficients {
+  const amplitude = Math.pow(10, gainDb / 40);
+  const omega = (2 * Math.PI * frequency) / sampleRate;
+  const cosOmega = Math.cos(omega);
+  const sinOmega = Math.sin(omega);
+  const sqrtA = Math.sqrt(amplitude);
+  const alpha = (sinOmega / 2) * Math.sqrt(2);
+
+  const b0 = amplitude * ((amplitude + 1) + (amplitude - 1) * cosOmega + 2 * sqrtA * alpha);
+  const b1 = -2 * amplitude * ((amplitude - 1) + (amplitude + 1) * cosOmega);
+  const b2 = amplitude * ((amplitude + 1) + (amplitude - 1) * cosOmega - 2 * sqrtA * alpha);
+  const a0 = (amplitude + 1) - (amplitude - 1) * cosOmega + 2 * sqrtA * alpha;
+  const a1 = 2 * ((amplitude - 1) - (amplitude + 1) * cosOmega);
+  const a2 = (amplitude + 1) - (amplitude - 1) * cosOmega - 2 * sqrtA * alpha;
+
+  return normalizeBiquad(b0, b1, b2, a0, a1, a2);
+}
+
+function loudnessFromEnergy(energy: number): number {
+  return -0.691 + 10 * Math.log10(Math.max(energy, 1e-18));
+}
+
+function gatedIntegratedLoudness(blockEnergies: number[]): number {
+  const absoluteGated = blockEnergies.filter((energy) => loudnessFromEnergy(energy) > -70);
+
+  if (!absoluteGated.length) {
+    return MIN_DB;
+  }
+
+  const absoluteMean = absoluteGated.reduce((sum, energy) => sum + energy, 0) / absoluteGated.length;
+  const relativeGate = loudnessFromEnergy(absoluteMean) - 10;
+  const relativeGated = absoluteGated.filter((energy) => loudnessFromEnergy(energy) > relativeGate);
+  const finalBlocks = relativeGated.length ? relativeGated : absoluteGated;
+  const finalMean = finalBlocks.reduce((sum, energy) => sum + energy, 0) / finalBlocks.length;
+
+  return loudnessFromEnergy(finalMean);
+}
+
+function blockLoudnessValues(chunkEnergies: Float64Array, chunkSamples: Int32Array, windowChunks: number): number[] {
+  const values: number[] = [];
+  const safeWindow = Math.max(1, Math.min(windowChunks, chunkEnergies.length));
+  const lastStart = Math.max(0, chunkEnergies.length - safeWindow);
+
+  for (let start = 0; start <= lastStart; start += 1) {
+    let energy = 0;
+    let samples = 0;
+
+    for (let offset = 0; offset < safeWindow; offset += 1) {
+      energy += chunkEnergies[start + offset] ?? 0;
+      samples += chunkSamples[start + offset] ?? 0;
+    }
+
+    if (samples > 0) {
+      const loudness = loudnessFromEnergy(energy / samples);
+      if (loudness > -70) {
+        values.push(loudness);
+      }
+    }
+  }
+
+  return values;
+}
+
+function estimateIntegratedLoudness(buffer: AudioBuffer): IntegratedLoudnessEstimate {
+  if (!buffer.length || !buffer.numberOfChannels) {
+    return { integratedLufs: MIN_DB, shortTermLufs: MIN_DB, loudnessRange: 0 };
+  }
+
+  const sampleRate = buffer.sampleRate;
+  const hopSamples = Math.max(1, Math.round(sampleRate * 0.1));
+  const chunkCount = Math.max(1, Math.ceil(buffer.length / hopSamples));
+  const chunkEnergies = new Float64Array(chunkCount);
+  const chunkSamples = new Int32Array(chunkCount);
+
+  for (let chunk = 0; chunk < chunkCount; chunk += 1) {
+    const start = chunk * hopSamples;
+    const end = Math.min(buffer.length, start + hopSamples);
+    chunkSamples[chunk] = Math.max(0, end - start);
+  }
+
+  const preFilter = createHighShelfCoefficients(sampleRate, 1681.974450955533, 4);
+  const rlbFilter = createHighPassCoefficients(sampleRate, 38.13547087602444, 0.5003270373238773);
+
+  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+    const data = buffer.getChannelData(channel);
+    const preState = createBiquadState();
+    const rlbState = createBiquadState();
+
+    for (let index = 0; index < data.length; index += 1) {
+      const preFiltered = processBiquadSample(data[index], preFilter, preState);
+      const weighted = processBiquadSample(preFiltered, rlbFilter, rlbState);
+      const chunk = Math.min(chunkCount - 1, Math.floor(index / hopSamples));
+      chunkEnergies[chunk] += weighted * weighted;
+    }
+  }
+
+  const momentaryChunks = Math.max(1, Math.round(0.4 / 0.1));
+  const shortTermChunks = Math.max(1, Math.round(3 / 0.1));
+  const momentaryEnergies: number[] = [];
+  const safeMomentary = Math.min(momentaryChunks, chunkCount);
+  const lastMomentaryStart = Math.max(0, chunkCount - safeMomentary);
+
+  for (let start = 0; start <= lastMomentaryStart; start += 1) {
+    let energy = 0;
+    let samples = 0;
+
+    for (let offset = 0; offset < safeMomentary; offset += 1) {
+      energy += chunkEnergies[start + offset] ?? 0;
+      samples += chunkSamples[start + offset] ?? 0;
+    }
+
+    if (samples > 0) {
+      momentaryEnergies.push(energy / samples);
+    }
+  }
+
+  const integratedLufs = gatedIntegratedLoudness(momentaryEnergies);
+  const shortTermValues = blockLoudnessValues(chunkEnergies, chunkSamples, shortTermChunks);
+  const gatedShortTerm = shortTermValues.filter((value) => value > integratedLufs - 20 && value > -70);
+  const rangeValues = gatedShortTerm.length ? gatedShortTerm : shortTermValues;
+
+  return {
+    integratedLufs,
+    shortTermLufs: shortTermValues.length ? Math.max(...shortTermValues) : integratedLufs,
+    loudnessRange: calcRange(rangeValues)
+  };
 }
 
 function safeCorrelation(left: Float32Array, right: Float32Array, start = 0, end = left.length): number {
@@ -287,34 +477,14 @@ export function analyzeAdvancedAudioBuffer(buffer: AudioBuffer): AdvancedAudioMe
   }
 
   const spectrum = averageSpectrum(buffer);
+  const loudness = estimateIntegratedLoudness(buffer);
   const rms = sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0;
   const rmsDb = linearToDb(rms);
   const peakDb = linearToDb(peak);
   const leftRmsDb = linearToDb(Math.sqrt(leftSumSquares / Math.max(1, buffer.length)));
   const rightRmsDb = linearToDb(Math.sqrt(rightSumSquares / Math.max(1, buffer.length)));
-  const estimatedLufs = estimateLoudnessFromRms(rmsDb, spectrum.highTotalRatio);
-
-  const shortTermValues: number[] = [];
-  const shortWindow = Math.max(1, Math.floor(buffer.sampleRate * 3));
-  const shortStep = Math.max(1, Math.floor(buffer.sampleRate * 3));
-  for (let start = 0; start < buffer.length; start += shortStep) {
-    const end = Math.min(buffer.length, start + shortWindow);
-    let localSum = 0;
-    let localCount = 0;
-    for (let index = start; index < end; index += 64) {
-      const sample = getMonoSample(buffer, index);
-      localSum += sample * sample;
-      localCount += 1;
-    }
-    const localRmsDb = linearToDb(Math.sqrt(localSum / Math.max(1, localCount)));
-    if (localRmsDb > -70) {
-      shortTermValues.push(estimateLoudnessFromRms(localRmsDb, spectrum.highTotalRatio));
-    }
-  }
-
-  const shortTermLufsEstimate = shortTermValues.length
-    ? Math.max(...shortTermValues)
-    : estimatedLufs;
+  const estimatedLufs = loudness.integratedLufs;
+  const shortTermLufsEstimate = loudness.shortTermLufs;
 
   const approxTruePeakDb = peakDb + clamp(spectrum.highTotalRatio * 1.4, 0.1, 0.9);
 
@@ -327,7 +497,7 @@ export function analyzeAdvancedAudioBuffer(buffer: AudioBuffer): AdvancedAudioMe
     durationSeconds: buffer.duration,
     estimatedLufs,
     shortTermLufsEstimate,
-    loudnessRangeEstimate: calcRange(shortTermValues),
+    loudnessRangeEstimate: loudness.loudnessRange,
     approxTruePeakDb,
     leftRightBalanceDb: leftRmsDb - rightRmsDb,
     stereoCorrelation: safeCorrelation(left, right),

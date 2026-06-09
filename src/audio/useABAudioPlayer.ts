@@ -90,7 +90,8 @@ function loudnessEstimateFromRmsDb(rmsDb: number): number {
     return SILENCE_DB;
   }
 
-  return rmsDb - 0.7;
+  // Realtime meter only: quick approximation aligned with the integrated loudness engine.
+  return rmsDb + 2.7;
 }
 
 function getMeterStatus(rmsDb: number, peakDb: number): RealtimeMeterState["status"] {

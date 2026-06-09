@@ -27,6 +27,9 @@ function notifyProgress(onProgress: RenderProgressCallback | undefined, stepInde
   onProgress?.({ stepIndex, progress, label });
 }
 
+const YOUTUBE_SAFE_TARGET_LUFS = -14.4;
+const YOUTUBE_MAX_LUFS = -14.0;
+
 interface ProcessingProfile {
   highShelfGain: number;
   harshDipGain: number;
@@ -336,6 +339,32 @@ function applyPostLoudnessCalibration(
   };
 }
 
+function applyYoutubeFinalLoudnessClamp(
+  source: AudioBuffer
+): { buffer: AudioBuffer; clampGainDb: number; beforeLufs: number; afterLufs: number } {
+  const before = analyzeAdvancedAudioBuffer(source);
+
+  if (before.estimatedLufs <= YOUTUBE_SAFE_TARGET_LUFS) {
+    return {
+      buffer: source,
+      clampGainDb: 0,
+      beforeLufs: before.estimatedLufs,
+      afterLufs: before.estimatedLufs
+    };
+  }
+
+  const clampGainDb = clamp(YOUTUBE_SAFE_TARGET_LUFS - before.estimatedLufs, -8, 0);
+  const clampedBuffer = applyGainToNewBuffer(source, dbToLinear(clampGainDb));
+  const after = analyzeAdvancedAudioBuffer(clampedBuffer);
+
+  return {
+    buffer: clampedBuffer,
+    clampGainDb,
+    beforeLufs: before.estimatedLufs,
+    afterLufs: after.estimatedLufs
+  };
+}
+
 async function renderPreviewMasterInternal(
   inputBuffer: AudioBuffer,
   settings: PreviewSettings,
@@ -437,8 +466,8 @@ async function renderPreviewMasterInternal(
   const isYoutubeMix = settings.autoIntensity === "youtube" || settings.presetId === "youtube";
   const effectiveDensity = settings.spacePreserve || isYoutubeMix ? Math.round(settings.density * (isYoutubeMix ? 0.72 : 0.54)) : settings.density;
   const effectiveMaxPeakDb = isYoutubeMix ? Math.min(settings.maxPeakDb, -1.8) : settings.spacePreserve ? Math.min(settings.maxPeakDb, -2.0) : settings.maxPeakDb;
-  const effectiveTargetLufs = isYoutubeMix ? Math.min(settings.targetLufsEstimate, -14.0) : settings.spacePreserve ? settings.targetLufsEstimate - 0.45 : settings.targetLufsEstimate;
-  const effectiveTargetRmsDb = isYoutubeMix ? Math.min(settings.targetRmsDb, -13.5) : settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
+  const effectiveTargetLufs = isYoutubeMix ? Math.min(settings.targetLufsEstimate, YOUTUBE_SAFE_TARGET_LUFS) : settings.spacePreserve ? settings.targetLufsEstimate - 0.45 : settings.targetLufsEstimate;
+  const effectiveTargetRmsDb = isYoutubeMix ? Math.min(settings.targetRmsDb, -16.8) : settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
   const densityBuffer = applyGentleDensity(stereoBuffer, effectiveDensity);
   const preGainMetrics = analyzeAudioBuffer(densityBuffer);
   notifyProgress(onProgress, 5, 74, "Normalisation du niveau");
@@ -454,7 +483,7 @@ async function renderPreviewMasterInternal(
     effectiveMaxPeakDb,
     settings.autoIntensity,
     settings.antiFatigue,
-    settings.spacePreserve
+    settings.spacePreserve && !isYoutubeMix
   );
   notifyProgress(onProgress, 6, 86, "Sécurité peak");
   const limiter = {
@@ -463,7 +492,11 @@ async function renderPreviewMasterInternal(
     reductionDb: Math.max(firstLimiter.reductionDb, calibrated.limiterReductionDb)
   };
   const dcCorrection = removeDcOffset(limiter.buffer);
-  const finalBuffer = applyTinyEdgeFade(dcCorrection.buffer);
+  const fadedBuffer = applyTinyEdgeFade(dcCorrection.buffer);
+  const youtubeClamp = isYoutubeMix
+    ? applyYoutubeFinalLoudnessClamp(fadedBuffer)
+    : { buffer: fadedBuffer, clampGainDb: 0, beforeLufs: 0, afterLufs: 0 };
+  const finalBuffer = youtubeClamp.buffer;
   const afterMetrics = analyzeAdvancedAudioBuffer(finalBuffer);
 
   const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
@@ -497,16 +530,19 @@ async function renderPreviewMasterInternal(
   }
   appliedMoves.push(isYoutubeMix ? "compression YouTube douce" : "compression douce");
   if (isYoutubeMix) {
-    appliedMoves.push("Mix YouTube : -14 LUFS intégré max estimé");
+    appliedMoves.push("Mix YouTube : LUFS intégré sous -14 avec clamp final");
     appliedMoves.push("EQ de traduction YouTube : sub, boue, harsh et shimmer contrôlés");
   }
-  appliedMoves.push(`auto target ${effectiveTargetLufs.toFixed(1)} LUFS est.`);
+  appliedMoves.push(`auto target ${effectiveTargetLufs.toFixed(1)} LUFS intégré est.`);
   appliedMoves.push(`ceiling ${effectiveMaxPeakDb.toFixed(1)} dBTP est.`);
   if (settings.spacePreserve) {
     appliedMoves.push("préservation de l’espace / limiteur plus doux");
   }
   if (calibrated.correctionGainDb > 0.15) {
     appliedMoves.push(`calibration loudness +${calibrated.correctionGainDb.toFixed(1)} dB`);
+  }
+  if (isYoutubeMix && youtubeClamp.clampGainDb < -0.05) {
+    appliedMoves.push(`clamp YouTube final ${youtubeClamp.clampGainDb.toFixed(1)} dB`);
   }
   if (limiter.active) {
     appliedMoves.push("limiteur de sécurité");
@@ -527,7 +563,9 @@ async function renderPreviewMasterInternal(
           : settings.highTreatment === "open"
             ? "Plus ouverte"
             : "Naturelle",
-    targetLabel: `${effectiveTargetLufs.toFixed(1)} LUFS estimé / RMS indicatif`,
+    targetLabel: isYoutubeMix
+      ? `${effectiveTargetLufs.toFixed(1)} LUFS intégré est. / max -14.0`
+      : `${effectiveTargetLufs.toFixed(1)} LUFS intégré est. / RMS indicatif`,
     appliedMoves,
     cleanup: {
       declipActive: cleanup.declipActive,
@@ -551,7 +589,7 @@ async function renderPreviewMasterInternal(
       targetRmsDb: effectiveTargetRmsDb,
       targetLufsEstimate: effectiveTargetLufs,
       targetLufsMinEstimate: effectiveTargetLufs - (isYoutubeMix ? 0.75 : settings.autoIntensity === "safe" || settings.antiFatigue || settings.spacePreserve ? 1.15 : 0.9),
-      targetLufsMaxEstimate: isYoutubeMix ? -14.0 : effectiveTargetLufs + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.45 : 0.35),
+      targetLufsMaxEstimate: isYoutubeMix ? YOUTUBE_MAX_LUFS : effectiveTargetLufs + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.5 : 0.4),
       ceilingDb: effectiveMaxPeakDb,
       targetHeadroomDb: Math.abs(effectiveMaxPeakDb),
       targetHeadroomMinDb: Math.max(1, Math.abs(effectiveMaxPeakDb) - (isYoutubeMix ? 0.3 : 0.4)),
