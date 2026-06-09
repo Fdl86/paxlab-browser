@@ -130,7 +130,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               previewScore={normalizeLufs(result.afterMetrics.estimatedLufs)}
             />
             <ComparisonRow
-              label="Peak"
+              label="Peak global"
               original={formatDb(result.beforeMetrics.peakDb)}
               preview={formatDb(result.afterMetrics.peakDb)}
               delta={formatDelta(result.afterMetrics.peakDb - result.beforeMetrics.peakDb, " dB")}

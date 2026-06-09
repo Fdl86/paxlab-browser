@@ -92,19 +92,25 @@ function headroomObjective(result: PreviewRenderResult, plan: AutoMasterPlan): O
 }
 
 function peakObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
-  const value = result.afterMetrics.approxTruePeakDb;
-  const ceiling = result.settings.maxPeakDb ?? plan.ceilingDb;
-  const isSafe = value <= ceiling + 0.25;
+  const value = result.afterMetrics.peakDb;
+  const estimatedSafetyPeak = result.afterMetrics.approxTruePeakDb;
+  const ceiling = result.report.loudness.ceilingDb ?? result.settings.maxPeakDb ?? plan.ceilingDb;
+  const softToleranceDb = 0.35;
+  const hardSafetyLimitDb = -1.0;
+  const isCritical = value > hardSafetyLimitDb || estimatedSafetyPeak > hardSafetyLimitDb + 0.15;
+  const isSafe = !isCritical && value <= ceiling + softToleranceDb;
   const nearCeiling = value > ceiling - 0.8 && isSafe;
 
   return {
-    label: "Peak",
+    label: "Peak global",
     target: `≤ ${formatDb(ceiling)}`,
     result: formatDb(value),
     status: isSafe ? nearCeiling ? "Contrôlé" : "Sécurisé" : "À vérifier",
     tone: isSafe ? "success" : "warning",
     marker: rangeMarker(value, -8, 0),
-    note: isSafe ? "Le plafond n’est pas dépassé." : "Peak au-dessus du plafond prévu."
+    note: isSafe
+      ? "Peak global dans la marge prévue."
+      : "Peak global à surveiller avant export final."
   };
 }
 

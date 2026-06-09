@@ -478,9 +478,9 @@ export function RealtimeMonitorPanel({
 
           <div className="compact-meter-row">
             <div className="compact-meter-pill">
-              <span>Peak</span>
+              <span>Peak lecture</span>
               <strong>{formatDb(meter.peakHoldDb)}</strong>
-              <small>dBTP est.</small>
+              <small>lecture courante</small>
             </div>
             <div className="compact-meter-pill">
               <span>LUFS estimé</span>

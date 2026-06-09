@@ -1,23 +1,31 @@
-# PAXLAB Browser Engine - dev12 Guided Studio UX
+# PAXLAB Browser Engine - dev15.5 Peak Report Fix
 
 Application Vite / React / TypeScript pour générer une Preview Master locale dans le navigateur.
 
-## Dev12
+## Dev15.5
 
-- Refonte d’architecture UI/UX en parcours guidé.
-- Avant import : landing premium sans studio vide.
-- Après import : choix simple du rendu Propre / Équilibré / Impact.
-- Option Aigus fatigants conservée et visible.
-- Pendant traitement : overlay local premium avec étapes.
-- Après génération : bloc A/B central, export WAV visible, historique repliable.
-- Mode Expert déplacé dans un accordéon, fermé par défaut.
-- Historique des previews conservé, mais moins envahissant.
-- Moteur audio conservé : Propre, Équilibré, Impact, Aigus fatigants, Préserver l’espace.
-- Aucun upload serveur.
-- Aucune API externe.
-- Mesures LUFS / true peak indicatives uniquement.
+Cette version conserve les traitements audio validés de DEV15.4 et corrige la lisibilité du rapport Peak.
 
-## Commandes
+Points principaux :
+
+- aucun changement sur les traitements audio Propre, Équilibré, Impact ou Mix YouTube ;
+- correction des faux warnings Peak dans le rapport de Preview ;
+- carte "Peak global" alignée sur le peak global exporté ;
+- lecteur renommé en "Peak lecture" pour distinguer la mesure courante du peak global ;
+- objectifs Peak plus lisibles et moins alarmistes quand le fichier reste dans une zone sûre ;
+- README, version visible et titre d’onglet navigateur mis à jour.
+
+## Fonctionnement
+
+PAXLAB fonctionne 100 % dans le navigateur :
+
+- aucun upload audio ;
+- aucun serveur audio ;
+- traitement local ;
+- comparaison A/B Original / Preview ;
+- export WAV local.
+
+## Installation locale
 
 ```bash
 npm install
@@ -27,5 +35,8 @@ npm run build
 
 ## Cloudflare Pages
 
-- Build command: `npm run build`
-- Build output directory: `dist`
+Paramètres conseillés :
+
+- Framework preset : None
+- Build command : npm run build
+- Output directory : dist
