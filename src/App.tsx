@@ -482,7 +482,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev14.1 Visual Report</p>
+        <p className="version">PAXLAB Browser Engine - dev14.2 Visual Report Polish</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.

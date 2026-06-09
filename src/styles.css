@@ -4237,7 +4237,7 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
 
 @media (max-width: 1180px) {
   .visual-objectives-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
   }
 
   .visual-summary-strip,

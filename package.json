@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev14-1-visual-report",
+  "version": "1.0.0-dev14-2-visual-report-polish",
   "type": "module",
   "scripts": {
     "dev": "vite",
