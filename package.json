@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev14-2-visual-report-polish",
+  "version": "1.0.0-dev15-youtube-mix",
   "type": "module",
   "scripts": {
     "dev": "vite",

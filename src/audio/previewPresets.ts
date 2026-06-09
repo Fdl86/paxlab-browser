@@ -81,6 +81,27 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       spacePreserve: false
     }
   },
+
+  {
+    id: "youtube",
+    label: "Mix YouTube",
+    description:
+      "Preset spécialisé pour upload vidéo : -14 LUFS intégré max estimé, peak plus prudent, grave stabilisé et aigus IA contrôlés.",
+    settings: {
+      presetId: "youtube",
+      highTreatment: "soft",
+      intensity: 58,
+      targetRmsDb: -14.1,
+      targetLufsEstimate: -14.1,
+      maxPeakDb: -1.8,
+      stereoWidth: 100,
+      density: 34,
+      sourceRepair: "normal",
+      autoIntensity: "youtube",
+      antiFatigue: false,
+      spacePreserve: true
+    }
+  },
   {
     id: "open",
     label: "Plus ouvert",

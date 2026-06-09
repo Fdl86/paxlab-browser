@@ -75,8 +75,9 @@ function repairLabel(settings: PreviewSettings): string {
 
 function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
   const amount = clamp(settings.intensity / 100, 0, 1);
-  const spaceFactor = settings.spacePreserve ? 0.78 : 1;
-  const repair = repairMultiplier(settings) * (settings.antiFatigue ? 1.18 : 1);
+  const isYoutubeMix = settings.autoIntensity === "youtube" || settings.presetId === "youtube";
+  const spaceFactor = settings.spacePreserve || isYoutubeMix ? 0.78 : 1;
+  const repair = repairMultiplier(settings) * (settings.antiFatigue ? 1.18 : 1) * (isYoutubeMix ? 1.06 : 1);
 
   const highTreatmentGain =
     settings.highTreatment === "verySoft"
@@ -88,15 +89,17 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
           : -0.5;
 
   const presetWeight =
-    settings.presetId === "smooth"
-      ? 1.18
-      : settings.presetId === "open"
-        ? 0.65
-        : settings.presetId === "balanced"
-          ? 0.86
-          : settings.presetId === "power"
-            ? 0.78
-            : 1;
+    isYoutubeMix
+      ? 0.92
+      : settings.presetId === "smooth"
+        ? 1.18
+        : settings.presetId === "open"
+          ? 0.65
+          : settings.presetId === "balanced"
+            ? 0.86
+            : settings.presetId === "power"
+              ? 0.78
+              : 1;
 
   const powerBoost = settings.presetId === "power" ? 0.8 : 0;
 
@@ -112,12 +115,12 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
             ? -0.4 * amount * repair
             : -1.0 * amount * repair,
     airGain: settings.highTreatment === "open" ? 0.9 * amount : (settings.antiFatigue ? -0.9 : -0.35) * amount,
-    presenceGain: settings.highTreatment === "open" ? 0.65 * amount : (settings.antiFatigue ? -0.75 : -0.45) * amount,
-    lowShelfGain: settings.presetId === "open" ? -0.35 * amount : 0.45 * amount + powerBoost,
-    subControlFrequency: settings.presetId === "power" ? 30 : 34,
-    compressorThreshold: -23 + 8 * (1 - amount) - settings.density * 0.04 + (settings.spacePreserve ? 1.4 : 0),
-    compressorRatio: (1.45 + 1.05 * amount + settings.density * 0.012) * (settings.spacePreserve ? 0.84 : 1),
-    makeupGain: 1 + 0.08 * amount + settings.density * (settings.spacePreserve ? 0.001 : 0.0018) + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.035 : 0),
+    presenceGain: isYoutubeMix ? (settings.antiFatigue ? -0.35 : -0.15) * amount : settings.highTreatment === "open" ? 0.65 * amount : (settings.antiFatigue ? -0.75 : -0.45) * amount,
+    lowShelfGain: isYoutubeMix ? 0.08 * amount : settings.presetId === "open" ? -0.35 * amount : 0.45 * amount + powerBoost,
+    subControlFrequency: isYoutubeMix ? 30 : settings.presetId === "power" ? 30 : 34,
+    compressorThreshold: -23 + 8 * (1 - amount) - settings.density * 0.04 + (settings.spacePreserve ? 1.4 : 0) + (isYoutubeMix ? 0.9 : 0),
+    compressorRatio: (1.45 + 1.05 * amount + settings.density * 0.012) * (settings.spacePreserve ? 0.84 : 1) * (isYoutubeMix ? 0.9 : 1),
+    makeupGain: 1 + 0.08 * amount + settings.density * (settings.spacePreserve || isYoutubeMix ? 0.001 : 0.0018) + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.035 : 0),
     dehissReductionDb:
       (settings.highTreatment === "verySoft"
         ? 2.2
@@ -125,7 +128,7 @@ function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
           ? 1.35
           : settings.highTreatment === "open"
             ? 0.25
-            : 0.75) * repair + (settings.antiFatigue ? 0.55 : 0)
+            : 0.75) * repair + (settings.antiFatigue ? 0.55 : 0) + (isYoutubeMix ? 0.35 : 0)
   };
 }
 
@@ -293,7 +296,7 @@ function applyPostLoudnessCalibration(
   let limiterActive = false;
   let limiterReductionDb = 0;
   let correctionGainDb = 0;
-  const maxExtraDb = (autoIntensity === "impact" ? 4.2 : antiFatigue || autoIntensity === "safe" ? 2.2 : 3.2) * (spacePreserve ? 0.62 : 1);
+  const maxExtraDb = (autoIntensity === "impact" ? 4.2 : autoIntensity === "youtube" ? 2.6 : antiFatigue || autoIntensity === "safe" ? 2.2 : 3.2) * (spacePreserve ? 0.62 : 1);
 
   for (let pass = 0; pass < 3; pass += 1) {
     const metrics = analyzeAdvancedAudioBuffer(current);
@@ -306,7 +309,7 @@ function applyPostLoudnessCalibration(
     const currentHeadroomDb = Math.max(0, -metrics.approxTruePeakDb);
     const ceilingHeadroomDb = Math.abs(maxPeakDb);
     const roomBeforeLimiterDb = Math.max(0, currentHeadroomDb - ceilingHeadroomDb);
-    const limiterAllowanceDb = (autoIntensity === "impact" ? 1.8 : antiFatigue || autoIntensity === "safe" ? 0.8 : 1.25) * (spacePreserve ? 0.45 : 1);
+    const limiterAllowanceDb = (autoIntensity === "impact" ? 1.8 : autoIntensity === "youtube" ? 0.9 : antiFatigue || autoIntensity === "safe" ? 0.8 : 1.25) * (spacePreserve ? 0.45 : 1);
     const passGainDb = clamp(
       Math.min(loudnessGapDb, roomBeforeLimiterDb + limiterAllowanceDb, maxExtraDb - correctionGainDb),
       0,
@@ -371,7 +374,7 @@ async function renderPreviewMasterInternal(
   lowMudDip.type = "peaking";
   lowMudDip.frequency.value = 320;
   lowMudDip.Q.value = 0.9;
-  lowMudDip.gain.value = settings.presetId === "power" ? -0.4 : -0.9;
+  lowMudDip.gain.value = settings.autoIntensity === "youtube" || settings.presetId === "youtube" ? -1.15 : settings.presetId === "power" ? -0.4 : -0.9;
 
   const presence = offlineContext.createBiquadFilter();
   presence.type = "peaking";
@@ -431,10 +434,11 @@ async function renderPreviewMasterInternal(
   const renderedBuffer = await offlineContext.startRendering();
   notifyProgress(onProgress, 4, 64, "Optimisation dynamique");
   const stereoBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
-  const effectiveDensity = settings.spacePreserve ? Math.round(settings.density * 0.54) : settings.density;
-  const effectiveMaxPeakDb = settings.spacePreserve ? Math.min(settings.maxPeakDb, -2.0) : settings.maxPeakDb;
-  const effectiveTargetLufs = settings.spacePreserve ? settings.targetLufsEstimate - 0.45 : settings.targetLufsEstimate;
-  const effectiveTargetRmsDb = settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
+  const isYoutubeMix = settings.autoIntensity === "youtube" || settings.presetId === "youtube";
+  const effectiveDensity = settings.spacePreserve || isYoutubeMix ? Math.round(settings.density * (isYoutubeMix ? 0.72 : 0.54)) : settings.density;
+  const effectiveMaxPeakDb = isYoutubeMix ? Math.min(settings.maxPeakDb, -1.8) : settings.spacePreserve ? Math.min(settings.maxPeakDb, -2.0) : settings.maxPeakDb;
+  const effectiveTargetLufs = isYoutubeMix ? Math.min(settings.targetLufsEstimate, -14.0) : settings.spacePreserve ? settings.targetLufsEstimate - 0.45 : settings.targetLufsEstimate;
+  const effectiveTargetRmsDb = isYoutubeMix ? Math.min(settings.targetRmsDb, -13.5) : settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
   const densityBuffer = applyGentleDensity(stereoBuffer, effectiveDensity);
   const preGainMetrics = analyzeAudioBuffer(densityBuffer);
   notifyProgress(onProgress, 5, 74, "Normalisation du niveau");
@@ -491,7 +495,11 @@ async function renderPreviewMasterInternal(
   if (settings.density > 0) {
     appliedMoves.push("densité harmonique douce");
   }
-  appliedMoves.push("compression douce");
+  appliedMoves.push(isYoutubeMix ? "compression YouTube douce" : "compression douce");
+  if (isYoutubeMix) {
+    appliedMoves.push("Mix YouTube : -14 LUFS intégré max estimé");
+    appliedMoves.push("EQ de traduction YouTube : sub, boue, harsh et shimmer contrôlés");
+  }
   appliedMoves.push(`auto target ${effectiveTargetLufs.toFixed(1)} LUFS est.`);
   appliedMoves.push(`ceiling ${effectiveMaxPeakDb.toFixed(1)} dBTP est.`);
   if (settings.spacePreserve) {
@@ -542,12 +550,12 @@ async function renderPreviewMasterInternal(
       gainAppliedDb,
       targetRmsDb: effectiveTargetRmsDb,
       targetLufsEstimate: effectiveTargetLufs,
-      targetLufsMinEstimate: effectiveTargetLufs - (settings.autoIntensity === "safe" || settings.antiFatigue || settings.spacePreserve ? 1.15 : 0.9),
-      targetLufsMaxEstimate: effectiveTargetLufs + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.45 : 0.35),
+      targetLufsMinEstimate: effectiveTargetLufs - (isYoutubeMix ? 0.75 : settings.autoIntensity === "safe" || settings.antiFatigue || settings.spacePreserve ? 1.15 : 0.9),
+      targetLufsMaxEstimate: isYoutubeMix ? -14.0 : effectiveTargetLufs + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.45 : 0.35),
       ceilingDb: effectiveMaxPeakDb,
       targetHeadroomDb: Math.abs(effectiveMaxPeakDb),
-      targetHeadroomMinDb: Math.max(1, Math.abs(effectiveMaxPeakDb) - 0.4),
-      targetHeadroomMaxDb: settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
+      targetHeadroomMinDb: Math.max(1, Math.abs(effectiveMaxPeakDb) - (isYoutubeMix ? 0.3 : 0.4)),
+      targetHeadroomMaxDb: isYoutubeMix ? 3.8 : settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
       achievedHeadroomDb,
       headroomSummary,
       limiterActive: limiter.active,

@@ -51,6 +51,12 @@ const SIMPLE_PRESETS: Array<{
     label: "Impact",
     promise: "Plus puissant",
     help: "Basses plus présentes et rendu plus dense."
+  },
+  {
+    id: "youtube",
+    label: "Mix YouTube",
+    promise: "-14 LUFS max",
+    help: "Upload vidéo : niveau stable, peak prudent et aigus contrôlés."
   }
 ];
 
@@ -73,6 +79,10 @@ function autoIntensityLabel(value: AutoIntensityId): string {
 
   if (value === "impact") {
     return "Impact";
+  }
+
+  if (value === "youtube") {
+    return "Mix YouTube";
   }
 
   return "Équilibré";
@@ -258,7 +268,7 @@ export function PreviewControls({
           <div className="segmented-control-block">
             <span>Type de rendu</span>
             <div className="segmented-control auto-intensity-control">
-              {(["safe", "balanced", "impact"] as AutoIntensityId[]).map((value) => (
+              {(["safe", "balanced", "impact", "youtube"] as AutoIntensityId[]).map((value) => (
                 <button
                   key={value}
                   type="button"

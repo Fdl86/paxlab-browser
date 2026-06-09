@@ -60,6 +60,12 @@ const SIMPLE_RENDERS: Array<{
     label: "Impact",
     title: "Plus fort et plus dense",
     text: "Basses plus présentes et rendu plus massif."
+  },
+  {
+    id: "youtube",
+    label: "Mix YouTube",
+    title: "Upload propre à -14 LUFS max",
+    text: "Niveau stabilisé, peak prudent, grave et aigus IA contrôlés."
   }
 ];
 
@@ -138,6 +144,10 @@ function intensityLabel(value: AutoIntensityId): string {
 
   if (value === "impact") {
     return "Impact";
+  }
+
+  if (value === "youtube") {
+    return "Mix YouTube";
   }
 
   return "Équilibré";
@@ -316,7 +326,7 @@ function RenderChoiceCard({
             type="button"
             className={settings.autoIntensity === render.id ? "guided-render-option active" : "guided-render-option"}
             disabled={!hasAudio || isRendering}
-            onClick={() => rebuild({ autoIntensity: render.id })}
+            onClick={() => rebuild({ autoIntensity: render.id, presetId: render.id === "youtube" ? "youtube" : "auto" })}
           >
             <strong>{render.label}</strong>
             <span>{render.title}</span>
@@ -482,7 +492,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev14.2 Visual Report Polish</p>
+        <p className="version">PAXLAB Browser Engine - dev15 YouTube Mix</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.

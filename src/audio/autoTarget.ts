@@ -39,6 +39,18 @@ function inferCeiling(
 ): { ceiling: number; minHeadroom: number; maxHeadroom: number } {
   const { clipped, veryCompact, compact, fatiguingHigh } = inferSafety(metrics, antiFatigue);
 
+  if (autoIntensity === "youtube") {
+    if (clipped || veryCompact || fatiguingHigh) {
+      return { ceiling: -2.0, minHeadroom: 1.8, maxHeadroom: 4.0 };
+    }
+
+    if (compact) {
+      return { ceiling: -1.9, minHeadroom: 1.6, maxHeadroom: 3.8 };
+    }
+
+    return { ceiling: -1.8, minHeadroom: 1.5, maxHeadroom: 3.5 };
+  }
+
   if (clipped) {
     return { ceiling: -2.4, minHeadroom: 2.0, maxHeadroom: 4.0 };
   }
@@ -73,6 +85,10 @@ function inferCeiling(
 }
 
 function intensityTargetShift(autoIntensity: AutoIntensityId, antiFatigue: boolean): number {
+  if (autoIntensity === "youtube") {
+    return antiFatigue ? -1.15 : -0.95;
+  }
+
   const shift = autoIntensity === "safe" ? -1.0 : autoIntensity === "impact" ? 0.8 : -0.2;
   return shift + (antiFatigue ? -0.55 : 0);
 }
@@ -108,7 +124,14 @@ export function inferAutoMasterPlan(
   let safetyIntent: AutoMasterPlan["safetyIntent"] = "normal";
   let reason = "Niveau source moyen : montée de niveau contrôlée, puis headroom dynamique selon sécurité.";
 
-  if (clipped) {
+  if (autoIntensity === "youtube") {
+    targetLufsEstimate = clipped || veryCompact || fatiguingHigh ? -14.4 : compact ? -14.2 : -14.0;
+    profile = "youtubeMix";
+    profileLabel = "Mix YouTube";
+    compressionIntent = compact || veryCompact ? "léger" : "modéré";
+    safetyIntent = clipped || fatiguingHigh ? "prudent" : "normal";
+    reason = "Preset YouTube : PAXLAB vise -14 LUFS intégré max estimé, un peak plus prudent, un grave stabilisé et des aigus IA contrôlés pour l’upload vidéo.";
+  } else if (clipped) {
     targetLufsEstimate = -14.4;
     profile = "protect";
     profileLabel = "Auto protecteur";
@@ -167,9 +190,16 @@ export function inferAutoMasterPlan(
     reason = "Source intermédiaire : densité supplémentaire sans forcer le plafond.";
   }
 
-  targetLufsEstimate += intensityTargetShift(autoIntensity, antiFatigue);
+  if (autoIntensity === "youtube") {
+    if (antiFatigue) {
+      targetLufsEstimate -= 0.25;
+      reason = `${reason} Aigus fatigants actif : le preset YouTube garde un rendu encore plus confortable.`;
+    }
+  } else {
+    targetLufsEstimate += intensityTargetShift(autoIntensity, antiFatigue);
+  }
 
-  if (spacePreserve) {
+  if (spacePreserve && autoIntensity !== "youtube") {
     targetLufsEstimate -= autoIntensity === "impact" ? 0.45 : 0.35;
     compressionIntent = compressionIntent === "fort prudent" ? "modéré" : compressionIntent === "modéré" ? "léger" : compressionIntent;
     reason = `${reason} Préserver l’espace actif : PAXLAB garde plus de respiration et limite moins fort.`;
@@ -179,22 +209,26 @@ export function inferAutoMasterPlan(
     targetLufsEstimate = Math.min(targetLufsEstimate, -13.2);
   }
 
-  if (autoIntensity === "safe") {
+  if (autoIntensity === "youtube") {
+    profileLabel = antiFatigue ? "Mix YouTube anti-fatigue" : "Mix YouTube";
+  } else if (autoIntensity === "safe") {
     profileLabel = `${profileLabel} prudent`;
   } else if (autoIntensity === "impact") {
     profileLabel = `${profileLabel} impact`;
   }
 
-  if (antiFatigue) {
+  if (antiFatigue && autoIntensity !== "youtube") {
     profileLabel = `${profileLabel} anti-fatigue`;
     reason = `${reason} Option aigus fatigants active : le haut du spectre est calmé et la cible reste plus confortable.`;
   }
 
-  targetLufsEstimate = clamp(targetLufsEstimate, -15.2, autoIntensity === "impact" && !antiFatigue ? -11.8 : -12.2);
+  targetLufsEstimate = autoIntensity === "youtube"
+    ? clamp(targetLufsEstimate, -15.2, -14.0)
+    : clamp(targetLufsEstimate, -15.2, autoIntensity === "impact" && !antiFatigue ? -11.8 : -12.2);
 
   const targetRmsDb = targetLufsToRmsTarget(metrics, targetLufsEstimate);
-  const lufsToleranceLow = autoIntensity === "safe" ? 1.1 : antiFatigue ? 1.2 : 0.9;
-  const lufsToleranceHigh = autoIntensity === "impact" ? 0.45 : 0.35;
+  const lufsToleranceLow = autoIntensity === "youtube" ? 0.75 : autoIntensity === "safe" ? 1.1 : antiFatigue ? 1.2 : 0.9;
+  const lufsToleranceHigh = autoIntensity === "youtube" ? Math.max(0, -14.0 - targetLufsEstimate) : autoIntensity === "impact" ? 0.45 : 0.35;
 
   return {
     profile,
@@ -241,24 +275,29 @@ export function buildSettingsFromAnalysis(
   const spacePreserve = options.spacePreserve ?? base.spacePreserve ?? false;
   const plan = inferAutoMasterPlan(metrics, { autoIntensity, antiFatigue, spacePreserve });
 
-  const highTreatment = antiFatigue
-    ? "verySoft"
-    : metrics.fizzRatio > 0.075 || metrics.highTotalRatio > 0.42
+  const isYoutubeMix = autoIntensity === "youtube";
+  const highTreatment = isYoutubeMix
+    ? antiFatigue || metrics.fizzRatio > 0.065 || metrics.highTotalRatio > 0.38
       ? "verySoft"
-      : metrics.highTotalRatio > 0.34
-        ? "soft"
-        : base.highTreatment;
+      : "soft"
+    : antiFatigue
+      ? "verySoft"
+      : metrics.fizzRatio > 0.075 || metrics.highTotalRatio > 0.42
+        ? "verySoft"
+        : metrics.highTotalRatio > 0.34
+          ? "soft"
+          : base.highTreatment;
 
   const liftPush = clamp(plan.expectedLiftDb, 0, 10.5);
   const intensity = clamp(
     base.intensity +
-      liftPush * (autoIntensity === "impact" ? 4.0 : autoIntensity === "safe" ? 2.8 : 3.4) +
+      liftPush * (autoIntensity === "impact" ? 4.0 : autoIntensity === "youtube" ? 2.7 : autoIntensity === "safe" ? 2.8 : 3.4) +
       (metrics.fizzRatio > 0.08 ? 8 : 0) +
       (metrics.highTotalRatio > 0.4 ? 6 : 0) +
       (metrics.crestFactorDb < 7 ? -5 : 0) +
       (antiFatigue ? 8 : 0),
     32,
-    autoIntensity === "impact" ? 98 : 92
+    autoIntensity === "impact" ? 98 : autoIntensity === "youtube" ? 86 : 92
   );
 
   const density = clamp(
@@ -266,18 +305,19 @@ export function buildSettingsFromAnalysis(
       (metrics.crestFactorDb > 11 ? 7 : 0) +
       (plan.profile === "strongLift" ? 5 : 0) +
       (autoIntensity === "impact" ? 5 : 0) -
+      (autoIntensity === "youtube" ? 8 : 0) -
       (autoIntensity === "safe" ? 6 : 0) -
       (antiFatigue ? 5 : 0) -
       (spacePreserve ? 9 : 0) -
       (metrics.crestFactorDb < 7 ? 8 : 0),
     12,
-    66
+    autoIntensity === "youtube" ? 48 : 66
   );
 
   const stereoWidth = clamp(
     metrics.stereoCorrelation < 0.18 ? 96 : base.stereoWidth,
     90,
-    antiFatigue ? 102 : 108
+    autoIntensity === "youtube" ? 102 : antiFatigue ? 102 : 108
   );
 
   return {
@@ -289,7 +329,7 @@ export function buildSettingsFromAnalysis(
     maxPeakDb: plan.ceilingDb,
     stereoWidth: Math.round(stereoWidth),
     density: Math.round(density),
-    sourceRepair: inferSourceRepair(metrics, antiFatigue),
+    sourceRepair: isYoutubeMix && !antiFatigue ? "normal" : inferSourceRepair(metrics, antiFatigue),
     autoIntensity,
     antiFatigue,
     spacePreserve

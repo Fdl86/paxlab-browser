@@ -4023,28 +4023,25 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
 }
 
 .visual-objective-topline {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
 }
-
 
 .visual-objective-topline b {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: fit-content;
-  max-width: 100%;
-  min-height: 22px;
+  min-height: 24px;
   padding: 4px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.07);
   color: #eef8ff;
-  font-size: 0.70rem;
+  font-size: 0.72rem;
   line-height: 1;
-  white-space: normal;
+  white-space: nowrap;
 }
-
 
 .visual-objective strong {
   display: block;
@@ -4265,7 +4262,9 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   }
 }
 
-/* DEV14.x - Fix objectifs report layout */
+/* DEV14.4 - Visual report objective layout integrated.
+   Keeps status badges inside each card by placing the badge below the title
+   and allowing the objective grid to breathe on narrower widths. */
 .visual-objectives-grid {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
   gap: 10px !important;

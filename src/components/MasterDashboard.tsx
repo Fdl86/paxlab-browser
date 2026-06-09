@@ -59,17 +59,18 @@ function getObjectiveToneClass(tone: ObjectiveTone): string {
 
 function lufsObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
   const value = result.afterMetrics.estimatedLufs;
+  const isYoutubeMix = result.settings.autoIntensity === "youtube";
   const isInRange = value >= plan.targetLufsMinEstimate && value <= plan.targetLufsMaxEstimate;
-  const isTooHot = value > plan.targetLufsMaxEstimate + 0.5;
+  const isTooHot = isYoutubeMix ? value > -14.0 : value > plan.targetLufsMaxEstimate + 0.5;
 
   return {
-    label: "LUFS",
-    target: `${formatLufsRange(plan)} LUFS`,
+    label: isYoutubeMix ? "LUFS YouTube" : "LUFS",
+    target: isYoutubeMix ? "≤ -14.0 LUFS" : `${formatLufsRange(plan)} LUFS`,
     result: value.toFixed(1),
-    status: isInRange ? "Atteint" : isTooHot ? "À vérifier" : "Partiel",
+    status: isInRange ? "Atteint" : isTooHot ? "Trop fort" : "Partiel",
     tone: isInRange ? "success" : isTooHot ? "warning" : "neutral",
     marker: rangeMarker(value, plan.targetLufsMinEstimate - 1.5, plan.targetLufsMaxEstimate + 1.5),
-    note: isInRange ? "Dans la plage prévue." : isTooHot ? "Plus fort que la plage prévue." : "Rendu plus prudent."
+    note: isInRange ? (isYoutubeMix ? "Sous le maximum visé." : "Dans la plage prévue.") : isTooHot ? "Plus fort que la cible prévue." : "Rendu plus prudent."
   };
 }
 
@@ -146,6 +147,10 @@ function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string
   const gain = result.report.loudness.gainAppliedDb;
   const headroom = result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb;
 
+  if (result.settings.autoIntensity === "youtube") {
+    return `PAXLAB a généré un Mix YouTube : -14 LUFS intégré max estimé, peak prudent, grave stabilisé et aigus IA contrôlés. Headroom final : ${headroom.toFixed(1)} dB.`;
+  }
+
   if (result.settings.antiFatigue) {
     return `PAXLAB a privilégié un rendu ${result.settings.autoIntensity === "impact" ? "puissant" : "contrôlé"}, avec réduction des aigus fatigants et headroom final à ${headroom.toFixed(1)} dB.`;
   }
@@ -166,7 +171,8 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
   const plan = sourceMetrics
     ? inferAutoMasterPlan(sourceMetrics, {
         autoIntensity: previewResult?.settings.autoIntensity ?? previewSettings.autoIntensity,
-        antiFatigue: previewResult?.settings.antiFatigue ?? previewSettings.antiFatigue
+        antiFatigue: previewResult?.settings.antiFatigue ?? previewSettings.antiFatigue,
+        spacePreserve: previewResult?.settings.spacePreserve ?? previewSettings.spacePreserve
       })
     : null;
 

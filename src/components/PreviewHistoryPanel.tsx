@@ -20,6 +20,10 @@ function formatAuto(settings: PreviewSettings): string {
     return "Impact";
   }
 
+  if (settings.autoIntensity === "youtube") {
+    return "Mix YouTube";
+  }
+
   if (settings.autoIntensity === "safe") {
     return "Prudent";
   }

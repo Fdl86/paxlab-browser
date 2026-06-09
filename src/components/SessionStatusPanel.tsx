@@ -45,7 +45,7 @@ function formatPreview(
 }
 
 function formatPreset(settings: PreviewSettings): string {
-  const base = settings.autoIntensity === "impact" ? "Impact" : settings.autoIntensity === "safe" ? "Propre" : "Équilibré";
+  const base = settings.autoIntensity === "impact" ? "Impact" : settings.autoIntensity === "youtube" ? "Mix YouTube" : settings.autoIntensity === "safe" ? "Propre" : "Équilibré";
   return settings.antiFatigue ? `${base} + anti-fatigue` : base;
 }
 

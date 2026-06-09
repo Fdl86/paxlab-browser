@@ -6,15 +6,15 @@ export type PreviewStatus = "idle" | "rendering" | "ready" | "error";
 
 export type PlaybackSource = "original" | "preview";
 
-export type PreviewPresetId = "auto" | "smooth" | "balanced" | "open" | "power";
+export type PreviewPresetId = "auto" | "smooth" | "balanced" | "open" | "power" | "youtube";
 
 export type HighTreatmentId = "soft" | "verySoft" | "neutral" | "open";
 
 export type SourceRepairLevel = "light" | "normal" | "strong";
 
-export type AutoIntensityId = "safe" | "balanced" | "impact";
+export type AutoIntensityId = "safe" | "balanced" | "impact" | "youtube";
 
-export type AutoPlanProfile = "preserve" | "balancedLift" | "strongLift" | "protect";
+export type AutoPlanProfile = "preserve" | "balancedLift" | "strongLift" | "protect" | "youtubeMix";
 
 export type ListeningZoneFamily =
   | "Présence 2-5 kHz"
