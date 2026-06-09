@@ -339,37 +339,13 @@ function PreviewReadyCard({
   );
 }
 
-function CompactStudioTopbar({
-  decodedAudio,
-  onFileSelected
-}: {
-  decodedAudio: DecodedAudioData;
-  onFileSelected: (file: File) => void;
-}) {
-  function handleChange(file: File | undefined) {
-    if (!file || !sourceAcceptsAudio(file)) {
-      return;
-    }
-
-    onFileSelected(file);
-  }
-
+function CompactStudioTopbar() {
   return (
-    <header className="compact-studio-topbar">
+    <header className="compact-studio-topbar compact-studio-topbar-minimal">
       <div className="compact-brand-block">
         <strong>PAXLAB Browser Engine</strong>
-        <span>{decodedAudio.file.name}</span>
       </div>
       <div className="compact-topbar-actions">
-        <label className="compact-change-file-button">
-          <span className="button-icon" aria-hidden="true">↺</span>
-          Changer de morceau
-          <input
-            type="file"
-            accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
-            onChange={(event) => handleChange(event.target.files?.[0])}
-          />
-        </label>
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
           <span>Local</span>
           <span>Aucun upload</span>
@@ -443,7 +419,7 @@ function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => voi
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev12.4 UX Robustness</p>
+        <p className="version">PAXLAB Browser Engine - dev12.5 Compact Player</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
@@ -497,6 +473,7 @@ export default function App() {
   const [renderProgressStep, setRenderProgressStep] = useState(0);
   const [renderProgressValue, setRenderProgressValue] = useState(6);
   const [exportedRevision, setExportedRevision] = useState<number | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const player = useABAudioPlayer({
     originalBuffer: decodedAudio?.audioBuffer ?? null,
@@ -527,6 +504,7 @@ export default function App() {
       setShouldSelectPreviewAfterRender(false);
       setShowRenderEditor(false);
       setExportedRevision(null);
+      setShowExportModal(false);
       return;
     }
 
@@ -550,6 +528,7 @@ export default function App() {
       setShouldSelectPreviewAfterRender(false);
       setShowRenderEditor(false);
       setExportedRevision(null);
+      setShowExportModal(false);
 
       try {
         const decoded = await decodeAudioFile(selectedFile as File);
@@ -642,6 +621,7 @@ export default function App() {
     setRenderProgressStep(0);
     setRenderProgressValue(8);
     setExportedRevision(null);
+    setShowExportModal(false);
 
     try {
       const result = await renderPreviewMaster(decodedAudio.audioBuffer, settingsToRender, (event) => {
@@ -689,6 +669,7 @@ export default function App() {
     setPreviewErrorMessage(null);
     setShouldSelectPreviewAfterRender(true);
     setExportedRevision(null);
+    setShowExportModal(false);
   }
 
   function handleApplyRecommended(settings: PreviewSettings) {
@@ -733,7 +714,7 @@ export default function App() {
 
       {decodedAudio && (
         <>
-          <CompactStudioTopbar decodedAudio={decodedAudio} onFileSelected={handleSelectFile} />
+          <CompactStudioTopbar />
 
           <WorkflowStepper step={workflowStep} />
 
@@ -789,6 +770,9 @@ export default function App() {
                     onStop={player.stop}
                     onSeek={player.seek}
                     onSwitchSource={(source) => void player.switchSource(source)}
+                    onFileSelected={handleSelectFile}
+                    onOpenExport={() => setShowExportModal(true)}
+                    canOpenExport={Boolean(previewResult)}
                   />
                 </div>
 
@@ -814,18 +798,35 @@ export default function App() {
                       onRenderPreview={() => void handleRenderPreview()}
                     />
                   )}
-                  <ExportPanel
-                    sourceFileName={selectedFile?.name ?? null}
-                    previewBuffer={previewResult.buffer}
-                    previewRevision={previewRevision}
-                    previewRenderedAt={previewRenderedAt}
-                    hasPendingChanges={hasPendingChanges}
-                    isRendering={previewStatus === "rendering"}
-                    onBeforeExport={player.stop}
-                    onExported={() => setExportedRevision(previewRevision)}
-                  />
+
                 </aside>
               </section>
+
+              {showExportModal && (
+                <div className="export-modal-backdrop" role="dialog" aria-modal="true" aria-label="Exporter la Preview">
+                  <div className="export-modal-card">
+                    <div className="export-modal-header">
+                      <div>
+                        <p className="eyebrow">Export local</p>
+                        <h2>Exporter la Preview</h2>
+                      </div>
+                      <button type="button" className="modal-close-button" onClick={() => setShowExportModal(false)} aria-label="Fermer l’export">
+                        ×
+                      </button>
+                    </div>
+                    <ExportPanel
+                      sourceFileName={selectedFile?.name ?? null}
+                      previewBuffer={previewResult.buffer}
+                      previewRevision={previewRevision}
+                      previewRenderedAt={previewRenderedAt}
+                      hasPendingChanges={hasPendingChanges}
+                      isRendering={previewStatus === "rendering"}
+                      onBeforeExport={player.stop}
+                      onExported={() => setExportedRevision(previewRevision)}
+                    />
+                  </div>
+                </div>
+              )}
             </>
           )}
 

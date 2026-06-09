@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties, type MouseEvent } from "react";
+import { useMemo, type CSSProperties, type MouseEvent } from "react";
 import { analyzeHeadroomSummary, formatDuration } from "../audio/audioBufferUtils";
 import type { PlaybackSource, PreviewStatus, RealtimeMeterState } from "../audio/types";
 
@@ -21,6 +21,9 @@ interface RealtimeMonitorPanelProps {
   onStop: () => void;
   onSeek: (time: number) => void;
   onSwitchSource: (source: PlaybackSource) => void;
+  onFileSelected?: (file: File) => void;
+  onOpenExport?: () => void;
+  canOpenExport?: boolean;
 }
 
 type WaveformViewMode = "structure" | "level";
@@ -237,6 +240,22 @@ function TransportIcon({ type }: { type: "play" | "pause" | "stop" }) {
   );
 }
 
+function ChangeFileIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M8 2.2a5.8 5.8 0 0 1 5.45 3.82.75.75 0 1 1-1.42.48A4.3 4.3 0 0 0 4.1 5.78l1.04-.02a.75.75 0 0 1 .03 1.5l-2.75.06a.75.75 0 0 1-.77-.73l-.06-2.75a.75.75 0 0 1 1.5-.03l.02.86A5.78 5.78 0 0 1 8 2.2Zm5.58 6.48a.75.75 0 0 1 .77.73l.06 2.75a.75.75 0 0 1-1.5.03l-.02-.86A5.8 5.8 0 0 1 2.55 9.98a.75.75 0 1 1 1.42-.48 4.3 4.3 0 0 0 7.93.72l-1.04.02a.75.75 0 0 1-.03-1.5l2.75-.06Z" />
+    </svg>
+  );
+}
+
+function ExportIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M8 2.2a.75.75 0 0 1 .75.75v5.08l1.74-1.74a.75.75 0 1 1 1.06 1.06l-3.02 3.02a.75.75 0 0 1-1.06 0L4.45 7.35a.75.75 0 1 1 1.06-1.06l1.74 1.74V2.95A.75.75 0 0 1 8 2.2ZM3.75 10.8a.75.75 0 0 1 .75.75v.95h7v-.95a.75.75 0 0 1 1.5 0v1.7a.75.75 0 0 1-.75.75h-8.5a.75.75 0 0 1-.75-.75v-1.7a.75.75 0 0 1 .75-.75Z" />
+    </svg>
+  );
+}
+
 function meterLabel(status: RealtimeMeterState["status"]): string {
   if (status === "clipping") {
     return "Clipping";
@@ -275,9 +294,11 @@ export function RealtimeMonitorPanel({
   onPlayPause,
   onStop,
   onSeek,
-  onSwitchSource
+  onSwitchSource,
+  onFileSelected,
+  onOpenExport,
+  canOpenExport = false
 }: RealtimeMonitorPanelProps) {
-  const [waveformViewMode, setWaveformViewMode] = useState<WaveformViewMode>("structure");
   const activeBuffer = activeSource === "preview" ? previewBuffer ?? originalBuffer : originalBuffer;
   const waveformBins = useMemo(() => {
     if (!activeBuffer) {
@@ -286,7 +307,7 @@ export function RealtimeMonitorPanel({
 
     const bins = getAdaptiveBinCount(activeBuffer);
     const referenceId = getBufferId(originalBuffer);
-    const cacheKey = `${waveformViewMode}:${bins}:${referenceId}`;
+    const cacheKey = `structure:${bins}:${referenceId}`;
     const existingCache = waveformCache.get(activeBuffer);
     const cached = existingCache?.get(cacheKey);
 
@@ -294,12 +315,12 @@ export function RealtimeMonitorPanel({
       return cached;
     }
 
-    const built = buildWaveformBins(activeBuffer, originalBuffer, waveformViewMode, bins);
+    const built = buildWaveformBins(activeBuffer, originalBuffer, "structure", bins);
     const cache = existingCache ?? new Map<string, WaveformBin[]>();
     cache.set(cacheKey, built);
     waveformCache.set(activeBuffer, cache);
     return built;
-  }, [activeBuffer, originalBuffer, waveformViewMode]);
+  }, [activeBuffer, originalBuffer]);
   const path = useMemo(() => pathFromWaveformBins(waveformBins), [waveformBins]);
   const headroomSummary = useMemo(() => activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null, [activeBuffer]);
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
@@ -326,6 +347,19 @@ export function RealtimeMonitorPanel({
     onSeek(ratio * duration);
   }
 
+  function handleFileChange(file: File | undefined) {
+    if (!file || !onFileSelected) {
+      return;
+    }
+
+    const fileName = file.name.toLowerCase();
+    const isAudio = file.type.startsWith("audio/") || fileName.endsWith(".wav") || fileName.endsWith(".mp3");
+
+    if (isAudio) {
+      onFileSelected(file);
+    }
+  }
+
   return (
     <section className="panel realtime-panel">
       <div className="monitor-source-switch" aria-label="Choix de la source de lecture">
@@ -345,6 +379,17 @@ export function RealtimeMonitorPanel({
         >
           Preview
         </button>
+        {onOpenExport && (
+          <button
+            type="button"
+            className="monitor-export-button"
+            disabled={!canOpenExport}
+            onClick={onOpenExport}
+          >
+            <ExportIcon />
+            Export
+          </button>
+        )}
       </div>
 
       <div className="now-playing-bar">
@@ -376,39 +421,28 @@ export function RealtimeMonitorPanel({
             <div className="waveform-label-row">
               <div className="waveform-label-left">
                 <span>Écoute A/B</span>
-                <small>{waveformViewMode === "structure" ? "Structure" : "Niveau comparé"}</small>
+                <small>Structure</small>
               </div>
-              <div className="waveform-actions">
-                <div className="waveform-mode-toggle" aria-label="Mode d’affichage waveform">
-                  <button
-                    type="button"
-                    className={waveformViewMode === "structure" ? "active" : ""}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setWaveformViewMode("structure");
-                    }}
-                  >
-                    Structure
-                  </button>
-                  <button
-                    type="button"
-                    className={waveformViewMode === "level" ? "active" : ""}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setWaveformViewMode("level");
-                    }}
-                  >
-                    Niveau
-                  </button>
-                </div>
-                <button type="button" className="transport-button" disabled={isSwitching} onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
+              <div className="waveform-actions compact-controls">
+                <button type="button" className="transport-button compact-transport" disabled={isSwitching} onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
                   <TransportIcon type={isPlaying ? "pause" : "play"} />
                   {isPlaying ? "Pause" : "Play"}
                 </button>
-                <button type="button" className="transport-button" onClick={(event) => { event.stopPropagation(); onStop(); }}>
+                <button type="button" className="transport-button compact-transport" onClick={(event) => { event.stopPropagation(); onStop(); }}>
                   <TransportIcon type="stop" />
                   Stop
                 </button>
+                {onFileSelected && (
+                  <label className="transport-button compact-transport change-track-control" onClick={(event) => event.stopPropagation()}>
+                    <ChangeFileIcon />
+                    Changer
+                    <input
+                      type="file"
+                      accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
+                      onChange={(event) => handleFileChange(event.target.files?.[0])}
+                    />
+                  </label>
+                )}
               </div>
             </div>
             <div className="waveform-canvas">
