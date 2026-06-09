@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev12.3-change-file",
+  "version": "1.0.0-dev12.4-ux-robustness",
   "type": "module",
   "scripts": {
     "dev": "vite",

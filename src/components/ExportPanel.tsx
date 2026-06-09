@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { buildSafeAudioFilename, encodeWavFromAudioBuffer } from "../audio/exportWav";
 
 interface ExportPanelProps {
@@ -9,6 +9,21 @@ interface ExportPanelProps {
   hasPendingChanges: boolean;
   isRendering: boolean;
   onBeforeExport: () => void;
+  onExported?: () => void;
+}
+
+function sanitizeWavFilename(value: string): string {
+  const trimmed = value.trim();
+  const withExtension = trimmed.toLowerCase().endsWith(".wav") ? trimmed : `${trimmed}.wav`;
+  const safe = withExtension
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return safe || "paxlab-preview.wav";
 }
 
 export function ExportPanel({
@@ -18,11 +33,21 @@ export function ExportPanel({
   previewRenderedAt,
   hasPendingChanges,
   isRendering,
-  onBeforeExport
+  onBeforeExport,
+  onExported
 }: ExportPanelProps) {
   const [lastExportName, setLastExportName] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
+  const suggestedFilename = useMemo(() => {
+    const suffix = `paxlab-preview-${previewRevision || 1}-24bit`;
+    return buildSafeAudioFilename(sourceFileName, suffix);
+  }, [previewRevision, sourceFileName]);
+  const [exportFilename, setExportFilename] = useState(suggestedFilename);
+
+  useEffect(() => {
+    setExportFilename(suggestedFilename);
+  }, [suggestedFilename]);
 
   useEffect(() => {
     return () => {
@@ -43,8 +68,14 @@ export function ExportPanel({
       URL.revokeObjectURL(objectUrlRef.current);
     }
 
-    const suffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
-    const filename = buildSafeAudioFilename(sourceFileName, suffix);
+    const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
+    const fallbackName = buildSafeAudioFilename(sourceFileName, fallbackSuffix);
+    const customName = sanitizeWavFilename(
+      bitDepth === 24 ? exportFilename || fallbackName : exportFilename.replace(/24bit/i, "16bit") || fallbackName
+    );
+    const filename = bitDepth === 16 && !customName.toLowerCase().includes("16bit")
+      ? customName.replace(/\.wav$/i, "-16bit.wav")
+      : customName;
     const blob = encodeWavFromAudioBuffer(previewBuffer, { bitDepth });
     const objectUrl = URL.createObjectURL(blob);
     objectUrlRef.current = objectUrl;
@@ -56,6 +87,7 @@ export function ExportPanel({
     link.click();
     link.remove();
     setLastExportName(filename);
+    onExported?.();
   }
 
   const canExport = Boolean(previewBuffer) && !hasPendingChanges && !isRendering;
@@ -79,6 +111,17 @@ export function ExportPanel({
         </strong>
         <p>Export local depuis la Preview validée. Aucun upload, aucun serveur.</p>
       </div>
+
+      <label className="export-filename-field">
+        <span>Nom du fichier exporté</span>
+        <input
+          type="text"
+          value={exportFilename}
+          disabled={!previewBuffer || isRendering}
+          onChange={(event) => setExportFilename(event.target.value)}
+          onBlur={() => setExportFilename((value) => sanitizeWavFilename(value || suggestedFilename))}
+        />
+      </label>
 
       <button
         type="button"

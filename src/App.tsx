@@ -63,25 +63,18 @@ const SIMPLE_RENDERS: Array<{
   }
 ];
 
-function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings): boolean {
-  if (!left) {
-    return false;
+function getSettingsSignature(settings: PreviewSettings | null): string {
+  if (!settings) {
+    return "";
   }
 
-  return (
-    left.presetId === right.presetId &&
-    left.highTreatment === right.highTreatment &&
-    left.intensity === right.intensity &&
-    left.targetRmsDb === right.targetRmsDb &&
-    left.targetLufsEstimate === right.targetLufsEstimate &&
-    left.maxPeakDb === right.maxPeakDb &&
-    left.stereoWidth === right.stereoWidth &&
-    left.density === right.density &&
-    left.sourceRepair === right.sourceRepair &&
-    left.autoIntensity === right.autoIntensity &&
-    left.antiFatigue === right.antiFatigue &&
-    left.spacePreserve === right.spacePreserve
+  return JSON.stringify(
+    Object.entries(settings).sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
   );
+}
+
+function areSettingsEqual(left: PreviewSettings | null, right: PreviewSettings): boolean {
+  return getSettingsSignature(left) === getSettingsSignature(right);
 }
 
 function intensityLabel(value: AutoIntensityId): string {
@@ -101,33 +94,21 @@ function sourceAcceptsAudio(file: File): boolean {
   return name.endsWith(".wav") || name.endsWith(".mp3") || file.type.startsWith("audio/");
 }
 
-function ProcessingOverlay({ isVisible }: { isVisible: boolean }) {
-  const [progress, setProgress] = useState(7);
-
-  useEffect(() => {
-    if (!isVisible) {
-      setProgress(7);
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setProgress((value) => {
-        if (value >= 96) {
-          return value;
-        }
-
-        return Math.min(96, value + 8 + Math.random() * 9);
-      });
-    }, 180);
-
-    return () => window.clearInterval(interval);
-  }, [isVisible]);
-
+function ProcessingOverlay({
+  isVisible,
+  activeStep,
+  progress
+}: {
+  isVisible: boolean;
+  activeStep: number;
+  progress: number;
+}) {
   if (!isVisible) {
     return null;
   }
 
-  const activeIndex = Math.min(RENDER_STEPS.length - 1, Math.floor((progress / 100) * RENDER_STEPS.length));
+  const safeProgress = Math.min(98, Math.max(6, progress));
+  const activeIndex = Math.min(RENDER_STEPS.length - 1, Math.max(0, activeStep));
 
   return (
     <div className="guided-processing-overlay" role="status" aria-live="polite">
@@ -136,10 +117,10 @@ function ProcessingOverlay({ isVisible }: { isVisible: boolean }) {
         <p className="eyebrow">Traitement local</p>
         <h2>Préparation de la Preview</h2>
         <p>Le rendu est généré dans ton navigateur. Aucun serveur, aucun upload.</p>
-        <div className="guided-progress" style={{ "--progress": `${progress}%` } as CSSProperties}>
+        <div className="guided-progress" style={{ "--progress": `${safeProgress}%` } as CSSProperties}>
           <span />
         </div>
-        <strong>{Math.round(progress)} % · {RENDER_STEPS[activeIndex]}</strong>
+        <strong>{Math.round(safeProgress)} % · {RENDER_STEPS[activeIndex]}</strong>
         <div className="guided-processing-steps">
           {RENDER_STEPS.map((step, index) => (
             <span key={step} className={index <= activeIndex ? "done" : ""}>{step}</span>
@@ -149,6 +130,7 @@ function ProcessingOverlay({ isVisible }: { isVisible: boolean }) {
     </div>
   );
 }
+
 
 function WorkflowStepper({ step }: { step: 1 | 2 | 3 | 4 }) {
   const steps = [
@@ -193,7 +175,8 @@ function SourceLoadedCard({
         <h2>{decodedAudio.file.name}</h2>
         <p>{formatDuration(decodedAudio.info.durationSeconds)} · {decodedAudio.info.sampleRate.toLocaleString("fr-FR")} Hz · {decodedAudio.info.numberOfChannels} canal{decodedAudio.info.numberOfChannels > 1 ? "x" : ""}</p>
       </div>
-      <label className="secondary-file-button">
+      <label className="secondary-file-button icon-button-label">
+        <span aria-hidden="true">↺</span>
         Changer de fichier
         <input
           type="file"
@@ -379,6 +362,7 @@ function CompactStudioTopbar({
       </div>
       <div className="compact-topbar-actions">
         <label className="compact-change-file-button">
+          <span className="button-icon" aria-hidden="true">↺</span>
           Changer de morceau
           <input
             type="file"
@@ -459,8 +443,8 @@ function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => voi
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev12.3 Change File</p>
-        <h1>Améliore tes morceaux <em>IA</em> localement.</h1>
+        <p className="version">PAXLAB Browser Engine - dev12.4 UX Robustness</p>
+        <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
         </p>
@@ -510,6 +494,9 @@ export default function App() {
   const [previewHistory, setPreviewHistory] = useState<PreviewHistoryItem[]>([]);
   const [shouldSelectPreviewAfterRender, setShouldSelectPreviewAfterRender] = useState(false);
   const [showRenderEditor, setShowRenderEditor] = useState(false);
+  const [renderProgressStep, setRenderProgressStep] = useState(0);
+  const [renderProgressValue, setRenderProgressValue] = useState(6);
+  const [exportedRevision, setExportedRevision] = useState<number | null>(null);
 
   const player = useABAudioPlayer({
     originalBuffer: decodedAudio?.audioBuffer ?? null,
@@ -539,6 +526,7 @@ export default function App() {
       setPreviewHistory([]);
       setShouldSelectPreviewAfterRender(false);
       setShowRenderEditor(false);
+      setExportedRevision(null);
       return;
     }
 
@@ -561,6 +549,7 @@ export default function App() {
       setPreviewHistory([]);
       setShouldSelectPreviewAfterRender(false);
       setShowRenderEditor(false);
+      setExportedRevision(null);
 
       try {
         const decoded = await decodeAudioFile(selectedFile as File);
@@ -650,9 +639,15 @@ export default function App() {
     setAppliedPreviewSettings(null);
     setPreviewRenderedAt(null);
     setShouldSelectPreviewAfterRender(true);
+    setRenderProgressStep(0);
+    setRenderProgressValue(8);
+    setExportedRevision(null);
 
     try {
-      const result = await renderPreviewMaster(decodedAudio.audioBuffer, settingsToRender);
+      const result = await renderPreviewMaster(decodedAudio.audioBuffer, settingsToRender, (event) => {
+        setRenderProgressStep(event.stepIndex);
+        setRenderProgressValue(event.progress);
+      });
       const renderedAt = new Date().toLocaleTimeString("fr-FR", {
         hour: "2-digit",
         minute: "2-digit",
@@ -671,6 +666,8 @@ export default function App() {
       setPreviewCounter(nextRevision);
       setPreviewRenderedAt(renderedAt);
       setPreviewHistory((items) => [historyItem, ...items].slice(0, 6));
+      setRenderProgressStep(RENDER_STEPS.length - 1);
+      setRenderProgressValue(100);
       setPreviewStatus("ready");
       setShowRenderEditor(false);
     } catch (error) {
@@ -691,15 +688,12 @@ export default function App() {
     setPreviewStatus("ready");
     setPreviewErrorMessage(null);
     setShouldSelectPreviewAfterRender(true);
+    setExportedRevision(null);
   }
 
   function handleApplyRecommended(settings: PreviewSettings) {
     player.stop();
     setPreviewSettings({ ...settings });
-  }
-
-  function handleApplyRecommendedAndRender(settings: PreviewSettings) {
-    void handleRenderPreview(settings);
   }
 
   useEffect(() => {
@@ -716,12 +710,22 @@ export default function App() {
     setSelectedFile(file);
   }
 
-  const workflowStep: 1 | 2 | 3 | 4 = !decodedAudio ? 1 : previewResult ? 4 : previewStatus === "rendering" ? 2 : 2;
+  const workflowStep: 1 | 2 | 3 | 4 = !decodedAudio
+    ? 1
+    : !hasPendingChanges && exportedRevision && previewRevision > 0 && exportedRevision === previewRevision
+      ? 4
+      : previewResult
+        ? 3
+        : 2;
   const readySettings = previewResult?.settings ?? previewSettings;
 
   return (
     <main className="guided-shell">
-      <ProcessingOverlay isVisible={previewStatus === "rendering"} />
+      <ProcessingOverlay
+        isVisible={previewStatus === "rendering"}
+        activeStep={renderProgressStep}
+        progress={renderProgressValue}
+      />
 
       {!decodedAudio && (
         <SimpleLanding onFileSelected={handleSelectFile} />
@@ -731,7 +735,7 @@ export default function App() {
         <>
           <CompactStudioTopbar decodedAudio={decodedAudio} onFileSelected={handleSelectFile} />
 
-          {!previewResult && <WorkflowStepper step={workflowStep} />}
+          <WorkflowStepper step={workflowStep} />
 
           {decodeStatus === "error" && decodeErrorMessage && <p className="message message-error standalone-message">{decodeErrorMessage}</p>}
           {analysisStatus === "running" && <p className="message message-info standalone-message">Analyse locale en cours : niveau, spectre et cible automatique.</p>}
@@ -818,6 +822,7 @@ export default function App() {
                     hasPendingChanges={hasPendingChanges}
                     isRendering={previewStatus === "rendering"}
                     onBeforeExport={player.stop}
+                    onExported={() => setExportedRevision(previewRevision)}
                   />
                 </aside>
               </section>
@@ -873,7 +878,6 @@ export default function App() {
                   settings={previewSettings}
                   isRendering={previewStatus === "rendering"}
                   onApplySettings={handleApplyRecommended}
-                  onApplyAndRender={handleApplyRecommendedAndRender}
                 />
                 <MasterDashboard sourceAnalysis={sourceAnalysis} previewResult={previewResult} previewSettings={previewSettings} />
                 <ProcessingReportPanel result={previewResult} />

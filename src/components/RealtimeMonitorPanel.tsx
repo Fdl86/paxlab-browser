@@ -51,6 +51,48 @@ interface WaveformStatsBin {
   peak: number;
 }
 
+const bufferIds = new WeakMap<AudioBuffer, number>();
+const waveformCache = new WeakMap<AudioBuffer, Map<string, WaveformBin[]>>();
+let nextBufferId = 1;
+
+function getBufferId(buffer: AudioBuffer | null): number {
+  if (!buffer) {
+    return 0;
+  }
+
+  const existingId = bufferIds.get(buffer);
+  if (existingId) {
+    return existingId;
+  }
+
+  const newId = nextBufferId;
+  nextBufferId += 1;
+  bufferIds.set(buffer, newId);
+  return newId;
+}
+
+function getAdaptiveBinCount(buffer: AudioBuffer | null): number {
+  if (!buffer) {
+    return 0;
+  }
+
+  const duration = buffer.duration;
+
+  if (duration < 5) {
+    return 160;
+  }
+
+  if (duration < 15) {
+    return 220;
+  }
+
+  if (duration < 60) {
+    return 320;
+  }
+
+  return 420;
+}
+
 function percentile(sortedValues: number[], ratio: number): number {
   if (!sortedValues.length) {
     return 0;
@@ -170,6 +212,31 @@ function pathFromWaveformBins(waveformBins: WaveformBin[], width = 860, height =
   return `${top.join(" ")} ${bottom} Z`;
 }
 
+function TransportIcon({ type }: { type: "play" | "pause" | "stop" }) {
+  if (type === "stop") {
+    return (
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <rect x="4" y="4" width="8" height="8" rx="1.2" />
+      </svg>
+    );
+  }
+
+  if (type === "pause") {
+    return (
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <rect x="4" y="3" width="3" height="10" rx="0.8" />
+        <rect x="9" y="3" width="3" height="10" rx="0.8" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+      <path d="M5 3.8v8.4c0 .8.86 1.28 1.53.84l6.2-4.2a1 1 0 0 0 0-1.68l-6.2-4.2A1 1 0 0 0 5 3.8Z" />
+    </svg>
+  );
+}
+
 function meterLabel(status: RealtimeMeterState["status"]): string {
   if (status === "clipping") {
     return "Clipping";
@@ -212,10 +279,27 @@ export function RealtimeMonitorPanel({
 }: RealtimeMonitorPanelProps) {
   const [waveformViewMode, setWaveformViewMode] = useState<WaveformViewMode>("structure");
   const activeBuffer = activeSource === "preview" ? previewBuffer ?? originalBuffer : originalBuffer;
-  const waveformBins = useMemo(
-    () => buildWaveformBins(activeBuffer, originalBuffer, waveformViewMode),
-    [activeBuffer, originalBuffer, waveformViewMode]
-  );
+  const waveformBins = useMemo(() => {
+    if (!activeBuffer) {
+      return [];
+    }
+
+    const bins = getAdaptiveBinCount(activeBuffer);
+    const referenceId = getBufferId(originalBuffer);
+    const cacheKey = `${waveformViewMode}:${bins}:${referenceId}`;
+    const existingCache = waveformCache.get(activeBuffer);
+    const cached = existingCache?.get(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
+    const built = buildWaveformBins(activeBuffer, originalBuffer, waveformViewMode, bins);
+    const cache = existingCache ?? new Map<string, WaveformBin[]>();
+    cache.set(cacheKey, built);
+    waveformCache.set(activeBuffer, cache);
+    return built;
+  }, [activeBuffer, originalBuffer, waveformViewMode]);
   const path = useMemo(() => pathFromWaveformBins(waveformBins), [waveformBins]);
   const headroomSummary = useMemo(() => activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null, [activeBuffer]);
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
@@ -317,10 +401,12 @@ export function RealtimeMonitorPanel({
                     Niveau
                   </button>
                 </div>
-                <button type="button" disabled={isSwitching} onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
+                <button type="button" className="transport-button" disabled={isSwitching} onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
+                  <TransportIcon type={isPlaying ? "pause" : "play"} />
                   {isPlaying ? "Pause" : "Play"}
                 </button>
-                <button type="button" onClick={(event) => { event.stopPropagation(); onStop(); }}>
+                <button type="button" className="transport-button" onClick={(event) => { event.stopPropagation(); onStop(); }}>
+                  <TransportIcon type="stop" />
                   Stop
                 </button>
               </div>

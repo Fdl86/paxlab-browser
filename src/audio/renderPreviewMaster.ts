@@ -15,6 +15,18 @@ import {
 import { getPresetById } from "./previewPresets";
 import type { PreviewRenderResult, PreviewSettings, ProcessingReport } from "./types";
 
+export interface RenderProgressEvent {
+  stepIndex: number;
+  progress: number;
+  label: string;
+}
+
+export type RenderProgressCallback = (event: RenderProgressEvent) => void;
+
+function notifyProgress(onProgress: RenderProgressCallback | undefined, stepIndex: number, progress: number, label: string): void {
+  onProgress?.({ stepIndex, progress, label });
+}
+
 interface ProcessingProfile {
   highShelfGain: number;
   harshDipGain: number;
@@ -323,12 +335,16 @@ function applyPostLoudnessCalibration(
 
 export async function renderPreviewMaster(
   inputBuffer: AudioBuffer,
-  settings: PreviewSettings
+  settings: PreviewSettings,
+  onProgress?: RenderProgressCallback
 ): Promise<PreviewRenderResult> {
   const startedAt = performance.now();
+  notifyProgress(onProgress, 0, 10, "Chargement local");
   const beforeMetrics = analyzeAdvancedAudioBuffer(inputBuffer);
+  notifyProgress(onProgress, 1, 22, "Analyse du morceau");
   const profile = getProcessingProfile(settings);
   const preset = getPresetById(settings.presetId);
+  notifyProgress(onProgress, 2, 34, "Cible automatique");
 
   const cleanup = cleanupInputBuffer(inputBuffer, settings);
 
@@ -410,8 +426,10 @@ export async function renderPreviewMaster(
     .connect(offlineContext.destination);
 
   source.start(0);
+  notifyProgress(onProgress, 3, 48, "Correction du spectre");
 
   const renderedBuffer = await offlineContext.startRendering();
+  notifyProgress(onProgress, 4, 64, "Optimisation dynamique");
   const stereoBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
   const effectiveDensity = settings.spacePreserve ? Math.round(settings.density * 0.54) : settings.density;
   const effectiveMaxPeakDb = settings.spacePreserve ? Math.min(settings.maxPeakDb, -2.0) : settings.maxPeakDb;
@@ -419,6 +437,7 @@ export async function renderPreviewMaster(
   const effectiveTargetRmsDb = settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
   const densityBuffer = applyGentleDensity(stereoBuffer, effectiveDensity);
   const preGainMetrics = analyzeAudioBuffer(densityBuffer);
+  notifyProgress(onProgress, 5, 74, "Normalisation du niveau");
   const leveledBuffer = applySafeTargetGain(
     densityBuffer,
     effectiveTargetRmsDb,
@@ -433,6 +452,7 @@ export async function renderPreviewMaster(
     settings.antiFatigue,
     settings.spacePreserve
   );
+  notifyProgress(onProgress, 6, 86, "Sécurité peak");
   const limiter = {
     buffer: calibrated.buffer,
     active: firstLimiter.active || calibrated.limiterActive,
@@ -487,6 +507,7 @@ export async function renderPreviewMaster(
     appliedMoves.push("recentrage DC offset");
   }
 
+  notifyProgress(onProgress, 7, 96, "Préparation WAV");
   const renderTimeMs = performance.now() - startedAt;
   const report: ProcessingReport = {
     profileLabel: preset.label,

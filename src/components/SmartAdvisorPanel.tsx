@@ -7,7 +7,6 @@ interface SmartAdvisorPanelProps {
   settings: PreviewSettings;
   isRendering: boolean;
   onApplySettings: (settings: PreviewSettings) => void;
-  onApplyAndRender: (settings: PreviewSettings) => void;
 }
 
 export function SmartAdvisorPanel({
@@ -15,8 +14,7 @@ export function SmartAdvisorPanel({
   previewResult,
   settings,
   isRendering,
-  onApplySettings,
-  onApplyAndRender
+  onApplySettings
 }: SmartAdvisorPanelProps) {
   const advisor = buildAdvisor(sourceAnalysis, settings, previewResult);
 
@@ -46,21 +44,15 @@ export function SmartAdvisorPanel({
         </div>
       )}
 
-      <div className="advisor-actions">
-        <button
-          type="button"
-          disabled={!advisor.recommendedSettings || isRendering}
-          onClick={() => advisor.recommendedSettings && onApplySettings(advisor.recommendedSettings)}
-        >
-          Charger le conseil
-        </button>
+      <div className="advisor-actions single-action">
         <button
           type="button"
           className="primary-button compact-primary"
           disabled={!advisor.recommendedSettings || isRendering}
-          onClick={() => advisor.recommendedSettings && onApplyAndRender(advisor.recommendedSettings)}
+          onClick={() => advisor.recommendedSettings && onApplySettings(advisor.recommendedSettings)}
         >
-          Appliquer + générer
+          Utiliser ce conseil
+          <small>Charge les réglages recommandés. Génère ensuite la Preview avec le bouton principal.</small>
         </button>
       </div>
     </section>
