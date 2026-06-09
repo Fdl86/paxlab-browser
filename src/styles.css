@@ -4023,25 +4023,28 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
 }
 
 .visual-objective-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  gap: 6px;
   margin-bottom: 8px;
 }
+
 
 .visual-objective-topline b {
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 22px;
   padding: 4px 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.07);
   color: #eef8ff;
-  font-size: 0.72rem;
+  font-size: 0.70rem;
   line-height: 1;
-  white-space: nowrap;
+  white-space: normal;
 }
+
 
 .visual-objective strong {
   display: block;
