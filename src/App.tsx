@@ -356,17 +356,41 @@ function PreviewReadyCard({
   );
 }
 
-function CompactStudioTopbar({ decodedAudio }: { decodedAudio: DecodedAudioData }) {
+function CompactStudioTopbar({
+  decodedAudio,
+  onFileSelected
+}: {
+  decodedAudio: DecodedAudioData;
+  onFileSelected: (file: File) => void;
+}) {
+  function handleChange(file: File | undefined) {
+    if (!file || !sourceAcceptsAudio(file)) {
+      return;
+    }
+
+    onFileSelected(file);
+  }
+
   return (
     <header className="compact-studio-topbar">
       <div className="compact-brand-block">
         <strong>PAXLAB Browser Engine</strong>
         <span>{decodedAudio.file.name}</span>
       </div>
-      <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
-        <span>Local</span>
-        <span>Aucun upload</span>
-        <span>Preview à valider</span>
+      <div className="compact-topbar-actions">
+        <label className="compact-change-file-button">
+          Changer de morceau
+          <input
+            type="file"
+            accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
+            onChange={(event) => handleChange(event.target.files?.[0])}
+          />
+        </label>
+        <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
+          <span>Local</span>
+          <span>Aucun upload</span>
+          <span>Preview à valider</span>
+        </div>
       </div>
     </header>
   );
@@ -435,7 +459,7 @@ function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => voi
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev12.2 Playhead Fix</p>
+        <p className="version">PAXLAB Browser Engine - dev12.3 Change File</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
@@ -687,6 +711,11 @@ export default function App() {
     setShouldSelectPreviewAfterRender(false);
   }, [player, previewResult, previewStatus, shouldSelectPreviewAfterRender]);
 
+  function handleSelectFile(file: File) {
+    player.stop();
+    setSelectedFile(file);
+  }
+
   const workflowStep: 1 | 2 | 3 | 4 = !decodedAudio ? 1 : previewResult ? 4 : previewStatus === "rendering" ? 2 : 2;
   const readySettings = previewResult?.settings ?? previewSettings;
 
@@ -695,12 +724,12 @@ export default function App() {
       <ProcessingOverlay isVisible={previewStatus === "rendering"} />
 
       {!decodedAudio && (
-        <SimpleLanding onFileSelected={setSelectedFile} />
+        <SimpleLanding onFileSelected={handleSelectFile} />
       )}
 
       {decodedAudio && (
         <>
-          <CompactStudioTopbar decodedAudio={decodedAudio} />
+          <CompactStudioTopbar decodedAudio={decodedAudio} onFileSelected={handleSelectFile} />
 
           {!previewResult && <WorkflowStepper step={workflowStep} />}
 
@@ -710,7 +739,7 @@ export default function App() {
 
           {!previewResult && (
             <section className="guided-config-grid">
-              <SourceLoadedCard decodedAudio={decodedAudio} onFileSelected={setSelectedFile} />
+              <SourceLoadedCard decodedAudio={decodedAudio} onFileSelected={handleSelectFile} />
               <RenderChoiceCard
                 settings={previewSettings}
                 sourceAnalysis={sourceAnalysis}

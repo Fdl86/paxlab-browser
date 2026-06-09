@@ -3497,3 +3497,52 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   box-shadow: 0 0 16px rgba(212, 175, 55, 0.7);
   pointer-events: none;
 }
+
+/* DEV12.3 - compact topbar file switcher. UI-only hotfix. */
+.compact-topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.compact-change-file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  color: #fff4d5;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.compact-change-file-button:hover {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.1);
+  transform: translateY(-1px);
+}
+
+.compact-change-file-button input {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .compact-topbar-actions {
+    align-items: flex-start;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .compact-change-file-button {
+    width: 100%;
+  }
+}

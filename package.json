@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev12.2-playhead-fix",
+  "version": "1.0.0-dev12.3-change-file",
   "type": "module",
   "scripts": {
     "dev": "vite",
