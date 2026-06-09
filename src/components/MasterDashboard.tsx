@@ -91,6 +91,15 @@ function headroomObjective(result: PreviewRenderResult, plan: AutoMasterPlan): O
   };
 }
 
+function peakMarker(value: number, ceiling: number): number {
+  // La jauge Peak doit se lire par rapport au plafond du preset, pas sur une
+  // échelle absolue -8 / 0 dB. Quand le rendu atteint son ceiling prévu
+  // (Impact, Équilibré, Mix YouTube), le curseur reste donc dans la zone cible.
+  const lowerBound = ceiling - 2.0;
+  const upperBound = ceiling + 1.0;
+  return rangeMarker(value, lowerBound, upperBound);
+}
+
 function peakObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
   const value = result.afterMetrics.peakDb;
   const estimatedSafetyPeak = result.afterMetrics.approxTruePeakDb;
@@ -107,7 +116,7 @@ function peakObjective(result: PreviewRenderResult, plan: AutoMasterPlan): Objec
     result: formatDb(value),
     status: isSafe ? nearCeiling ? "Contrôlé" : "Sécurisé" : "À vérifier",
     tone: isSafe ? "success" : "warning",
-    marker: rangeMarker(value, -8, 0),
+    marker: peakMarker(value, ceiling),
     note: isSafe
       ? "Peak global dans la marge prévue."
       : "Peak global à surveiller avant export final."
