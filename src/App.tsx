@@ -435,7 +435,7 @@ function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => voi
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev12.1 Compact Premium</p>
+        <p className="version">PAXLAB Browser Engine - dev12.2 Playhead Fix</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.

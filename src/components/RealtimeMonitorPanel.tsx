@@ -325,11 +325,13 @@ export function RealtimeMonitorPanel({
                 </button>
               </div>
             </div>
-            <svg viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true">
-              <line className="waveform-zero" x1="0" y1="55" x2="860" y2="55" />
-              <path d={path} />
-            </svg>
-            <div className="playhead" />
+            <div className="waveform-canvas">
+              <svg viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true">
+                <line className="waveform-zero" x1="0" y1="55" x2="860" y2="55" />
+                <path d={path} />
+              </svg>
+              <div className="playhead" />
+            </div>
           </div>
 
           <div className="monitor-time-row">
