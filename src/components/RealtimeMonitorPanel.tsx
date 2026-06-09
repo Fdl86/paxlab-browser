@@ -219,8 +219,7 @@ export function RealtimeMonitorPanel({
   const path = useMemo(() => pathFromWaveformBins(waveformBins), [waveformBins]);
   const headroomSummary = useMemo(() => activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null, [activeBuffer]);
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
-  const outputPercent = Math.min(100, Math.max(0, ((meter.outputDb + 60) / 60) * 100));
-  const peakPercent = Math.min(100, Math.max(0, ((meter.peakHoldDb + 60) / 60) * 100));
+  const activeHeadroom = headroomSummary ? headroomSummary.finalHeadroomDb : meter.headroomDb;
   const previewLabel = previewRevision > 0 ? `Preview #${previewRevision}` : "Preview";
   const previewInlineTime = previewRenderedAt ? `Version générée à ${previewRenderedAt}` : null;
   const nowPlayingLabel = activeSource === "original" ? "Original" : previewLabel;
@@ -351,59 +350,34 @@ export function RealtimeMonitorPanel({
             aria-label="Position de lecture"
           />
 
-          <div className="realtime-grid">
-            <div className="meter-card primary-meter">
-              <span>Peak lecture</span>
+          <div className="compact-meter-row">
+            <div className="compact-meter-pill">
+              <span>Peak</span>
               <strong>{formatDb(meter.peakHoldDb)}</strong>
               <small>dBTP est.</small>
             </div>
-            <div className="meter-card primary-meter">
-              <span>LUFS lecture</span>
+            <div className="compact-meter-pill">
+              <span>LUFS estimé</span>
               <strong>{formatLufs(meter.integratedLufsEstimate)}</strong>
-              <small>mesure depuis play</small>
+              <small>lecture courante</small>
             </div>
-            <div className="meter-card primary-meter">
-              <span>Short-term</span>
-              <strong>{formatLufs(meter.shortTermLufsEstimate)}</strong>
-              <small>fenêtre env. 3 s</small>
-            </div>
-            <div className="meter-card output-meter-card">
-              <span>Output level</span>
-              <div className="output-meter" style={{ "--output": `${outputPercent}%`, "--peak": `${peakPercent}%` } as CSSProperties}>
-                <i />
-                <b />
-              </div>
-              <small>Current : {formatDb(meter.outputDb)} dB</small>
+            <div className="compact-meter-pill">
+              <span>Headroom</span>
+              <strong>{activeHeadroom.toFixed(1)} dB</strong>
+              <small>{meterLabel(meter.status)}</small>
             </div>
           </div>
 
-          <div className="quality-strip">
-            <div>
-              <span>Status</span>
-              <strong className={`meter-status ${meter.status}`}>{meterLabel(meter.status)}</strong>
-            </div>
-            <div>
-              <span>Headroom final</span>
-              <strong>{headroomSummary ? headroomSummary.finalHeadroomDb.toFixed(1) : meter.headroomDb.toFixed(1)} dB</strong>
-            </div>
-            <div>
-              <span>Headroom actif moy.</span>
-              <strong>{headroomSummary ? headroomSummary.activeAverageHeadroomDb.toFixed(1) : meter.headroomDb.toFixed(1)} dB</strong>
-            </div>
-            <div>
-              <span>Écoute</span>
-              <strong>{nowPlayingLabel}</strong>
-            </div>
-            <div>
-              <span>Version</span>
-              <strong>{previewStatusLabel}</strong>
-            </div>
+          <div className="compact-now-playing-strip">
+            <span>{nowPlayingLabel}</span>
+            <span>{previewStatusLabel}</span>
+            <strong className={`meter-status ${meter.status}`}>{meterLabel(meter.status)}</strong>
           </div>
         </>
       )}
 
       <p className="monitor-note">
-        Les compteurs bougent pendant l’écoute. Le résultat global est résumé dans le panneau de droite et dans l’export.
+        Lecture courante. Les mesures détaillées restent disponibles dans les accordéons techniques.
       </p>
     </section>
   );

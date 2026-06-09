@@ -356,11 +356,86 @@ function PreviewReadyCard({
   );
 }
 
+function CompactStudioTopbar({ decodedAudio }: { decodedAudio: DecodedAudioData }) {
+  return (
+    <header className="compact-studio-topbar">
+      <div className="compact-brand-block">
+        <strong>PAXLAB Browser Engine</strong>
+        <span>{decodedAudio.file.name}</span>
+      </div>
+      <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
+        <span>Local</span>
+        <span>Aucun upload</span>
+        <span>Preview à valider</span>
+      </div>
+    </header>
+  );
+}
+
+function CompactPreviewSummary({
+  previewResult,
+  settings,
+  revision,
+  renderedAt,
+  hasPendingChanges
+}: {
+  previewResult: PreviewRenderResult;
+  settings: PreviewSettings;
+  revision: number;
+  renderedAt: string | null;
+  hasPendingChanges: boolean;
+}) {
+  const headroom = previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb;
+  const label = intensityLabel(settings.autoIntensity);
+
+  return (
+    <section className={hasPendingChanges ? "compact-preview-status pending" : "compact-preview-status"}>
+      <strong>{hasPendingChanges ? "Preview à régénérer" : `Preview #${revision} prête`}</strong>
+      <span>{label}</span>
+      <span>{settings.antiFatigue ? "Aigus fatigants activé" : "Aigus fatigants off"}</span>
+      <span>{previewResult.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.</span>
+      <span>{headroom.toFixed(1)} dB HR</span>
+      {renderedAt && <small>{renderedAt}</small>}
+    </section>
+  );
+}
+
+function ResultSideSummary({
+  previewResult,
+  settings,
+  revision,
+  renderedAt,
+  hasPendingChanges,
+  onToggleModify
+}: {
+  previewResult: PreviewRenderResult;
+  settings: PreviewSettings;
+  revision: number;
+  renderedAt: string | null;
+  hasPendingChanges: boolean;
+  onToggleModify: () => void;
+}) {
+  const headroom = previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb;
+  return (
+    <section className="panel compact-side-summary">
+      <p className="eyebrow">Preview</p>
+      <h2>{hasPendingChanges ? "À régénérer" : `#${revision} prête`}</h2>
+      <div className="compact-summary-grid">
+        <span><b>{intensityLabel(settings.autoIntensity)}</b><small>Rendu</small></span>
+        <span><b>{previewResult.afterMetrics.estimatedLufs.toFixed(1)}</b><small>LUFS est.</small></span>
+        <span><b>{headroom.toFixed(1)} dB</b><small>Headroom</small></span>
+      </div>
+      <p>{renderedAt ? `Version générée à ${renderedAt}. ` : ""}{settings.antiFatigue ? "Aigus fatigants activé." : "Aigus fatigants désactivé."}</p>
+      <button type="button" className="secondary-action-button" onClick={onToggleModify}>Modifier le rendu</button>
+    </section>
+  );
+}
+
 function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => void }) {
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev12 Guided Studio UX</p>
+        <p className="version">PAXLAB Browser Engine - dev12.1 Compact Premium</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
@@ -410,6 +485,7 @@ export default function App() {
   const [previewRenderedAt, setPreviewRenderedAt] = useState<string | null>(null);
   const [previewHistory, setPreviewHistory] = useState<PreviewHistoryItem[]>([]);
   const [shouldSelectPreviewAfterRender, setShouldSelectPreviewAfterRender] = useState(false);
+  const [showRenderEditor, setShowRenderEditor] = useState(false);
 
   const player = useABAudioPlayer({
     originalBuffer: decodedAudio?.audioBuffer ?? null,
@@ -438,6 +514,7 @@ export default function App() {
       setPreviewRenderedAt(null);
       setPreviewHistory([]);
       setShouldSelectPreviewAfterRender(false);
+      setShowRenderEditor(false);
       return;
     }
 
@@ -459,6 +536,7 @@ export default function App() {
       setPreviewRenderedAt(null);
       setPreviewHistory([]);
       setShouldSelectPreviewAfterRender(false);
+      setShowRenderEditor(false);
 
       try {
         const decoded = await decodeAudioFile(selectedFile as File);
@@ -570,6 +648,7 @@ export default function App() {
       setPreviewRenderedAt(renderedAt);
       setPreviewHistory((items) => [historyItem, ...items].slice(0, 6));
       setPreviewStatus("ready");
+      setShowRenderEditor(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Erreur inconnue pendant la génération de la Preview Master.";
       setPreviewErrorMessage(message);
@@ -621,20 +700,9 @@ export default function App() {
 
       {decodedAudio && (
         <>
-          <header className="guided-studio-header">
-            <div>
-              <p className="version">PAXLAB Browser Engine - dev12 Guided Studio UX</p>
-              <h1>Studio local</h1>
-              <p>Un parcours simple : choisis un rendu, génère une Preview, compare à l’écoute, exporte en WAV.</p>
-            </div>
-            <div className="guided-mini-trust">
-              <span>Local</span>
-              <span>Aucun upload</span>
-              <span>Preview à valider</span>
-            </div>
-          </header>
+          <CompactStudioTopbar decodedAudio={decodedAudio} />
 
-          <WorkflowStepper step={workflowStep} />
+          {!previewResult && <WorkflowStepper step={workflowStep} />}
 
           {decodeStatus === "error" && decodeErrorMessage && <p className="message message-error standalone-message">{decodeErrorMessage}</p>}
           {analysisStatus === "running" && <p className="message message-info standalone-message">Analyse locale en cours : niveau, spectre et cible automatique.</p>}
@@ -659,7 +727,7 @@ export default function App() {
 
           {previewResult && (
             <>
-              <PreviewReadyCard
+              <CompactPreviewSummary
                 previewResult={previewResult}
                 settings={readySettings}
                 revision={previewRevision}
@@ -691,18 +759,28 @@ export default function App() {
                   />
                 </div>
 
-                <aside className="guided-result-side">
-                  <RenderChoiceCard
-                    settings={previewSettings}
-                    sourceAnalysis={sourceAnalysis}
-                    hasAudio={Boolean(decodedAudio)}
-                    hasPreview={Boolean(previewResult)}
+                <aside className="guided-result-side compact-side-panel">
+                  <ResultSideSummary
+                    previewResult={previewResult}
+                    settings={readySettings}
+                    revision={previewRevision}
+                    renderedAt={previewRenderedAt}
                     hasPendingChanges={hasPendingChanges}
-                    previewStatus={previewStatus}
-                    previewErrorMessage={previewErrorMessage}
-                    onSettingsChange={setPreviewSettings}
-                    onRenderPreview={() => void handleRenderPreview()}
+                    onToggleModify={() => setShowRenderEditor((value) => !value)}
                   />
+                  {showRenderEditor && (
+                    <RenderChoiceCard
+                      settings={previewSettings}
+                      sourceAnalysis={sourceAnalysis}
+                      hasAudio={Boolean(decodedAudio)}
+                      hasPreview={Boolean(previewResult)}
+                      hasPendingChanges={hasPendingChanges}
+                      previewStatus={previewStatus}
+                      previewErrorMessage={previewErrorMessage}
+                      onSettingsChange={setPreviewSettings}
+                      onRenderPreview={() => void handleRenderPreview()}
+                    />
+                  )}
                   <ExportPanel
                     sourceFileName={selectedFile?.name ?? null}
                     previewBuffer={previewResult.buffer}

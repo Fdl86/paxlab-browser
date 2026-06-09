@@ -67,7 +67,7 @@ export function ExportPanel({
           <p className="eyebrow">Étape finale</p>
           <h2>Exporter la Preview</h2>
         </div>
-        <span className={canExport ? "status-pill ready-pill" : "status-pill"}>{canExport ? "WAV prêt" : "Bloqué"}</span>
+        <span className={canExport ? "status-pill ready-pill" : "status-pill"}>{canExport ? "Prêt à exporter" : previewBuffer ? "À régénérer" : "Preview requise"}</span>
       </div>
 
       <div className="export-status-card export-summary-card">
@@ -86,12 +86,12 @@ export function ExportPanel({
         disabled={!canExport}
         onClick={() => handleExport(24)}
       >
-        Exporter WAV
-        <small>24-bit, conseillé avant Audacity ou archivage</small>
+        Télécharger WAV 24-bit
+        <small>Export local conseillé avant Audacity ou archivage</small>
       </button>
 
       <button type="button" className="plain-link-button" onClick={() => setShowOptions((value) => !value)}>
-        {showOptions ? "Masquer l’option 16-bit" : "Afficher l’option 16-bit"}
+        {showOptions ? "Masquer l’option 16-bit" : "Option WAV 16-bit"}
       </button>
 
       {showOptions && (
