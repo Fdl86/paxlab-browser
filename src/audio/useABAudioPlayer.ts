@@ -5,6 +5,7 @@ import type { PlaybackSource, RealtimeMeterState } from "./types";
 interface UseABAudioPlayerParams {
   originalBuffer: AudioBuffer | null;
   previewBuffer: AudioBuffer | null;
+  monitorGainDbBySource?: Partial<Record<PlaybackSource, number>>;
 }
 
 interface UseABAudioPlayerResult {
@@ -66,6 +67,14 @@ function linearToDb(value: number): number {
   }
 
   return Math.max(SILENCE_DB, 20 * Math.log10(value));
+}
+
+function dbToLinear(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+
+  return Math.pow(10, value / 20);
 }
 
 function squareToDb(square: number): number {
@@ -154,7 +163,8 @@ function scheduleVoiceStop(voice: PlaybackVoice, fadeSeconds: number): void {
 
 export function useABAudioPlayer({
   originalBuffer,
-  previewBuffer
+  previewBuffer,
+  monitorGainDbBySource
 }: UseABAudioPlayerParams): UseABAudioPlayerResult {
   const [activeSource, setActiveSourceState] = useState<PlaybackSource>("original");
   const [currentTime, setCurrentTime] = useState(0);
@@ -172,6 +182,7 @@ export function useABAudioPlayer({
   const isPlayingRef = useRef(false);
   const originalBufferRef = useRef<AudioBuffer | null>(null);
   const previewBufferRef = useRef<AudioBuffer | null>(null);
+  const monitorGainDbBySourceRef = useRef<Partial<Record<PlaybackSource, number>>>({});
   const currentTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
   const playbackTokenRef = useRef(0);
@@ -203,6 +214,10 @@ export function useABAudioPlayer({
     originalBufferRef.current = originalBuffer;
     previewBufferRef.current = previewBuffer;
   }, [originalBuffer, previewBuffer]);
+
+  useEffect(() => {
+    monitorGainDbBySourceRef.current = monitorGainDbBySource ?? {};
+  }, [monitorGainDbBySource]);
 
   const resetMeter = useCallback(() => {
     shortTermWindowsRef.current = [];
@@ -286,8 +301,9 @@ export function useABAudioPlayer({
       sourceNode.buffer = sourceBuffer;
       analyser.fftSize = 2048;
       analyser.smoothingTimeConstant = 0.55;
+      const monitorGainLinear = dbToLinear(monitorGainDbBySourceRef.current[sourceName] ?? 0);
       gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-      gainNode.gain.setTargetAtTime(1, audioContext.currentTime, START_FADE_SECONDS / 3);
+      gainNode.gain.setTargetAtTime(monitorGainLinear, audioContext.currentTime, START_FADE_SECONDS / 3);
 
       sourceNode
         .connect(gainNode)

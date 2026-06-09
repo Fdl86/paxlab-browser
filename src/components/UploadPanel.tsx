@@ -8,14 +8,11 @@ interface UploadPanelProps {
 
 function isSupportedAudioFile(file: File): boolean {
   const name = file.name.toLowerCase();
-
   return (
-    name.endsWith(".wav") ||
-    name.endsWith(".mp3") ||
-    file.type === "audio/wav" ||
-    file.type === "audio/x-wav" ||
-    file.type === "audio/mpeg" ||
-    file.type === "audio/mp3"
+    file.type.startsWith("audio/") ||
+    [".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif"].some((extension) =>
+      name.endsWith(extension)
+    )
   );
 }
 
@@ -46,7 +43,7 @@ export function UploadPanel({
     }
 
     if (!isSupportedAudioFile(file)) {
-      setLocalWarning("Format non prévu pour cette étape. Importe un WAV ou un MP3.");
+      setLocalWarning("Format non reconnu. Essaie un WAV, MP3 ou un format audio compatible avec ton navigateur.");
       return;
     }
 
@@ -85,13 +82,13 @@ export function UploadPanel({
       >
         <input
           type="file"
-          accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
+          accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
           onChange={(event) => handleFile(event.target.files?.[0])}
         />
 
         <span className="drop-zone-icon" aria-hidden="true">↥</span>
-        <span className="drop-zone-title">Glisse ton WAV / MP3</span>
-        <span className="drop-zone-subtitle">Analyse et Preview sont générées localement, sans upload serveur.</span>
+        <span className="drop-zone-title">Glisse ton audio</span>
+        <span className="drop-zone-subtitle">WAV, MP3 et formats audio compatibles navigateur. Aucun upload serveur.</span>
       </label>
 
       {localWarning && <p className="message message-warning">{localWarning}</p>}

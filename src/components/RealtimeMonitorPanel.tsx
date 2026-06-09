@@ -24,6 +24,8 @@ interface RealtimeMonitorPanelProps {
   onFileSelected?: (file: File) => void;
   onOpenExport?: () => void;
   canOpenExport?: boolean;
+  equalVolume?: boolean;
+  onToggleEqualVolume?: () => void;
 }
 
 type WaveformViewMode = "structure" | "level";
@@ -297,7 +299,9 @@ export function RealtimeMonitorPanel({
   onSwitchSource,
   onFileSelected,
   onOpenExport,
-  canOpenExport = false
+  canOpenExport = false,
+  equalVolume = false,
+  onToggleEqualVolume
 }: RealtimeMonitorPanelProps) {
   const activeBuffer = activeSource === "preview" ? previewBuffer ?? originalBuffer : originalBuffer;
   const waveformBins = useMemo(() => {
@@ -353,7 +357,7 @@ export function RealtimeMonitorPanel({
     }
 
     const fileName = file.name.toLowerCase();
-    const isAudio = file.type.startsWith("audio/") || fileName.endsWith(".wav") || fileName.endsWith(".mp3");
+    const isAudio = file.type.startsWith("audio/") || [".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif"].some((extension) => fileName.endsWith(extension));
 
     if (isAudio) {
       onFileSelected(file);
@@ -438,7 +442,7 @@ export function RealtimeMonitorPanel({
                     Changer
                     <input
                       type="file"
-                      accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
+                      accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
                       onChange={(event) => handleFileChange(event.target.files?.[0])}
                     />
                   </label>
@@ -493,6 +497,12 @@ export function RealtimeMonitorPanel({
           <div className="compact-now-playing-strip">
             <span>{nowPlayingLabel}</span>
             <span>{previewStatusLabel}</span>
+            {onToggleEqualVolume && (
+              <label className={equalVolume ? "monitor-equal-toggle active" : "monitor-equal-toggle"}>
+                <input type="checkbox" checked={equalVolume} onChange={onToggleEqualVolume} />
+                Volume égal
+              </label>
+            )}
             <strong className={`meter-status ${meter.status}`}>{meterLabel(meter.status)}</strong>
           </div>
         </>

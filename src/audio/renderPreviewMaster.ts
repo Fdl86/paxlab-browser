@@ -333,7 +333,7 @@ function applyPostLoudnessCalibration(
   };
 }
 
-export async function renderPreviewMaster(
+async function renderPreviewMasterInternal(
   inputBuffer: AudioBuffer,
   settings: PreviewSettings,
   onProgress?: RenderProgressCallback
@@ -566,4 +566,19 @@ export async function renderPreviewMaster(
     settings: { ...settings },
     report
   };
+}
+
+export async function renderPreviewMaster(
+  inputBuffer: AudioBuffer,
+  settings: PreviewSettings,
+  onProgress?: RenderProgressCallback
+): Promise<PreviewRenderResult> {
+  try {
+    return await renderPreviewMasterInternal(inputBuffer, settings, onProgress);
+  } catch (error) {
+    const baseMessage = error instanceof Error ? error.message : "Erreur inconnue.";
+    throw new Error(
+      `Rendu local impossible. ${baseMessage} Essaie un fichier plus court, un format WAV/MP3 différent, ou recharge la page si le navigateur manque de mémoire.`
+    );
+  }
 }

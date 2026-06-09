@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { analyzeSource } from "./audio/advancedAnalysis";
 import { buildSettingsFromAnalysis } from "./audio/autoTarget";
 import { formatBytes, formatDuration } from "./audio/audioBufferUtils";
@@ -63,6 +63,60 @@ const SIMPLE_RENDERS: Array<{
   }
 ];
 
+const AUDIO_ACCEPT = "audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif";
+const MAX_AUDIO_FILE_SIZE_BYTES = 300 * 1024 * 1024;
+
+function isLikelySupportedAudioFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return (
+    file.type.startsWith("audio/") ||
+    [".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif"].some((extension) =>
+      name.endsWith(extension)
+    )
+  );
+}
+
+function validateAudioFileCandidate(file: File): string | null {
+  if (!isLikelySupportedAudioFile(file)) {
+    return "Format non reconnu. Essaie un WAV ou MP3, ou un format audio compatible avec ton navigateur.";
+  }
+
+  if (file.size > MAX_AUDIO_FILE_SIZE_BYTES) {
+    return `Fichier trop lourd (${formatBytes(file.size)}). Pour protéger le navigateur, utilise un fichier de moins de ${formatBytes(MAX_AUDIO_FILE_SIZE_BYTES)}.`;
+  }
+
+  return null;
+}
+
+function isTypingInEditableField(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  if (!element) {
+    return false;
+  }
+
+  const tagName = element.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select" || element.isContentEditable;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getPreviewMonitorGainDb(previewResult: PreviewRenderResult | null, equalVolume: boolean): number {
+  if (!equalVolume || !previewResult) {
+    return 0;
+  }
+
+  const before = previewResult.beforeMetrics.estimatedLufs;
+  const after = previewResult.afterMetrics.estimatedLufs;
+
+  if (!Number.isFinite(before) || !Number.isFinite(after)) {
+    return 0;
+  }
+
+  return clampNumber(before - after, -9, 3);
+}
+
 function getSettingsSignature(settings: PreviewSettings | null): string {
   if (!settings) {
     return "";
@@ -90,8 +144,7 @@ function intensityLabel(value: AutoIntensityId): string {
 }
 
 function sourceAcceptsAudio(file: File): boolean {
-  const name = file.name.toLowerCase();
-  return name.endsWith(".wav") || name.endsWith(".mp3") || file.type.startsWith("audio/");
+  return validateAudioFileCandidate(file) === null;
 }
 
 function ProcessingOverlay({
@@ -180,7 +233,7 @@ function SourceLoadedCard({
         Changer de fichier
         <input
           type="file"
-          accept="audio/wav,audio/x-wav,audio/mpeg,audio/mp3,.wav,.mp3"
+          accept={AUDIO_ACCEPT}
           onChange={(event) => handleChange(event.target.files?.[0])}
         />
       </label>
@@ -415,11 +468,21 @@ function ResultSideSummary({
   );
 }
 
-function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => void }) {
+function SimpleLanding({
+  selectedFile,
+  isDecoding,
+  errorMessage,
+  onFileSelected
+}: {
+  selectedFile: File | null;
+  isDecoding: boolean;
+  errorMessage: string | null;
+  onFileSelected: (file: File) => void;
+}) {
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev12.5 Compact Player</p>
+        <p className="version">PAXLAB Browser Engine - dev14 Stability Electric</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
@@ -433,7 +496,8 @@ function SimpleLanding({ onFileSelected }: { onFileSelected: (file: File) => voi
       </header>
 
       <section className="guided-landing-grid">
-        <UploadPanel selectedFile={null} isDecoding={false} onFileSelected={onFileSelected} />
+        <UploadPanel selectedFile={selectedFile} isDecoding={isDecoding} onFileSelected={onFileSelected} />
+        {errorMessage && <p className="message message-error landing-error-message">{errorMessage}</p>}
         <div className="panel guided-workflow-card">
           <p className="eyebrow">Workflow</p>
           <h2>Simple, rapide, contrôlé</h2>
@@ -474,10 +538,21 @@ export default function App() {
   const [renderProgressValue, setRenderProgressValue] = useState(6);
   const [exportedRevision, setExportedRevision] = useState<number | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [monitorEqualVolume, setMonitorEqualVolume] = useState(false);
+  const renderTokenRef = useRef(0);
+
+  const previewMonitorGainDb = useMemo(
+    () => getPreviewMonitorGainDb(previewResult, monitorEqualVolume),
+    [monitorEqualVolume, previewResult]
+  );
 
   const player = useABAudioPlayer({
     originalBuffer: decodedAudio?.audioBuffer ?? null,
-    previewBuffer: previewResult?.buffer ?? null
+    previewBuffer: previewResult?.buffer ?? null,
+    monitorGainDbBySource: {
+      original: 0,
+      preview: previewMonitorGainDb
+    }
   });
 
   const hasPendingChanges = useMemo(
@@ -505,6 +580,7 @@ export default function App() {
       setShowRenderEditor(false);
       setExportedRevision(null);
       setShowExportModal(false);
+      renderTokenRef.current += 1;
       return;
     }
 
@@ -531,6 +607,11 @@ export default function App() {
       setShowExportModal(false);
 
       try {
+        const validationMessage = validateAudioFileCandidate(selectedFile as File);
+        if (validationMessage) {
+          throw new Error(validationMessage);
+        }
+
         const decoded = await decodeAudioFile(selectedFile as File);
 
         if (!isCurrentFile) {
@@ -606,6 +687,8 @@ export default function App() {
     }
 
     const settingsToRender = settingsOverride ? { ...settingsOverride } : { ...previewSettings };
+    const renderToken = renderTokenRef.current + 1;
+    renderTokenRef.current = renderToken;
 
     player.stop();
 
@@ -625,9 +708,16 @@ export default function App() {
 
     try {
       const result = await renderPreviewMaster(decodedAudio.audioBuffer, settingsToRender, (event) => {
+        if (renderToken !== renderTokenRef.current) {
+          return;
+        }
         setRenderProgressStep(event.stepIndex);
         setRenderProgressValue(event.progress);
       });
+      if (renderToken !== renderTokenRef.current) {
+        return;
+      }
+
       const renderedAt = new Date().toLocaleTimeString("fr-FR", {
         hour: "2-digit",
         minute: "2-digit",
@@ -651,6 +741,10 @@ export default function App() {
       setPreviewStatus("ready");
       setShowRenderEditor(false);
     } catch (error) {
+      if (renderToken !== renderTokenRef.current) {
+        return;
+      }
+
       const message = error instanceof Error ? error.message : "Erreur inconnue pendant la génération de la Preview Master.";
       setPreviewErrorMessage(message);
       setPreviewStatus("error");
@@ -687,9 +781,66 @@ export default function App() {
   }, [player, previewResult, previewStatus, shouldSelectPreviewAfterRender]);
 
   function handleSelectFile(file: File) {
+    const validationMessage = validateAudioFileCandidate(file);
     player.stop();
+    renderTokenRef.current += 1;
+
+    if (validationMessage) {
+      setSelectedFile(file);
+      setDecodedAudio(null);
+      setDecodeStatus("error");
+      setDecodeErrorMessage(validationMessage);
+      setPreviewStatus("idle");
+      setPreviewResult(null);
+      return;
+    }
+
     setSelectedFile(file);
   }
+
+  useEffect(() => {
+    function handleKeyboard(event: KeyboardEvent) {
+      if (isTypingInEditableField(event.target)) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      if (key === " ") {
+        if (decodedAudio || previewResult) {
+          event.preventDefault();
+          void player.playPause();
+        }
+        return;
+      }
+
+      if (key === "s") {
+        event.preventDefault();
+        player.stop();
+        return;
+      }
+
+      if (key === "a" && previewResult) {
+        event.preventDefault();
+        void player.switchSource(player.activeSource === "preview" ? "original" : "preview");
+        return;
+      }
+
+      if (key === "r" && decodedAudio && previewStatus !== "rendering") {
+        event.preventDefault();
+        void handleRenderPreview();
+        return;
+      }
+
+      if (key === "e" && previewResult) {
+        event.preventDefault();
+        setShowExportModal(true);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyboard);
+    return () => window.removeEventListener("keydown", handleKeyboard);
+  }, [decodedAudio, player, previewResult, previewStatus]);
 
   const workflowStep: 1 | 2 | 3 | 4 = !decodedAudio
     ? 1
@@ -709,7 +860,7 @@ export default function App() {
       />
 
       {!decodedAudio && (
-        <SimpleLanding onFileSelected={handleSelectFile} />
+        <SimpleLanding selectedFile={selectedFile} isDecoding={decodeStatus === "loading"} errorMessage={decodeErrorMessage} onFileSelected={handleSelectFile} />
       )}
 
       {decodedAudio && (
@@ -773,6 +924,8 @@ export default function App() {
                     onFileSelected={handleSelectFile}
                     onOpenExport={() => setShowExportModal(true)}
                     canOpenExport={Boolean(previewResult)}
+                    equalVolume={monitorEqualVolume}
+                    onToggleEqualVolume={() => setMonitorEqualVolume((value) => !value)}
                   />
                 </div>
 

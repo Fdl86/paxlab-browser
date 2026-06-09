@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev12.5-compact-player",
+  "version": "1.0.0-dev14-stability-electric",
   "type": "module",
   "scripts": {
     "dev": "vite",
