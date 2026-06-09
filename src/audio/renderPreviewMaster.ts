@@ -29,6 +29,10 @@ function notifyProgress(onProgress: RenderProgressCallback | undefined, stepInde
 
 const YOUTUBE_SAFE_TARGET_LUFS = -14.4;
 const YOUTUBE_MAX_LUFS = -14.0;
+const YOUTUBE_PEAK_TARGET_DB = -2.2;
+const YOUTUBE_PEAK_TRIGGER_DB = -3.4;
+const YOUTUBE_PEAK_CEILING_DB = -1.5;
+const YOUTUBE_PEAK_POLISH_THRESHOLD_DB = -15.0;
 
 interface ProcessingProfile {
   highShelfGain: number;
@@ -365,6 +369,83 @@ function applyYoutubeFinalLoudnessClamp(
   };
 }
 
+function applyYoutubePeakPolish(
+  source: AudioBuffer
+): { buffer: AudioBuffer; peakLiftDb: number; beforePeakDb: number; afterPeakDb: number; loudnessTrimDb: number } {
+  const before = analyzeAdvancedAudioBuffer(source);
+
+  if (
+    before.estimatedLufs > YOUTUBE_MAX_LUFS - 0.1 ||
+    before.peakLinear <= 0 ||
+    before.peakDb >= YOUTUBE_PEAK_TRIGGER_DB
+  ) {
+    return {
+      buffer: source,
+      peakLiftDb: 0,
+      beforePeakDb: before.peakDb,
+      afterPeakDb: before.peakDb,
+      loudnessTrimDb: 0
+    };
+  }
+
+  const desiredPeakLiftDb = clamp(YOUTUBE_PEAK_TARGET_DB - before.peakDb, 0, 2.4);
+
+  if (desiredPeakLiftDb < 0.35) {
+    return {
+      buffer: source,
+      peakLiftDb: 0,
+      beforePeakDb: before.peakDb,
+      afterPeakDb: before.peakDb,
+      loudnessTrimDb: 0
+    };
+  }
+
+  const threshold = dbToLinear(YOUTUBE_PEAK_POLISH_THRESHOLD_DB);
+  const ceiling = dbToLinear(YOUTUBE_PEAK_CEILING_DB);
+  const maxMultiplier = dbToLinear(desiredPeakLiftDb);
+  const peakSpan = Math.max(before.peakLinear - threshold, 1e-6);
+  const output = createEmptyLike(source);
+
+  for (let channel = 0; channel < source.numberOfChannels; channel += 1) {
+    const input = source.getChannelData(channel);
+    const data = output.getChannelData(channel);
+
+    for (let index = 0; index < source.length; index += 1) {
+      const sample = input[index];
+      const abs = Math.abs(sample);
+
+      if (abs <= threshold) {
+        data[index] = sample;
+        continue;
+      }
+
+      const weight = Math.min(Math.max((abs - threshold) / peakSpan, 0), 1);
+      const shapedWeight = weight * weight;
+      const multiplier = 1 + (maxMultiplier - 1) * shapedWeight;
+      const polished = sample * multiplier;
+      data[index] = clamp(polished, -ceiling, ceiling);
+    }
+  }
+
+  let polishedBuffer = output;
+  let after = analyzeAdvancedAudioBuffer(polishedBuffer);
+  let loudnessTrimDb = 0;
+
+  if (after.estimatedLufs > YOUTUBE_SAFE_TARGET_LUFS) {
+    loudnessTrimDb = clamp(YOUTUBE_SAFE_TARGET_LUFS - after.estimatedLufs, -2, 0);
+    polishedBuffer = applyGainToNewBuffer(polishedBuffer, dbToLinear(loudnessTrimDb));
+    after = analyzeAdvancedAudioBuffer(polishedBuffer);
+  }
+
+  return {
+    buffer: polishedBuffer,
+    peakLiftDb: Math.max(0, after.peakDb - before.peakDb),
+    beforePeakDb: before.peakDb,
+    afterPeakDb: after.peakDb,
+    loudnessTrimDb
+  };
+}
+
 async function renderPreviewMasterInternal(
   inputBuffer: AudioBuffer,
   settings: PreviewSettings,
@@ -493,10 +574,23 @@ async function renderPreviewMasterInternal(
   };
   const dcCorrection = removeDcOffset(limiter.buffer);
   const fadedBuffer = applyTinyEdgeFade(dcCorrection.buffer);
-  const youtubeClamp = isYoutubeMix
+  const initialYoutubeClamp = isYoutubeMix
     ? applyYoutubeFinalLoudnessClamp(fadedBuffer)
     : { buffer: fadedBuffer, clampGainDb: 0, beforeLufs: 0, afterLufs: 0 };
-  const finalBuffer = youtubeClamp.buffer;
+  const youtubePeakPolish = isYoutubeMix
+    ? applyYoutubePeakPolish(initialYoutubeClamp.buffer)
+    : { buffer: initialYoutubeClamp.buffer, peakLiftDb: 0, beforePeakDb: 0, afterPeakDb: 0, loudnessTrimDb: 0 };
+  const finalYoutubeClamp = isYoutubeMix
+    ? applyYoutubeFinalLoudnessClamp(youtubePeakPolish.buffer)
+    : { buffer: youtubePeakPolish.buffer, clampGainDb: 0, beforeLufs: 0, afterLufs: 0 };
+  const youtubeClampGainDb = initialYoutubeClamp.clampGainDb + finalYoutubeClamp.clampGainDb + youtubePeakPolish.loudnessTrimDb;
+  const youtubeClamp = {
+    buffer: finalYoutubeClamp.buffer,
+    clampGainDb: youtubeClampGainDb,
+    beforeLufs: initialYoutubeClamp.beforeLufs,
+    afterLufs: finalYoutubeClamp.afterLufs
+  };
+  const finalBuffer = finalYoutubeClamp.buffer;
   const afterMetrics = analyzeAdvancedAudioBuffer(finalBuffer);
 
   const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
@@ -540,6 +634,9 @@ async function renderPreviewMasterInternal(
   }
   if (calibrated.correctionGainDb > 0.15) {
     appliedMoves.push(`calibration loudness +${calibrated.correctionGainDb.toFixed(1)} dB`);
+  }
+  if (isYoutubeMix && youtubePeakPolish.peakLiftDb > 0.2) {
+    appliedMoves.push(`peak polish YouTube +${youtubePeakPolish.peakLiftDb.toFixed(1)} dB crête`);
   }
   if (isYoutubeMix && youtubeClamp.clampGainDb < -0.05) {
     appliedMoves.push(`clamp YouTube final ${youtubeClamp.clampGainDb.toFixed(1)} dB`);
@@ -591,9 +688,9 @@ async function renderPreviewMasterInternal(
       targetLufsMinEstimate: effectiveTargetLufs - (isYoutubeMix ? 0.75 : settings.autoIntensity === "safe" || settings.antiFatigue || settings.spacePreserve ? 1.15 : 0.9),
       targetLufsMaxEstimate: isYoutubeMix ? YOUTUBE_MAX_LUFS : effectiveTargetLufs + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.5 : 0.4),
       ceilingDb: effectiveMaxPeakDb,
-      targetHeadroomDb: Math.abs(effectiveMaxPeakDb),
-      targetHeadroomMinDb: Math.max(1, Math.abs(effectiveMaxPeakDb) - (isYoutubeMix ? 0.3 : 0.4)),
-      targetHeadroomMaxDb: isYoutubeMix ? 3.8 : settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
+      targetHeadroomDb: isYoutubeMix ? Math.abs(YOUTUBE_PEAK_TARGET_DB) : Math.abs(effectiveMaxPeakDb),
+      targetHeadroomMinDb: isYoutubeMix ? 1.5 : Math.max(1, Math.abs(effectiveMaxPeakDb) - 0.4),
+      targetHeadroomMaxDb: isYoutubeMix ? 3.5 : settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
       achievedHeadroomDb,
       headroomSummary,
       limiterActive: limiter.active,
