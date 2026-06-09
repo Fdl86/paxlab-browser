@@ -92,9 +92,6 @@ function headroomObjective(result: PreviewRenderResult, plan: AutoMasterPlan): O
 }
 
 function peakMarker(value: number, ceiling: number): number {
-  // La jauge Peak doit se lire par rapport au plafond du preset, pas sur une
-  // échelle absolue -8 / 0 dB. Quand le rendu atteint son ceiling prévu
-  // (Impact, Équilibré, Mix YouTube), le curseur reste donc dans la zone cible.
   const lowerBound = ceiling - 2.0;
   const upperBound = ceiling + 1.0;
   return rangeMarker(value, lowerBound, upperBound);
@@ -140,21 +137,44 @@ function fizzObjective(result: PreviewRenderResult): ObjectiveItem {
   };
 }
 
+function dynamicsMarker(result: PreviewRenderResult, value: number): number {
+  const isYoutubeMix = result.settings.autoIntensity === "youtube" || result.settings.presetId === "youtube";
+  const isImpact = result.settings.autoIntensity === "impact" || result.settings.presetId === "power";
+
+  if (isYoutubeMix) {
+    return rangeMarker(value, 10, 22);
+  }
+
+  if (isImpact) {
+    return rangeMarker(value, 7, 15);
+  }
+
+  return rangeMarker(value, 7, 17);
+}
+
 function dynamicsObjective(result: PreviewRenderResult): ObjectiveItem {
   const before = result.beforeMetrics.crestFactorDb;
   const after = result.afterMetrics.crestFactorDb;
   const delta = before - after;
+  const isYoutubeMix = result.settings.autoIntensity === "youtube" || result.settings.presetId === "youtube";
+  const isImpact = result.settings.autoIntensity === "impact" || result.settings.presetId === "power";
   const tooDense = after < 7;
   const controlled = !tooDense && delta >= -0.5;
+  const preserved = !tooDense && (isYoutubeMix || delta < -0.5);
+  const target = isYoutubeMix ? "Préserver la respiration" : isImpact ? "Densifier sans écraser" : "Contrôler sans tasser";
 
   return {
     label: "Dynamique",
-    target: "Densifier sans écraser",
+    target,
     result: `${before.toFixed(1)} → ${after.toFixed(1)} dB`,
-    status: controlled ? "Contrôlée" : tooDense ? "Dense" : "Préservée",
+    status: tooDense ? "Dense" : preserved ? "Préservée" : controlled ? "Contrôlée" : "Cohérente",
     tone: tooDense ? "warning" : "success",
-    marker: rangeMarker(after, 6, 15),
-    note: tooDense ? "Rendu très dense à vérifier à l’écoute." : "Dynamique cohérente pour la Preview."
+    marker: dynamicsMarker(result, after),
+    note: tooDense
+      ? "Rendu très dense à vérifier à l’écoute."
+      : isYoutubeMix
+        ? "Respiration conservée pour le Mix YouTube."
+        : "Dynamique cohérente pour la Preview."
   };
 }
 

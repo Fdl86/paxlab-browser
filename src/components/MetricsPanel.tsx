@@ -35,8 +35,16 @@ function normalizePercent(value: number): number {
   return clampPercent(value * 2600);
 }
 
-function normalizeCrest(value: number): number {
-  return clampPercent(((value - 4) / 14) * 100);
+function normalizeCrest(value: number, isYoutubeMix = false, isImpact = false): number {
+  if (isYoutubeMix) {
+    return clampPercent(((value - 10) / 12) * 100);
+  }
+
+  if (isImpact) {
+    return clampPercent(((value - 7) / 8) * 100);
+  }
+
+  return clampPercent(((value - 7) / 10) * 100);
 }
 
 function ComparisonRow({
@@ -78,6 +86,8 @@ function ComparisonRow({
 
 export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
   const sourceMetrics = sourceAnalysis?.metrics ?? result?.beforeMetrics ?? null;
+  const isYoutubeMix = result?.settings.autoIntensity === "youtube" || result?.settings.presetId === "youtube";
+  const isImpact = result?.settings.autoIntensity === "impact" || result?.settings.presetId === "power";
 
   return (
     <section className="panel metrics-panel visual-before-after-panel">
@@ -146,12 +156,12 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               previewScore={normalizePercent(result.afterMetrics.fizzRatio)}
             />
             <ComparisonRow
-              label="Dynamique"
+              label="Dynamique / respiration"
               original={formatDb(result.beforeMetrics.crestFactorDb)}
               preview={formatDb(result.afterMetrics.crestFactorDb)}
               delta={result.afterMetrics.crestFactorDb < result.beforeMetrics.crestFactorDb ? "Plus dense" : "Préservée"}
-              originalScore={normalizeCrest(result.beforeMetrics.crestFactorDb)}
-              previewScore={normalizeCrest(result.afterMetrics.crestFactorDb)}
+              originalScore={normalizeCrest(result.beforeMetrics.crestFactorDb, isYoutubeMix, isImpact)}
+              previewScore={normalizeCrest(result.afterMetrics.crestFactorDb, isYoutubeMix, isImpact)}
             />
           </div>
 

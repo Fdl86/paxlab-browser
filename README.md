@@ -1,18 +1,19 @@
-# PAXLAB Browser Engine - dev15.5 Peak Report Fix
+# PAXLAB Browser Engine - dev15.7 Dynamics Gauge Fix
 
 Application Vite / React / TypeScript pour générer une Preview Master locale dans le navigateur.
 
-## Dev15.5
+## Dev15.7
 
-Cette version conserve les traitements audio validés de DEV15.4 et corrige la lisibilité du rapport Peak.
+Cette version conserve strictement les traitements audio validés et corrige uniquement la lecture visuelle des jauges.
 
 Points principaux :
 
 - aucun changement sur les traitements audio Propre, Équilibré, Impact ou Mix YouTube ;
-- correction des faux warnings Peak dans le rapport de Preview ;
-- carte "Peak global" alignée sur le peak global exporté ;
-- lecteur renommé en "Peak lecture" pour distinguer la mesure courante du peak global ;
-- objectifs Peak plus lisibles et moins alarmistes quand le fichier reste dans une zone sûre ;
+- aucun changement LUFS, peak, limiteur ou export WAV ;
+- jauge Peak global alignée sur le plafond du preset ;
+- jauge Dynamique calibrée selon le preset ;
+- Mix YouTube affiche un objectif de respiration plutôt qu’un objectif de densité ;
+- bloc Avant / Après renommé en Dynamique / respiration ;
 - README, version visible et titre d’onglet navigateur mis à jour.
 
 ## Fonctionnement
