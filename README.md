@@ -1,19 +1,19 @@
-# PAXLAB Browser Engine - dev15.7 Dynamics Gauge Fix
+# PAXLAB Browser Engine - dev15.8 Headroom Slider Fix
 
 Application Vite / React / TypeScript pour générer une Preview Master locale dans le navigateur.
 
-## Dev15.7
+## Dev15.8
 
-Cette version conserve strictement les traitements audio validés et corrige uniquement la lecture visuelle des jauges.
+Cette version corrige le comportement du slider Headroom en mode expert.
 
 Points principaux :
 
-- aucun changement sur les traitements audio Propre, Équilibré, Impact ou Mix YouTube ;
-- aucun changement LUFS, peak, limiteur ou export WAV ;
-- jauge Peak global alignée sur le plafond du preset ;
-- jauge Dynamique calibrée selon le preset ;
-- Mix YouTube affiche un objectif de respiration plutôt qu’un objectif de densité ;
-- bloc Avant / Après renommé en Dynamique / respiration ;
+- le slider Headroom final demandé ne modifie plus la cible LUFS ;
+- le slider Headroom ne modifie plus targetRmsDb ;
+- le slider Headroom modifie uniquement maxPeakDb ;
+- le slider LUFS reste le seul contrôle du niveau perçu cible ;
+- correction nécessaire pour tester proprement les exports HR 1.5 / 2.5 / 3.5 ;
+- aucun changement dans le moteur audio, les presets, le limiteur ou l’export WAV ;
 - README, version visible et titre d’onglet navigateur mis à jour.
 
 ## Fonctionnement

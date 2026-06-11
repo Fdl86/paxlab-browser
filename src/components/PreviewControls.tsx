@@ -430,14 +430,8 @@ export function PreviewControls({
                 value={settings.maxPeakDb}
                 onChange={(event) => {
                   const nextCeiling = Number(event.target.value);
-                  const currentHeadroom = Math.abs(settings.maxPeakDb);
-                  const nextHeadroom = Math.abs(nextCeiling);
-                  const headroomDelta = currentHeadroom - nextHeadroom;
-                  const nextTarget = Math.min(-11.6, Math.max(-15.5, settings.targetLufsEstimate + headroomDelta * 0.65));
                   updateSettings({
-                    maxPeakDb: nextCeiling,
-                    targetLufsEstimate: nextTarget,
-                    targetRmsDb: nextTarget + 0.75
+                    maxPeakDb: nextCeiling
                   });
                 }}
               />
