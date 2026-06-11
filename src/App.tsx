@@ -291,9 +291,24 @@ function RenderChoiceCard({
       spacePreserve: base.spacePreserve
     });
 
+    const isNextYoutubeMix = base.autoIntensity === "youtube";
+    const preservedTargetLufs = isNextYoutubeMix
+      ? Math.min(settings.targetLufsEstimate, -14.4)
+      : settings.targetLufsEstimate;
+    const preservedTargetRms = preservedTargetLufs !== settings.targetLufsEstimate
+      ? preservedTargetLufs + 0.75
+      : settings.targetRmsDb;
+
     onSettingsChange({
       ...rebuilt,
-      ...partial,
+      sourceRepair: settings.sourceRepair,
+      highTreatment: settings.highTreatment,
+      intensity: settings.intensity,
+      targetRmsDb: preservedTargetRms,
+      targetLufsEstimate: preservedTargetLufs,
+      maxPeakDb: settings.maxPeakDb,
+      stereoWidth: settings.stereoWidth,
+      density: settings.density,
       presetId: base.presetId,
       autoIntensity: base.autoIntensity,
       antiFatigue: base.antiFatigue,
@@ -492,7 +507,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev15.9 Slider Stability</p>
+        <p className="version">PAXLAB Browser Engine - dev15.10 Rebuild Consistency Fix</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
