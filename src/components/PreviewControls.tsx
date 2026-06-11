@@ -299,29 +299,37 @@ export function PreviewControls({
             </div>
           </div>
 
-          <label className={settings.antiFatigue ? "fatigue-toggle active" : "fatigue-toggle"}>
-            <input
-              type="checkbox"
-              checked={settings.antiFatigue}
-              onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
-            />
-            <span>
-              <strong>Aigus fatigants</strong>
-              <small>AI Shimmer Control : calme le fizz, la brillance dure et les cymbales IA qui piquent.</small>
-            </span>
-          </label>
+          {isYoutubeMix ? (
+            <p className="message message-info">
+              Mix YouTube verrouille automatiquement la sécurité peak autour de 2.2 dB et garde le niveau sous -14.4 LUFS max. Réglages utiles : nettoyage source, niveau YouTube et brillance.
+            </p>
+          ) : (
+            <>
+              <label className={settings.antiFatigue ? "fatigue-toggle active" : "fatigue-toggle"}>
+                <input
+                  type="checkbox"
+                  checked={settings.antiFatigue}
+                  onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
+                />
+                <span>
+                  <strong>Aigus fatigants</strong>
+                  <small>AI Shimmer Control : calme le fizz, la brillance dure et les cymbales IA qui piquent.</small>
+                </span>
+              </label>
 
-          <label className={settings.spacePreserve ? "fatigue-toggle space-toggle active" : "fatigue-toggle space-toggle"}>
-            <input
-              type="checkbox"
-              checked={settings.spacePreserve}
-              onChange={(event) => rebuildAutoSettings({ spacePreserve: event.target.checked })}
-            />
-            <span>
-              <strong>Préserver l’espace</strong>
-              <small>Mode expert : limiteur plus doux, headroom plus large et sensation moins écrasée.</small>
-            </span>
-          </label>
+              <label className={settings.spacePreserve ? "fatigue-toggle space-toggle active" : "fatigue-toggle space-toggle"}>
+                <input
+                  type="checkbox"
+                  checked={settings.spacePreserve}
+                  onChange={(event) => rebuildAutoSettings({ spacePreserve: event.target.checked })}
+                />
+                <span>
+                  <strong>Préserver l’espace</strong>
+                  <small>Mode expert : limiteur plus doux, headroom plus large et sensation moins écrasée.</small>
+                </span>
+              </label>
+            </>
+          )}
 
           <div className="control-group">
             <label htmlFor="preset">Profil</label>
@@ -352,21 +360,23 @@ export function PreviewControls({
             <p className="control-help">{repairHelp(settings.sourceRepair)}</p>
           </div>
 
-          <div className="slider-row primary-slider-row">
-            <div>
-              <label htmlFor="intensity">Intensité</label>
-              <span>{settings.intensity} %</span>
+          {!isYoutubeMix ? (
+            <div className="slider-row primary-slider-row">
+              <div>
+                <label htmlFor="intensity">Intensité</label>
+                <span>{settings.intensity} %</span>
+              </div>
+              <input
+                id="intensity"
+                type="range"
+                min="24"
+                max="96"
+                step="1"
+                value={settings.intensity}
+                onChange={(event) => updateSettings({ intensity: Number(event.target.value) })}
+              />
             </div>
-            <input
-              id="intensity"
-              type="range"
-              min="24"
-              max="96"
-              step="1"
-              value={settings.intensity}
-              onChange={(event) => updateSettings({ intensity: Number(event.target.value) })}
-            />
-          </div>
+          ) : null}
 
           <div className="expert-controls">
             <div className="control-group">
@@ -379,45 +389,13 @@ export function PreviewControls({
                 <option value="verySoft">Très douce</option>
                 <option value="soft">Plus douce</option>
                 <option value="neutral">Naturelle</option>
-                <option value="open">Plus ouverte</option>
+                {!isYoutubeMix ? <option value="open">Plus ouverte</option> : null}
               </select>
             </div>
 
             <div className="slider-row">
               <div>
-                <label htmlFor="stereoWidth">Largeur stéréo</label>
-                <span>{settings.stereoWidth} %</span>
-              </div>
-              <input
-                id="stereoWidth"
-                type="range"
-                min="85"
-                max="112"
-                step="1"
-                value={settings.stereoWidth}
-                onChange={(event) => updateSettings({ stereoWidth: Number(event.target.value) })}
-              />
-            </div>
-
-            <div className="slider-row">
-              <div>
-                <label htmlFor="density">Densité harmonique</label>
-                <span>{settings.density} %</span>
-              </div>
-              <input
-                id="density"
-                type="range"
-                min="0"
-                max="80"
-                step="1"
-                value={settings.density}
-                onChange={(event) => updateSettings({ density: Number(event.target.value) })}
-              />
-            </div>
-
-            <div className="slider-row">
-              <div>
-                <label htmlFor="targetLufs">Cible centrale LUFS estimée</label>
+                <label htmlFor="targetLufs">{isYoutubeMix ? "Niveau YouTube" : "Cible centrale LUFS estimée"}</label>
                 <span>{lufsSliderValue.toFixed(1)} LUFS{isYoutubeMix ? " max" : ""}</span>
               </div>
               <input
@@ -432,29 +410,69 @@ export function PreviewControls({
                   updateSettings({ targetLufsEstimate: target, targetRmsDb: target + 0.75 });
                 }}
               />
-              {isYoutubeMix ? <small className="control-help">Mix YouTube : cible plafonnée à -14.4 LUFS max.</small> : null}
+              {isYoutubeMix ? <small className="control-help">Safe : -15.2 à -14.8 · Standard : -14.7 à -14.5 · Fort mais safe : -14.4.</small> : null}
             </div>
 
-            <div className="slider-row">
-              <div>
-                <label htmlFor="maxPeakDb">Headroom final demandé</label>
-                <span>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</span>
+            {isYoutubeMix ? (
+              <div className="message message-info">
+                Sécurité peak automatique : PAXLAB garde environ 2.2 dB de marge en Mix YouTube. Le headroom manuel est masqué pour éviter une promesse impossible.
               </div>
-              <input
-                id="maxPeakDb"
-                type="range"
-                min="-3.5"
-                max="-0.8"
-                step="0.1"
-                value={settings.maxPeakDb}
-                onChange={(event) => {
-                  const nextCeiling = Number(event.target.value);
-                  updateSettings({
-                    maxPeakDb: nextCeiling
-                  });
-                }}
-              />
-            </div>
+            ) : (
+              <>
+                <div className="slider-row">
+                  <div>
+                    <label htmlFor="stereoWidth">Largeur stéréo</label>
+                    <span>{settings.stereoWidth} %</span>
+                  </div>
+                  <input
+                    id="stereoWidth"
+                    type="range"
+                    min="85"
+                    max="112"
+                    step="1"
+                    value={settings.stereoWidth}
+                    onChange={(event) => updateSettings({ stereoWidth: Number(event.target.value) })}
+                  />
+                </div>
+
+                <div className="slider-row">
+                  <div>
+                    <label htmlFor="density">Densité harmonique</label>
+                    <span>{settings.density} %</span>
+                  </div>
+                  <input
+                    id="density"
+                    type="range"
+                    min="0"
+                    max="80"
+                    step="1"
+                    value={settings.density}
+                    onChange={(event) => updateSettings({ density: Number(event.target.value) })}
+                  />
+                </div>
+
+                <div className="slider-row">
+                  <div>
+                    <label htmlFor="maxPeakDb">Headroom final demandé</label>
+                    <span>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</span>
+                  </div>
+                  <input
+                    id="maxPeakDb"
+                    type="range"
+                    min="-3.5"
+                    max="-0.8"
+                    step="0.1"
+                    value={settings.maxPeakDb}
+                    onChange={(event) => {
+                      const nextCeiling = Number(event.target.value);
+                      updateSettings({
+                        maxPeakDb: nextCeiling
+                      });
+                    }}
+                  />
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

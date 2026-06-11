@@ -483,12 +483,12 @@ export function RealtimeMonitorPanel({
               <small>lecture courante</small>
             </div>
             <div className="compact-meter-pill">
-              <span>LUFS estimé</span>
+              <span>Niveau local</span>
               <strong>{formatLufs(meter.integratedLufsEstimate)}</strong>
-              <small>lecture courante</small>
+              <small>court terme, pas LUFS intégré</small>
             </div>
             <div className="compact-meter-pill">
-              <span>Headroom</span>
+              <span>Marge peak</span>
               <strong>{activeHeadroom.toFixed(1)} dB</strong>
               <small>{meterLabel(meter.status)}</small>
             </div>
