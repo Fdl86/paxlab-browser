@@ -168,8 +168,8 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
           <div className="visual-chip-row visual-metric-chips">
             <span>Rendu local : {(result.renderTimeMs / 1000).toFixed(2)} s</span>
             <span>Gain obtenu : {formatDelta(result.report.loudness.gainAppliedDb, " dB")}</span>
-            <span>Headroom final : {(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB</span>
-            <span>Headroom actif : {result.report.loudness.headroomSummary ? result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1) : "-"} dB moy.</span>
+            <span>Marge peak finale : {(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB</span>
+            <span>Marge peak active : {result.report.loudness.headroomSummary ? result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1) : "-"} dB moy.</span>
           </div>
 
           <p className="message message-info">

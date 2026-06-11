@@ -1,21 +1,20 @@
-# PAXLAB Browser Engine - dev15.12 Expert LUFS Fix
+# PAXLAB Browser Engine - dev15.13 Peak Clarity
 
 Application Vite / React / TypeScript pour générer une Preview Master locale dans le navigateur.
 
-## Dev15.12
+## Dev15.13
 
-Cette version conserve le mode Mix YouTube simplifié et corrige la conformité du slider LUFS hors YouTube.
+Cette version clarifie le vocabulaire autour du headroom / peak sans modifier le rendu audio.
 
 Points principaux :
 
-- Mix YouTube 1-click conservé comme workflow principal ;
-- aucun changement volontaire du rendu Mix YouTube validé ;
-- en Mix YouTube, seuls les réglages utiles restent visibles : nettoyage source, niveau YouTube, brillance / anti-fizz ;
+- aucun changement moteur audio ;
+- aucun changement LUFS, limiteur, peak polish ou export WAV ;
+- le réglage "Headroom final demandé" devient "Plafond peak maximum" ;
+- les rapports parlent maintenant de "Marge peak" plutôt que de headroom comme cible ;
+- l’interface précise que le peak réel peut rester plus bas selon la cible LUFS et la dynamique source ;
+- Mix YouTube conserve le mode simple validé : nettoyage source, niveau YouTube, brillance / anti-fizz ;
 - les réglages avancés restent disponibles sur Propre, Équilibré et Impact ;
-- correction du slider LUFS hors YouTube : les modes Propre, Équilibré et Impact appliquent maintenant une correction descendante si la sortie dépasse la cible LUFS demandée ;
-- le Headroom reste traité comme un plafond peak, pas comme une cible exacte de volume ;
-- la calibration loudness peut maintenant corriger vers le bas hors Mix YouTube ;
-- le lecteur garde la distinction Niveau local / LUFS intégré global ;
 - README, version visible et titre d’onglet navigateur mis à jour.
 
 ## Fonctionnement

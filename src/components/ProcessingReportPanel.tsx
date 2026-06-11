@@ -61,15 +61,15 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.</strong>
             </div>
             <div className="report-card">
-              <span>Plage headroom</span>
+              <span>Plage marge peak</span>
               <strong>{result.report.loudness.targetHeadroomMinDb?.toFixed(1) ?? "-"} à {result.report.loudness.targetHeadroomMaxDb?.toFixed(1) ?? "-"} dB</strong>
             </div>
             <div className="report-card">
-              <span>Headroom final</span>
+              <span>Marge peak finale</span>
               <strong>{(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB</strong>
             </div>
             <div className="report-card">
-              <span>Headroom actif moy.</span>
+              <span>Marge peak active moy.</span>
               <strong>{result.report.loudness.headroomSummary ? `${result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1)} dB` : "-"}</strong>
             </div>
             <div className="report-card">
@@ -77,7 +77,7 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.report.loudness.headroomSummary ? `${result.report.loudness.headroomSummary.activeMinHeadroomDb.toFixed(1)} à ${result.report.loudness.headroomSummary.activeMaxHeadroomDb.toFixed(1)} dB` : "-"}</strong>
             </div>
             <div className="report-card">
-              <span>Limiter</span>
+              <span>Limiteur</span>
               <strong>{result.report.loudness.limiterActive ? "Actif" : "Inactif"}</strong>
             </div>
           </div>

@@ -267,9 +267,9 @@ export function PreviewControls({
               <small>{previewResult && autoPlan ? `Objectif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)}` : "Plage prévue avant rendu"}</small>
             </div>
             <div>
-              <span>{previewResult ? "Headroom obtenu" : "Headroom prévu"}</span>
+              <span>{previewResult ? "Marge peak obtenue" : "Marge peak prévue"}</span>
               <strong>{previewResult ? `${(previewResult.report.loudness.headroomSummary?.finalHeadroomDb ?? previewResult.report.loudness.achievedHeadroomDb).toFixed(1)} dB` : autoPlan ? `${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : `${Math.abs(settings.maxPeakDb).toFixed(1)} dB`}</strong>
-              <small>{previewResult && autoPlan ? `Plage ${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : "Plage dynamique selon source"}</small>
+              <small>{previewResult && autoPlan ? `Marge attendue ${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : "Le peak réel peut rester plus bas selon la source"}</small>
             </div>
             <div>
               <span>Anti-fatigue</span>
@@ -325,7 +325,7 @@ export function PreviewControls({
                 />
                 <span>
                   <strong>Préserver l’espace</strong>
-                  <small>Mode expert : limiteur plus doux, headroom plus large et sensation moins écrasée.</small>
+                  <small>Mode expert : limiteur plus doux, marge peak plus large et sensation moins écrasée.</small>
                 </span>
               </label>
             </>
@@ -415,7 +415,7 @@ export function PreviewControls({
 
             {isYoutubeMix ? (
               <div className="message message-info">
-                Sécurité peak automatique : PAXLAB garde environ 2.2 dB de marge en Mix YouTube. Le headroom manuel est masqué pour éviter une promesse impossible.
+                Sécurité peak automatique : PAXLAB garde environ 2.2 dB de marge en Mix YouTube. Le plafond peak manuel est masqué pour éviter une promesse impossible.
               </div>
             ) : (
               <>
@@ -453,7 +453,7 @@ export function PreviewControls({
 
                 <div className="slider-row">
                   <div>
-                    <label htmlFor="maxPeakDb">Headroom final demandé</label>
+                    <label htmlFor="maxPeakDb">Plafond peak maximum</label>
                     <span>{Math.abs(settings.maxPeakDb).toFixed(1)} dB</span>
                   </div>
                   <input
@@ -470,6 +470,7 @@ export function PreviewControls({
                       });
                     }}
                   />
+                  <small className="control-help">Plafond de sécurité : le peak réel peut rester plus bas selon la cible LUFS et la dynamique source.</small>
                 </div>
               </>
             )}

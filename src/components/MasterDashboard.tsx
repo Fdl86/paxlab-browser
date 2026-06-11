@@ -37,7 +37,7 @@ function formatLufsRange(plan: AutoMasterPlan): string {
   return `${plan.targetLufsMinEstimate.toFixed(1)} à ${plan.targetLufsMaxEstimate.toFixed(1)}`;
 }
 
-function formatHeadroomRange(plan: AutoMasterPlan): string {
+function formatPeakMarginRange(plan: AutoMasterPlan): string {
   return `${plan.targetHeadroomMinDb.toFixed(1)} à ${plan.targetHeadroomMaxDb.toFixed(1)} dB`;
 }
 
@@ -74,20 +74,20 @@ function lufsObjective(result: PreviewRenderResult, plan: AutoMasterPlan): Objec
   };
 }
 
-function headroomObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
+function peakMarginObjective(result: PreviewRenderResult, plan: AutoMasterPlan): ObjectiveItem {
   const summary = result.report.loudness.headroomSummary;
   const value = summary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb;
   const isInRange = value >= plan.targetHeadroomMinDb && value <= plan.targetHeadroomMaxDb;
   const tooTight = value < plan.targetHeadroomMinDb - 0.25;
 
   return {
-    label: "Headroom",
-    target: formatHeadroomRange(plan),
+    label: "Marge peak",
+    target: `Plafond ${formatDb(result.report.loudness.ceilingDb)}`,
     result: `${value.toFixed(1)} dB`,
-    status: isInRange ? "Atteint" : tooTight ? "Serré" : "Prudent",
+    status: tooTight ? "Serré" : isInRange ? "OK" : "Plus prudent",
     tone: isInRange ? "success" : tooTight ? "warning" : "neutral",
     marker: rangeMarker(value, Math.max(0, plan.targetHeadroomMinDb - 1.5), plan.targetHeadroomMaxDb + 1.5),
-    note: isInRange ? "Marge dans la plage prévue." : tooTight ? "Marge très serrée." : "Marge plus large."
+    note: isInRange ? "Marge de sécurité cohérente." : tooTight ? "Marge serrée, écoute obligatoire." : "Peak réel plus bas que le plafond : source ou cible LUFS prudente."
   };
 }
 
@@ -183,15 +183,15 @@ function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string
   const headroom = result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb;
 
   if (result.settings.autoIntensity === "youtube") {
-    return `PAXLAB a généré un Mix YouTube : -14 LUFS intégré max estimé, peak prudent, grave stabilisé et aigus IA contrôlés. Headroom final : ${headroom.toFixed(1)} dB.`;
+    return `PAXLAB a généré un Mix YouTube : -14 LUFS intégré max estimé, peak prudent, grave stabilisé et aigus IA contrôlés. Marge peak finale : ${headroom.toFixed(1)} dB.`;
   }
 
   if (result.settings.antiFatigue) {
-    return `PAXLAB a privilégié un rendu ${result.settings.autoIntensity === "impact" ? "puissant" : "contrôlé"}, avec réduction des aigus fatigants et headroom final à ${headroom.toFixed(1)} dB.`;
+    return `PAXLAB a privilégié un rendu ${result.settings.autoIntensity === "impact" ? "puissant" : "contrôlé"}, avec réduction des aigus fatigants et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
 
   if (result.settings.autoIntensity === "impact") {
-    return `Source compatible avec un lift fort : gain ${formatSigned(gain)}, plage LUFS visée ${formatLufsRange(plan)} et headroom final à ${headroom.toFixed(1)} dB.`;
+    return `Source compatible avec un lift fort : gain ${formatSigned(gain)}, plage LUFS visée ${formatLufsRange(plan)} et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
 
   if (result.settings.autoIntensity === "safe") {
@@ -245,7 +245,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
           <p>{plan.reason}</p>
           <div className="visual-chip-row">
             <span>Objectif {formatLufsRange(plan)} LUFS</span>
-            <span>Headroom {formatHeadroomRange(plan)}</span>
+            <span>Marge peak {formatPeakMarginRange(plan)}</span>
             <span>Ceiling {formatDb(plan.ceilingDb)}</span>
           </div>
         </div>
@@ -257,7 +257,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
   const lufs = previewResult.afterMetrics.estimatedLufs;
   const objectiveItems = [
     lufsObjective(previewResult, plan),
-    headroomObjective(previewResult, plan),
+    peakMarginObjective(previewResult, plan),
     peakObjective(previewResult, plan),
     fizzObjective(previewResult),
     dynamicsObjective(previewResult)
@@ -285,7 +285,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
           <strong>{lufs.toFixed(1)}</strong>
         </div>
         <div>
-          <span>Headroom</span>
+          <span>Marge peak</span>
           <strong>{headroom.toFixed(1)} dB</strong>
         </div>
         <div>

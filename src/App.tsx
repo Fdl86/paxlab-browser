@@ -410,7 +410,7 @@ function PreviewReadyCard({
       </div>
       <div className="guided-ready-metrics">
         <span><b>{previewResult.afterMetrics.estimatedLufs.toFixed(1)}</b> LUFS est.</span>
-        <span><b>{headroom.toFixed(1)}</b> dB HR</span>
+        <span><b>{headroom.toFixed(1)}</b> dB marge</span>
         <span><b>{hasPendingChanges ? "À jour ?" : "OK"}</b> statut</span>
       </div>
     </section>
@@ -456,7 +456,7 @@ function CompactPreviewSummary({
       <span>{label}</span>
       <span>{settings.antiFatigue ? "Aigus fatigants activé" : "Aigus fatigants off"}</span>
       <span>{previewResult.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.</span>
-      <span>{headroom.toFixed(1)} dB HR</span>
+      <span>{headroom.toFixed(1)} dB marge</span>
       {renderedAt && <small>{renderedAt}</small>}
     </section>
   );
@@ -485,7 +485,7 @@ function ResultSideSummary({
       <div className="compact-summary-grid">
         <span><b>{intensityLabel(settings.autoIntensity)}</b><small>Rendu</small></span>
         <span><b>{previewResult.afterMetrics.estimatedLufs.toFixed(1)}</b><small>LUFS est.</small></span>
-        <span><b>{headroom.toFixed(1)} dB</b><small>Headroom</small></span>
+        <span><b>{headroom.toFixed(1)} dB</b><small>Marge peak</small></span>
       </div>
       <p>{renderedAt ? `Version générée à ${renderedAt}. ` : ""}{settings.antiFatigue ? "Aigus fatigants activé." : "Aigus fatigants désactivé."}</p>
       <button type="button" className="secondary-action-button" onClick={onToggleModify}>Modifier le rendu</button>
@@ -507,7 +507,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev15.12 Expert LUFS Fix</p>
+        <p className="version">PAXLAB Browser Engine - dev15.13 Peak Clarity</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
@@ -1031,7 +1031,7 @@ export default function App() {
             <details className="guided-accordion">
               <summary>
                 <span>Réglages experts</span>
-                <small>Préserver l’espace, intensité, headroom et nettoyage source</small>
+                <small>Préserver l’espace, intensité, plafond peak et nettoyage source</small>
               </summary>
               <PreviewControls
                 settings={previewSettings}
