@@ -1,21 +1,21 @@
-# PAXLAB Browser Engine - dev15.11 YouTube Simple Mode
+# PAXLAB Browser Engine - dev15.12 Expert LUFS Fix
 
 Application Vite / React / TypeScript pour générer une Preview Master locale dans le navigateur.
 
-## Dev15.11
+## Dev15.12
 
-Cette version simplifie le mode Mix YouTube sans modifier le rendu audio validé.
+Cette version conserve le mode Mix YouTube simplifié et corrige la conformité du slider LUFS hors YouTube.
 
 Points principaux :
 
-- aucun changement moteur audio ;
-- aucun changement LUFS, peak polish, limiteur ou export WAV ;
-- en Mix YouTube, l’interface masque les réglages qui prêtaient à confusion ;
-- le headroom manuel est remplacé par une sécurité peak automatique affichée clairement ;
-- Mix YouTube conserve uniquement les réglages utiles : nettoyage source, niveau YouTube et brillance / anti-fizz ;
-- l’intensité, la largeur stéréo, la densité harmonique et le headroom manuel restent disponibles sur les autres modes ;
-- le lecteur renomme LUFS estimé en Niveau local pour éviter la confusion avec le LUFS intégré global ;
-- Headroom devient Marge peak dans le lecteur ;
+- Mix YouTube 1-click conservé comme workflow principal ;
+- aucun changement volontaire du rendu Mix YouTube validé ;
+- en Mix YouTube, seuls les réglages utiles restent visibles : nettoyage source, niveau YouTube, brillance / anti-fizz ;
+- les réglages avancés restent disponibles sur Propre, Équilibré et Impact ;
+- correction du slider LUFS hors YouTube : les modes Propre, Équilibré et Impact appliquent maintenant une correction descendante si la sortie dépasse la cible LUFS demandée ;
+- le Headroom reste traité comme un plafond peak, pas comme une cible exacte de volume ;
+- la calibration loudness peut maintenant corriger vers le bas hors Mix YouTube ;
+- le lecteur garde la distinction Niveau local / LUFS intégré global ;
 - README, version visible et titre d’onglet navigateur mis à jour.
 
 ## Fonctionnement

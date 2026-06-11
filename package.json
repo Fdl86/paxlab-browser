@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-11-youtube-simple-mode",
+  "version": "1.0.0-dev15-12-expert-lufs-fix",
   "type": "module",
   "scripts": {
     "dev": "vite",

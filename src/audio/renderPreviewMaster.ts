@@ -303,13 +303,29 @@ function applyPostLoudnessCalibration(
   let limiterActive = false;
   let limiterReductionDb = 0;
   let correctionGainDb = 0;
+  let upwardCorrectionDb = 0;
   const maxExtraDb = (autoIntensity === "impact" ? 4.2 : autoIntensity === "youtube" ? 2.6 : antiFatigue || autoIntensity === "safe" ? 2.2 : 3.2) * (spacePreserve ? 0.62 : 1);
+
+  if (autoIntensity !== "youtube") {
+    const initialMetrics = analyzeAdvancedAudioBuffer(current);
+    const initialGapDb = targetLufsEstimate - initialMetrics.estimatedLufs;
+
+    if (initialGapDb < -0.35) {
+      const trimDb = clamp(initialGapDb, -6, 0);
+      current = applyGainToNewBuffer(current, dbToLinear(trimDb));
+      const limited = applyImprovedLimiter(current, maxPeakDb);
+      current = limited.buffer;
+      limiterActive = limiterActive || limited.active;
+      limiterReductionDb = Math.max(limiterReductionDb, limited.reductionDb);
+      correctionGainDb += trimDb;
+    }
+  }
 
   for (let pass = 0; pass < 3; pass += 1) {
     const metrics = analyzeAdvancedAudioBuffer(current);
     const loudnessGapDb = targetLufsEstimate - metrics.estimatedLufs;
 
-    if (loudnessGapDb <= 0.35 || correctionGainDb >= maxExtraDb) {
+    if (loudnessGapDb <= 0.35 || upwardCorrectionDb >= maxExtraDb) {
       break;
     }
 
@@ -318,7 +334,7 @@ function applyPostLoudnessCalibration(
     const roomBeforeLimiterDb = Math.max(0, currentHeadroomDb - ceilingHeadroomDb);
     const limiterAllowanceDb = (autoIntensity === "impact" ? 1.8 : autoIntensity === "youtube" ? 0.9 : antiFatigue || autoIntensity === "safe" ? 0.8 : 1.25) * (spacePreserve ? 0.45 : 1);
     const passGainDb = clamp(
-      Math.min(loudnessGapDb, roomBeforeLimiterDb + limiterAllowanceDb, maxExtraDb - correctionGainDb),
+      Math.min(loudnessGapDb, roomBeforeLimiterDb + limiterAllowanceDb, maxExtraDb - upwardCorrectionDb),
       0,
       2.4
     );
@@ -332,6 +348,7 @@ function applyPostLoudnessCalibration(
     current = limited.buffer;
     limiterActive = limiterActive || limited.active;
     limiterReductionDb = Math.max(limiterReductionDb, limited.reductionDb);
+    upwardCorrectionDb += passGainDb;
     correctionGainDb += passGainDb;
   }
 
@@ -671,6 +688,9 @@ async function renderPreviewMasterInternal(
   }
   if (calibrated.correctionGainDb > 0.15) {
     appliedMoves.push(`calibration loudness +${calibrated.correctionGainDb.toFixed(1)} dB`);
+  }
+  if (calibrated.correctionGainDb < -0.15) {
+    appliedMoves.push(`calibration loudness ${calibrated.correctionGainDb.toFixed(1)} dB`);
   }
   if (isYoutubeMix && youtubePeakPolish.peakLiftDb > 0.2) {
     appliedMoves.push(`peak polish YouTube +${youtubePeakPolish.peakLiftDb.toFixed(1)} dB crête`);
