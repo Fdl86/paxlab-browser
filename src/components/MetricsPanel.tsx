@@ -11,6 +11,16 @@ function formatRatio(value: number): string {
   return `${(value * 100).toFixed(1)} %`;
 }
 
+function formatFizzDelta(before: number, after: number): string {
+  const pointReduction = Math.max(0, (before - after) * 100);
+
+  if (pointReduction < 0.05) {
+    return "Stable";
+  }
+
+  return `-${pointReduction.toFixed(1)} pt`;
+}
+
 function formatLufs(value: number): string {
   return `${value.toFixed(1)} LUFS est.`;
 }
@@ -151,7 +161,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               label="Aigus IA / fizz"
               original={formatRatio(result.beforeMetrics.fizzRatio)}
               preview={formatRatio(result.afterMetrics.fizzRatio)}
-              delta={`${formatRatio(Math.max(0, result.beforeMetrics.fizzRatio - result.afterMetrics.fizzRatio))} retiré`}
+              delta={formatFizzDelta(result.beforeMetrics.fizzRatio, result.afterMetrics.fizzRatio)}
               originalScore={normalizePercent(result.beforeMetrics.fizzRatio)}
               previewScore={normalizePercent(result.afterMetrics.fizzRatio)}
             />

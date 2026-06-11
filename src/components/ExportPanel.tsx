@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { encodeFlacFromAudioBuffer } from "../audio/exportFlac";
 import { buildSafeAudioFilename, encodeWavFromAudioBuffer } from "../audio/exportWav";
 
 interface ExportPanelProps {
@@ -12,10 +13,12 @@ interface ExportPanelProps {
   onExported?: () => void;
 }
 
-function sanitizeWavFilename(value: string): string {
+type ExportFormat = "wav" | "flac";
+
+function sanitizeAudioFilename(value: string, extension: ExportFormat): string {
   const trimmed = value.trim();
-  const withExtension = trimmed.toLowerCase().endsWith(".wav") ? trimmed : `${trimmed}.wav`;
-  const safe = withExtension
+  const withoutKnownExtension = trimmed.replace(/\.(wav|flac)$/i, "");
+  const safeBase = withoutKnownExtension
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[\\/:*?"<>|]+/g, "-")
@@ -23,7 +26,19 @@ function sanitizeWavFilename(value: string): string {
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
 
-  return safe || "paxlab-preview.wav";
+  return `${safeBase || "paxlab-preview"}.${extension}`;
+}
+
+function buildCustomExportName(baseName: string, fallbackName: string, extension: ExportFormat, bitDepth: 16 | 24): string {
+  const sourceName = baseName || fallbackName;
+  const withBitDepth = bitDepth === 16 ? sourceName.replace(/24bit/i, "16bit") : sourceName;
+  const sanitized = sanitizeAudioFilename(withBitDepth, extension);
+
+  if (bitDepth === 16 && !sanitized.toLowerCase().includes("16bit")) {
+    return sanitized.replace(new RegExp(`\\.${extension}$`, "i"), `-16bit.${extension}`);
+  }
+
+  return sanitized;
 }
 
 export function ExportPanel({
@@ -57,26 +72,7 @@ export function ExportPanel({
     };
   }, []);
 
-  function handleExport(bitDepth: 16 | 24) {
-    if (!previewBuffer || hasPendingChanges || isRendering) {
-      return;
-    }
-
-    onBeforeExport();
-
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-    }
-
-    const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
-    const fallbackName = buildSafeAudioFilename(sourceFileName, fallbackSuffix);
-    const customName = sanitizeWavFilename(
-      bitDepth === 24 ? exportFilename || fallbackName : exportFilename.replace(/24bit/i, "16bit") || fallbackName
-    );
-    const filename = bitDepth === 16 && !customName.toLowerCase().includes("16bit")
-      ? customName.replace(/\.wav$/i, "-16bit.wav")
-      : customName;
-    const blob = encodeWavFromAudioBuffer(previewBuffer, { bitDepth });
+  function downloadBlob(blob: Blob, filename: string) {
     const objectUrl = URL.createObjectURL(blob);
     objectUrlRef.current = objectUrl;
 
@@ -88,6 +84,50 @@ export function ExportPanel({
     link.remove();
     setLastExportName(filename);
     onExported?.();
+  }
+
+  function prepareExport() {
+    if (!previewBuffer || hasPendingChanges || isRendering) {
+      return false;
+    }
+
+    onBeforeExport();
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+
+    return true;
+  }
+
+  function handleWavExport(bitDepth: 16 | 24) {
+    if (!previewBuffer || !prepareExport()) {
+      return;
+    }
+
+    const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
+    const fallbackName = buildSafeAudioFilename(sourceFileName, fallbackSuffix, "wav");
+    const filename = buildCustomExportName(exportFilename, fallbackName, "wav", bitDepth);
+    const blob = encodeWavFromAudioBuffer(previewBuffer, { bitDepth });
+    downloadBlob(blob, filename);
+  }
+
+  function handleFlacExport() {
+    if (!previewBuffer || !prepareExport()) {
+      return;
+    }
+
+    try {
+      const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-24bit`;
+      const fallbackName = buildSafeAudioFilename(sourceFileName, fallbackSuffix, "flac");
+      const filename = buildCustomExportName(exportFilename, fallbackName, "flac", 24);
+      const blob = encodeFlacFromAudioBuffer(previewBuffer, { bitDepth: 24 });
+      downloadBlob(blob, filename);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Export FLAC impossible.";
+      setLastExportName(message);
+    }
   }
 
   const canExport = Boolean(previewBuffer) && !hasPendingChanges && !isRendering;
@@ -109,7 +149,7 @@ export function ExportPanel({
             ? `Preview #${previewRevision}${previewRenderedAt ? ` · ${previewRenderedAt}` : ""}`
             : "Aucune Preview"}
         </strong>
-        <p>Export local depuis la Preview validée. Aucun upload, aucun serveur.</p>
+        <p>Export local WAV ou FLAC depuis la Preview validée. Aucun upload, aucun serveur.</p>
       </div>
 
       <label className="export-filename-field">
@@ -119,19 +159,31 @@ export function ExportPanel({
           value={exportFilename}
           disabled={!previewBuffer || isRendering}
           onChange={(event) => setExportFilename(event.target.value)}
-          onBlur={() => setExportFilename((value) => sanitizeWavFilename(value || suggestedFilename))}
+          onBlur={() => setExportFilename((value) => sanitizeAudioFilename(value || suggestedFilename, "wav"))}
         />
       </label>
 
-      <button
-        type="button"
-        className="primary-button export-main-button"
-        disabled={!canExport}
-        onClick={() => handleExport(24)}
-      >
-        Télécharger WAV 24-bit
-        <small>Export local conseillé avant Audacity ou archivage</small>
-      </button>
+      <div className="export-primary-actions">
+        <button
+          type="button"
+          className="primary-button export-main-button"
+          disabled={!canExport}
+          onClick={() => handleWavExport(24)}
+        >
+          Télécharger WAV 24-bit
+          <small>Export local conseillé avant Audacity ou archivage</small>
+        </button>
+
+        <button
+          type="button"
+          className="secondary-button export-main-button flac-export-button"
+          disabled={!canExport}
+          onClick={handleFlacExport}
+        >
+          Télécharger FLAC 24-bit
+          <small>Lossless local pour archivage ou upload compatible</small>
+        </button>
+      </div>
 
       <button type="button" className="plain-link-button" onClick={() => setShowOptions((value) => !value)}>
         {showOptions ? "Masquer l’option 16-bit" : "Option WAV 16-bit"}
@@ -139,7 +191,7 @@ export function ExportPanel({
 
       {showOptions && (
         <div className="export-actions compact-export-actions">
-          <button type="button" disabled={!canExport} onClick={() => handleExport(16)}>
+          <button type="button" disabled={!canExport} onClick={() => handleWavExport(16)}>
             Exporter WAV 16-bit
             <small>Compatibilité maximale</small>
           </button>

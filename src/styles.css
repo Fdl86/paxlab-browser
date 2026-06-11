@@ -4294,3 +4294,33 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   font-size: 0.68rem !important;
   padding: 4px 7px !important;
 }
+
+/* DEV15.14 - FLAC export and clearer fizz units */
+.export-primary-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.simple-export-panel .secondary-button.export-main-button.flac-export-button,
+.secondary-button.export-main-button.flac-export-button {
+  border: 1px solid rgba(118, 214, 154, 0.22);
+  color: #eafff1;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(118, 214, 154, 0.14), transparent 11rem),
+    rgba(255, 255, 255, 0.045);
+  box-shadow: none;
+}
+
+.simple-export-panel .secondary-button.export-main-button.flac-export-button:hover:not(:disabled),
+.secondary-button.export-main-button.flac-export-button:hover:not(:disabled) {
+  border-color: rgba(118, 214, 154, 0.4);
+  box-shadow: 0 14px 34px rgba(118, 214, 154, 0.11);
+}
+
+.simple-export-panel .secondary-button.export-main-button.flac-export-button:disabled,
+.secondary-button.export-main-button.flac-export-button:disabled {
+  border-color: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.065);
+  box-shadow: none;
+}

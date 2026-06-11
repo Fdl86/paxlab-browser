@@ -81,7 +81,7 @@ export function encodeWavFromAudioBuffer(
   return new Blob([arrayBuffer], { type: "audio/wav" });
 }
 
-export function buildSafeAudioFilename(sourceName: string | null, suffix: string): string {
+export function buildSafeAudioFilename(sourceName: string | null, suffix: string, extension: "wav" | "flac" = "wav"): string {
   const baseName = sourceName?.replace(/\.[^/.]+$/, "") || "paxlab-audio";
   const safeBaseName = baseName
     .normalize("NFD")
@@ -91,5 +91,5 @@ export function buildSafeAudioFilename(sourceName: string | null, suffix: string
     .replace(/^-|-$/g, "")
     .toLowerCase();
 
-  return `${safeBaseName || "paxlab-audio"}-${suffix}.wav`;
+  return `${safeBaseName || "paxlab-audio"}-${suffix}.${extension}`;
 }
