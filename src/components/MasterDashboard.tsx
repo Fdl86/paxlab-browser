@@ -138,7 +138,7 @@ function fizzObjective(result: PreviewRenderResult): ObjectiveItem {
 }
 
 function dynamicsMarker(result: PreviewRenderResult, value: number): number {
-  const isYoutubeMix = result.settings.autoIntensity === "youtube" || result.settings.presetId === "youtube";
+  const isYoutubeMix = result.settings.autoIntensity === "youtube";
   const isImpact = result.settings.autoIntensity === "impact" || result.settings.presetId === "power";
 
   if (isYoutubeMix) {
@@ -156,7 +156,7 @@ function dynamicsObjective(result: PreviewRenderResult): ObjectiveItem {
   const before = result.beforeMetrics.crestFactorDb;
   const after = result.afterMetrics.crestFactorDb;
   const delta = before - after;
-  const isYoutubeMix = result.settings.autoIntensity === "youtube" || result.settings.presetId === "youtube";
+  const isYoutubeMix = result.settings.autoIntensity === "youtube";
   const isImpact = result.settings.autoIntensity === "impact" || result.settings.presetId === "power";
   const tooDense = after < 7;
   const controlled = !tooDense && delta >= -0.5;

@@ -120,6 +120,9 @@ export function PreviewControls({
         spacePreserve: settings.spacePreserve
       })
     : null;
+  const isYoutubeMix = settings.autoIntensity === "youtube";
+  const lufsSliderMax = isYoutubeMix ? -14.4 : -11.8;
+  const lufsSliderValue = Math.min(settings.targetLufsEstimate, lufsSliderMax);
 
   function rebuildAutoSettings(partial: Partial<PreviewSettings>) {
     const nextBase = {
@@ -138,9 +141,24 @@ export function PreviewControls({
       spacePreserve: nextBase.spacePreserve
     });
 
+    const isNextYoutubeMix = nextBase.autoIntensity === "youtube";
+    const preservedTargetLufs = isNextYoutubeMix
+      ? Math.min(settings.targetLufsEstimate, -14.4)
+      : settings.targetLufsEstimate;
+    const preservedTargetRms = preservedTargetLufs !== settings.targetLufsEstimate
+      ? preservedTargetLufs + 0.75
+      : settings.targetRmsDb;
+
     onSettingsChange({
       ...rebuilt,
-      ...partial,
+      sourceRepair: settings.sourceRepair,
+      highTreatment: settings.highTreatment,
+      intensity: settings.intensity,
+      targetRmsDb: preservedTargetRms,
+      targetLufsEstimate: preservedTargetLufs,
+      maxPeakDb: settings.maxPeakDb,
+      stereoWidth: settings.stereoWidth,
+      density: settings.density,
       presetId: nextBase.presetId,
       autoIntensity: nextBase.autoIntensity,
       antiFatigue: nextBase.antiFatigue,
@@ -400,20 +418,21 @@ export function PreviewControls({
             <div className="slider-row">
               <div>
                 <label htmlFor="targetLufs">Cible centrale LUFS estimée</label>
-                <span>{settings.targetLufsEstimate.toFixed(1)} LUFS</span>
+                <span>{lufsSliderValue.toFixed(1)} LUFS{isYoutubeMix ? " max" : ""}</span>
               </div>
               <input
                 id="targetLufs"
                 type="range"
                 min="-15.2"
-                max="-11.8"
+                max={lufsSliderMax}
                 step="0.1"
-                value={settings.targetLufsEstimate}
+                value={lufsSliderValue}
                 onChange={(event) => {
-                  const target = Number(event.target.value);
+                  const target = Math.min(Number(event.target.value), lufsSliderMax);
                   updateSettings({ targetLufsEstimate: target, targetRmsDb: target + 0.75 });
                 }}
               />
+              {isYoutubeMix ? <small className="control-help">Mix YouTube : cible plafonnée à -14.4 LUFS max.</small> : null}
             </div>
 
             <div className="slider-row">

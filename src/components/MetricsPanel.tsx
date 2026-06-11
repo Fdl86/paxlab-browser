@@ -86,7 +86,7 @@ function ComparisonRow({
 
 export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
   const sourceMetrics = sourceAnalysis?.metrics ?? result?.beforeMetrics ?? null;
-  const isYoutubeMix = result?.settings.autoIntensity === "youtube" || result?.settings.presetId === "youtube";
+  const isYoutubeMix = result?.settings.autoIntensity === "youtube";
   const isImpact = result?.settings.autoIntensity === "impact" || result?.settings.presetId === "power";
 
   return (

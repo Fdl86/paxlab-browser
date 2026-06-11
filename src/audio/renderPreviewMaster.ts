@@ -13,7 +13,7 @@ import {
   removeDcOffset
 } from "./audioBufferUtils";
 import { getPresetById } from "./previewPresets";
-import type { PreviewRenderResult, PreviewSettings, ProcessingReport } from "./types";
+import type { AdvancedAudioMetrics, PreviewRenderResult, PreviewSettings, ProcessingReport } from "./types";
 
 export interface RenderProgressEvent {
   stepIndex: number;
@@ -82,7 +82,7 @@ function repairLabel(settings: PreviewSettings): string {
 
 function getProcessingProfile(settings: PreviewSettings): ProcessingProfile {
   const amount = clamp(settings.intensity / 100, 0, 1);
-  const isYoutubeMix = settings.autoIntensity === "youtube" || settings.presetId === "youtube";
+  const isYoutubeMix = settings.autoIntensity === "youtube";
   const spaceFactor = settings.spacePreserve || isYoutubeMix ? 0.78 : 1;
   const repair = repairMultiplier(settings) * (settings.antiFatigue ? 1.18 : 1) * (isYoutubeMix ? 1.06 : 1);
 
@@ -343,17 +343,36 @@ function applyPostLoudnessCalibration(
   };
 }
 
+interface YoutubeClampResult {
+  buffer: AudioBuffer;
+  clampGainDb: number;
+  beforeLufs: number;
+  afterLufs: number;
+  metrics: AdvancedAudioMetrics;
+}
+
+interface YoutubePeakPolishResult {
+  buffer: AudioBuffer;
+  peakLiftDb: number;
+  beforePeakDb: number;
+  afterPeakDb: number;
+  loudnessTrimDb: number;
+  metrics: AdvancedAudioMetrics;
+}
+
 function applyYoutubeFinalLoudnessClamp(
-  source: AudioBuffer
-): { buffer: AudioBuffer; clampGainDb: number; beforeLufs: number; afterLufs: number } {
-  const before = analyzeAdvancedAudioBuffer(source);
+  source: AudioBuffer,
+  knownMetrics?: AdvancedAudioMetrics
+): YoutubeClampResult {
+  const before = knownMetrics ?? analyzeAdvancedAudioBuffer(source);
 
   if (before.estimatedLufs <= YOUTUBE_SAFE_TARGET_LUFS) {
     return {
       buffer: source,
       clampGainDb: 0,
       beforeLufs: before.estimatedLufs,
-      afterLufs: before.estimatedLufs
+      afterLufs: before.estimatedLufs,
+      metrics: before
     };
   }
 
@@ -365,30 +384,37 @@ function applyYoutubeFinalLoudnessClamp(
     buffer: clampedBuffer,
     clampGainDb,
     beforeLufs: before.estimatedLufs,
-    afterLufs: after.estimatedLufs
+    afterLufs: after.estimatedLufs,
+    metrics: after
   };
 }
 
 function applyYoutubePeakPolish(
-  source: AudioBuffer
-): { buffer: AudioBuffer; peakLiftDb: number; beforePeakDb: number; afterPeakDb: number; loudnessTrimDb: number } {
-  const before = analyzeAdvancedAudioBuffer(source);
+  source: AudioBuffer,
+  maxPeakDb: number,
+  knownMetrics?: AdvancedAudioMetrics
+): YoutubePeakPolishResult {
+  const before = knownMetrics ?? analyzeAdvancedAudioBuffer(source);
+  const polishTargetDb = Math.min(YOUTUBE_PEAK_TARGET_DB, maxPeakDb);
+  const polishCeilingDb = Math.min(YOUTUBE_PEAK_CEILING_DB, maxPeakDb);
 
   if (
     before.estimatedLufs > YOUTUBE_MAX_LUFS - 0.1 ||
     before.peakLinear <= 0 ||
-    before.peakDb >= YOUTUBE_PEAK_TRIGGER_DB
+    before.peakDb >= YOUTUBE_PEAK_TRIGGER_DB ||
+    before.peakDb >= polishTargetDb
   ) {
     return {
       buffer: source,
       peakLiftDb: 0,
       beforePeakDb: before.peakDb,
       afterPeakDb: before.peakDb,
-      loudnessTrimDb: 0
+      loudnessTrimDb: 0,
+      metrics: before
     };
   }
 
-  const desiredPeakLiftDb = clamp(YOUTUBE_PEAK_TARGET_DB - before.peakDb, 0, 2.4);
+  const desiredPeakLiftDb = clamp(polishTargetDb - before.peakDb, 0, 2.4);
 
   if (desiredPeakLiftDb < 0.35) {
     return {
@@ -396,12 +422,13 @@ function applyYoutubePeakPolish(
       peakLiftDb: 0,
       beforePeakDb: before.peakDb,
       afterPeakDb: before.peakDb,
-      loudnessTrimDb: 0
+      loudnessTrimDb: 0,
+      metrics: before
     };
   }
 
   const threshold = dbToLinear(YOUTUBE_PEAK_POLISH_THRESHOLD_DB);
-  const ceiling = dbToLinear(YOUTUBE_PEAK_CEILING_DB);
+  const ceiling = dbToLinear(polishCeilingDb);
   const maxMultiplier = dbToLinear(desiredPeakLiftDb);
   const peakSpan = Math.max(before.peakLinear - threshold, 1e-6);
   const output = createEmptyLike(source);
@@ -442,7 +469,8 @@ function applyYoutubePeakPolish(
     peakLiftDb: Math.max(0, after.peakDb - before.peakDb),
     beforePeakDb: before.peakDb,
     afterPeakDb: after.peakDb,
-    loudnessTrimDb
+    loudnessTrimDb,
+    metrics: after
   };
 }
 
@@ -484,7 +512,7 @@ async function renderPreviewMasterInternal(
   lowMudDip.type = "peaking";
   lowMudDip.frequency.value = 320;
   lowMudDip.Q.value = 0.9;
-  lowMudDip.gain.value = settings.autoIntensity === "youtube" || settings.presetId === "youtube" ? -1.15 : settings.presetId === "power" ? -0.4 : -0.9;
+  lowMudDip.gain.value = settings.autoIntensity === "youtube" ? -1.15 : settings.presetId === "power" ? -0.4 : -0.9;
 
   const presence = offlineContext.createBiquadFilter();
   presence.type = "peaking";
@@ -544,7 +572,7 @@ async function renderPreviewMasterInternal(
   const renderedBuffer = await offlineContext.startRendering();
   notifyProgress(onProgress, 4, 64, "Optimisation dynamique");
   const stereoBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
-  const isYoutubeMix = settings.autoIntensity === "youtube" || settings.presetId === "youtube";
+  const isYoutubeMix = settings.autoIntensity === "youtube";
   const effectiveDensity = settings.spacePreserve || isYoutubeMix ? Math.round(settings.density * (isYoutubeMix ? 0.72 : 0.54)) : settings.density;
   const effectiveMaxPeakDb = isYoutubeMix ? Math.min(settings.maxPeakDb, -1.8) : settings.spacePreserve ? Math.min(settings.maxPeakDb, -2.0) : settings.maxPeakDb;
   const effectiveTargetLufs = isYoutubeMix ? Math.min(settings.targetLufsEstimate, YOUTUBE_SAFE_TARGET_LUFS) : settings.spacePreserve ? settings.targetLufsEstimate - 0.45 : settings.targetLufsEstimate;
@@ -576,21 +604,30 @@ async function renderPreviewMasterInternal(
   const fadedBuffer = applyTinyEdgeFade(dcCorrection.buffer);
   const initialYoutubeClamp = isYoutubeMix
     ? applyYoutubeFinalLoudnessClamp(fadedBuffer)
-    : { buffer: fadedBuffer, clampGainDb: 0, beforeLufs: 0, afterLufs: 0 };
+    : { buffer: fadedBuffer, clampGainDb: 0, beforeLufs: 0, afterLufs: 0, metrics: beforeMetrics };
   const youtubePeakPolish = isYoutubeMix
-    ? applyYoutubePeakPolish(initialYoutubeClamp.buffer)
-    : { buffer: initialYoutubeClamp.buffer, peakLiftDb: 0, beforePeakDb: 0, afterPeakDb: 0, loudnessTrimDb: 0 };
-  const finalYoutubeClamp = isYoutubeMix
-    ? applyYoutubeFinalLoudnessClamp(youtubePeakPolish.buffer)
-    : { buffer: youtubePeakPolish.buffer, clampGainDb: 0, beforeLufs: 0, afterLufs: 0 };
+    ? applyYoutubePeakPolish(initialYoutubeClamp.buffer, effectiveMaxPeakDb, initialYoutubeClamp.metrics)
+    : { buffer: initialYoutubeClamp.buffer, peakLiftDb: 0, beforePeakDb: 0, afterPeakDb: 0, loudnessTrimDb: 0, metrics: initialYoutubeClamp.metrics };
+  const finalYoutubeClamp = isYoutubeMix && youtubePeakPolish.peakLiftDb > 0.05
+    ? applyYoutubeFinalLoudnessClamp(youtubePeakPolish.buffer, youtubePeakPolish.metrics)
+    : {
+        buffer: youtubePeakPolish.buffer,
+        clampGainDb: 0,
+        beforeLufs: youtubePeakPolish.metrics.estimatedLufs,
+        afterLufs: youtubePeakPolish.metrics.estimatedLufs,
+        metrics: youtubePeakPolish.metrics
+      };
+  const finalPeakLimiter = isYoutubeMix
+    ? applyImprovedLimiter(finalYoutubeClamp.buffer, effectiveMaxPeakDb)
+    : { buffer: finalYoutubeClamp.buffer, active: false, reductionDb: 0 };
   const youtubeClampGainDb = initialYoutubeClamp.clampGainDb + finalYoutubeClamp.clampGainDb + youtubePeakPolish.loudnessTrimDb;
   const youtubeClamp = {
-    buffer: finalYoutubeClamp.buffer,
+    buffer: finalPeakLimiter.buffer,
     clampGainDb: youtubeClampGainDb,
     beforeLufs: initialYoutubeClamp.beforeLufs,
     afterLufs: finalYoutubeClamp.afterLufs
   };
-  const finalBuffer = finalYoutubeClamp.buffer;
+  const finalBuffer = finalPeakLimiter.buffer;
   const afterMetrics = analyzeAdvancedAudioBuffer(finalBuffer);
 
   const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
@@ -641,7 +678,7 @@ async function renderPreviewMasterInternal(
   if (isYoutubeMix && youtubeClamp.clampGainDb < -0.05) {
     appliedMoves.push(`clamp YouTube final ${youtubeClamp.clampGainDb.toFixed(1)} dB`);
   }
-  if (limiter.active) {
+  if (limiter.active || finalPeakLimiter.active) {
     appliedMoves.push("limiteur de sécurité");
   }
   if (dcCorrection.maxOffset > 0.0008) {
@@ -688,13 +725,13 @@ async function renderPreviewMasterInternal(
       targetLufsMinEstimate: effectiveTargetLufs - (isYoutubeMix ? 0.75 : settings.autoIntensity === "safe" || settings.antiFatigue || settings.spacePreserve ? 1.15 : 0.9),
       targetLufsMaxEstimate: isYoutubeMix ? YOUTUBE_MAX_LUFS : effectiveTargetLufs + (settings.autoIntensity === "impact" && !settings.spacePreserve ? 0.5 : 0.4),
       ceilingDb: effectiveMaxPeakDb,
-      targetHeadroomDb: isYoutubeMix ? Math.abs(YOUTUBE_PEAK_TARGET_DB) : Math.abs(effectiveMaxPeakDb),
-      targetHeadroomMinDb: isYoutubeMix ? 1.5 : Math.max(1, Math.abs(effectiveMaxPeakDb) - 0.4),
-      targetHeadroomMaxDb: isYoutubeMix ? 3.5 : settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
+      targetHeadroomDb: Math.abs(effectiveMaxPeakDb),
+      targetHeadroomMinDb: isYoutubeMix ? Math.max(1.5, Math.abs(effectiveMaxPeakDb) - 0.4) : Math.max(1, Math.abs(effectiveMaxPeakDb) - 0.4),
+      targetHeadroomMaxDb: isYoutubeMix ? Math.max(3.5, Math.abs(effectiveMaxPeakDb) + 0.4) : settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
       achievedHeadroomDb,
       headroomSummary,
-      limiterActive: limiter.active,
-      limiterReductionDb: limiter.reductionDb
+      limiterActive: limiter.active || finalPeakLimiter.active,
+      limiterReductionDb: Math.max(limiter.reductionDb, finalPeakLimiter.reductionDb)
     },
     performance: {
       renderTimeMs

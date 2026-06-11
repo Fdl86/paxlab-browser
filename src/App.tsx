@@ -492,7 +492,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev15.8 Headroom Slider Fix</p>
+        <p className="version">PAXLAB Browser Engine - dev15.9 Slider Stability</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte.
@@ -550,6 +550,7 @@ export default function App() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [monitorEqualVolume, setMonitorEqualVolume] = useState(false);
   const renderTokenRef = useRef(0);
+  const renderInFlightRef = useRef(false);
 
   const previewMonitorGainDb = useMemo(
     () => getPreviewMonitorGainDb(previewResult, monitorEqualVolume),
@@ -692,10 +693,11 @@ export default function App() {
   }, [decodedAudio]);
 
   async function handleRenderPreview(settingsOverride?: PreviewSettings) {
-    if (!decodedAudio?.audioBuffer || previewStatus === "rendering") {
+    if (!decodedAudio?.audioBuffer || renderInFlightRef.current || previewStatus === "rendering") {
       return;
     }
 
+    renderInFlightRef.current = true;
     const settingsToRender = settingsOverride ? { ...settingsOverride } : { ...previewSettings };
     const renderToken = renderTokenRef.current + 1;
     renderTokenRef.current = renderToken;
@@ -759,6 +761,8 @@ export default function App() {
       setPreviewErrorMessage(message);
       setPreviewStatus("error");
       setShouldSelectPreviewAfterRender(false);
+    } finally {
+      renderInFlightRef.current = false;
     }
   }
 
