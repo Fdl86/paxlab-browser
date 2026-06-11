@@ -1,0 +1,88 @@
+import type { DecodedAudioData, DecodedAudioInfo, LocalAudioFileInfo } from "./types";
+
+type AudioContextConstructor = typeof AudioContext;
+
+type WindowWithWebkitAudioContext = Window &
+  typeof globalThis & {
+    webkitAudioContext?: AudioContextConstructor;
+  };
+
+let sharedAudioContext: AudioContext | null = null;
+
+const MAX_DECODED_DURATION_SECONDS = 15 * 60;
+
+function formatMinutes(seconds: number): string {
+  const minutes = Math.round(seconds / 60);
+  return `${minutes} min`;
+}
+
+export function getAudioContext(): AudioContext {
+  const audioWindow = window as WindowWithWebkitAudioContext;
+  const AudioContextClass =
+    audioWindow.AudioContext ?? audioWindow.webkitAudioContext;
+
+  if (!AudioContextClass) {
+    throw new Error(
+      "Web Audio API indisponible dans ce navigateur. Essaie avec Chrome, Edge, Firefox ou Safari récent."
+    );
+  }
+
+  if (!sharedAudioContext) {
+    sharedAudioContext = new AudioContextClass();
+  }
+
+  return sharedAudioContext;
+}
+
+export async function ensureAudioContextRunning(): Promise<AudioContext> {
+  const audioContext = getAudioContext();
+
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+
+  return audioContext;
+}
+
+export async function decodeAudioFile(file: File): Promise<DecodedAudioData> {
+  const audioContext = getAudioContext();
+  const arrayBuffer = await file.arrayBuffer();
+
+  try {
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+
+    if (audioBuffer.duration > MAX_DECODED_DURATION_SECONDS) {
+      throw new Error(
+        `Fichier trop long (${formatMinutes(audioBuffer.duration)}). Pour protéger le navigateur, utilise un morceau de moins de ${formatMinutes(MAX_DECODED_DURATION_SECONDS)}.`
+      );
+    }
+
+    const fileInfo: LocalAudioFileInfo = {
+      name: file.name,
+      sizeBytes: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    };
+
+    const info: DecodedAudioInfo = {
+      durationSeconds: audioBuffer.duration,
+      sampleRate: audioBuffer.sampleRate,
+      numberOfChannels: audioBuffer.numberOfChannels,
+      length: audioBuffer.length
+    };
+
+    return {
+      file: fileInfo,
+      info,
+      audioBuffer
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("Fichier trop long")) {
+      throw error;
+    }
+
+    throw new Error(
+      "Décodage impossible. Le fichier est peut-être corrompu, non supporté par ce navigateur, ou dans un format audio non reconnu. Essaie un WAV ou MP3 si le format échoue."
+    );
+  }
+}
