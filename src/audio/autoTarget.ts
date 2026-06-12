@@ -190,7 +190,7 @@ export function inferAutoMasterPlan(
   if (autoIntensity === "youtube") {
     if (antiFatigue) {
       targetLufsEstimate -= 0.25;
-      reason = `${reason} Aigus fatigants actif : le preset YouTube garde un rendu encore plus confortable.`;
+      reason = `${reason} AI Brightness Smoothing actif : le preset YouTube garde un rendu encore plus confortable.`;
     }
   } else {
     targetLufsEstimate += intensityTargetShift(autoIntensity, antiFatigue);
@@ -216,7 +216,7 @@ export function inferAutoMasterPlan(
 
   if (antiFatigue && autoIntensity !== "youtube") {
     profileLabel = `${profileLabel} anti-fatigue`;
-    reason = `${reason} Option aigus fatigants active : le haut du spectre est calmé et la cible reste plus confortable.`;
+    reason = `${reason} Option AI Brightness Smoothing active : le haut du spectre est calmé et la cible reste plus confortable.`;
   }
 
   targetLufsEstimate = autoIntensity === "youtube"

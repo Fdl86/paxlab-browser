@@ -53,7 +53,7 @@ export function buildAdvisor(
   if (metrics.highTotalRatio > 0.38 || metrics.fizzRatio > 0.075) {
     moves.push({
       id: "shimmer",
-      title: "Aigus IA à calmer",
+      title: "Brillance IA à calmer",
       detail: "AI shimmer / fizz détecté dans le haut du spectre. Réparation source renforcée recommandée.",
       severity: "warning"
     });

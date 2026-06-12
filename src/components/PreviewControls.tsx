@@ -236,8 +236,8 @@ export function PreviewControls({
               onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
             />
             <span>
-              <strong>Aigus fatigants</strong>
-              <small>À cocher si le morceau pique les oreilles ou si les cymbales semblent artificielles.</small>
+              <strong>AI Brightness Smoothing</strong>
+              <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
             </span>
           </label>
 
@@ -274,7 +274,7 @@ export function PreviewControls({
             <div>
               <span>Anti-fatigue</span>
               <strong>{settings.antiFatigue ? "Activé" : "Off"}</strong>
-              <small>{settings.antiFatigue ? "AI Shimmer Control actif" : "Désactivé"}</small>
+              <small>{settings.antiFatigue ? "AI Brightness Smoothing actif" : "Désactivé"}</small>
             </div>
             <div>
               <span>Espace</span>
@@ -312,8 +312,8 @@ export function PreviewControls({
                   onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
                 />
                 <span>
-                  <strong>Aigus fatigants</strong>
-                  <small>AI Shimmer Control : calme le fizz, la brillance dure et les cymbales IA qui piquent.</small>
+                  <strong>AI Brightness Smoothing</strong>
+                  <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
                 </span>
               </label>
 

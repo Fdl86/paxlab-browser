@@ -34,7 +34,7 @@ const RENDER_STEPS = [
   "Optimisation dynamique",
   "Normalisation du niveau",
   "Sécurité peak",
-  "Préparation WAV"
+  "Préparation export"
 ];
 
 const SIMPLE_RENDERS: Array<{
@@ -198,9 +198,9 @@ function ProcessingOverlay({
 function WorkflowStepper({ step }: { step: 1 | 2 | 3 | 4 }) {
   const steps = [
     { id: 1, label: "Importer", help: "WAV ou MP3" },
-    { id: 2, label: "Générer", help: "Choix simple" },
-    { id: 3, label: "Comparer", help: "A/B" },
-    { id: 4, label: "Exporter", help: "WAV local" }
+    { id: 2, label: "Mixer", help: "Mix YouTube" },
+    { id: 3, label: "Comparer", help: "A/B transparent" },
+    { id: 4, label: "Exporter", help: "WAV / FLAC" }
   ];
 
   return (
@@ -358,8 +358,8 @@ function RenderChoiceCard({
           onChange={(event) => rebuild({ antiFatigue: event.target.checked })}
         />
         <span>
-          <strong>Aigus fatigants</strong>
-          <small>Calme les brillances agressives et les cymbales IA qui piquent.</small>
+          <strong>AI Brightness Smoothing</strong>
+          <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
         </span>
       </label>
 
@@ -405,7 +405,7 @@ function PreviewReadyCard({
         <p className="eyebrow">Preview prête</p>
         <h2>{hasPendingChanges ? "Preview à régénérer" : "Version de comparaison prête"}</h2>
         <p>
-          Preview #{revision}{renderedAt ? ` · ${renderedAt}` : ""} · {label}{settings.antiFatigue ? " · Aigus fatigants" : ""}
+          Preview #{revision}{renderedAt ? ` · ${renderedAt}` : ""} · {label}{settings.antiFatigue ? " · AI Brightness Smoothing" : ""}
         </p>
       </div>
       <div className="guided-ready-metrics">
@@ -422,12 +422,13 @@ function CompactStudioTopbar() {
     <header className="compact-studio-topbar compact-studio-topbar-minimal">
       <div className="compact-brand-block">
         <strong>PAXLAB Browser Engine</strong>
+        <span>DEV15.16 - local, simple, sans upload</span>
       </div>
       <div className="compact-topbar-actions">
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
           <span>Local</span>
           <span>Aucun upload</span>
-          <span>Preview à valider</span>
+          <span>Preview A/B</span>
         </div>
       </div>
     </header>
@@ -454,7 +455,7 @@ function CompactPreviewSummary({
     <section className={hasPendingChanges ? "compact-preview-status pending" : "compact-preview-status"}>
       <strong>{hasPendingChanges ? "Preview à régénérer" : `Preview #${revision} prête`}</strong>
       <span>{label}</span>
-      <span>{settings.antiFatigue ? "Aigus fatigants activé" : "Aigus fatigants off"}</span>
+      <span>{settings.antiFatigue ? "AI Brightness Smoothing actif" : "AI Brightness Smoothing off"}</span>
       <span>{previewResult.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.</span>
       <span>{headroom.toFixed(1)} dB marge</span>
       {renderedAt && <small>{renderedAt}</small>}
@@ -487,7 +488,7 @@ function ResultSideSummary({
         <span><b>{previewResult.afterMetrics.estimatedLufs.toFixed(1)}</b><small>LUFS est.</small></span>
         <span><b>{headroom.toFixed(1)} dB</b><small>Marge peak</small></span>
       </div>
-      <p>{renderedAt ? `Version générée à ${renderedAt}. ` : ""}{settings.antiFatigue ? "Aigus fatigants activé." : "Aigus fatigants désactivé."}</p>
+      <p>{renderedAt ? `Version générée à ${renderedAt}. ` : ""}{settings.antiFatigue ? "AI Brightness Smoothing actif." : "AI Brightness Smoothing off."}</p>
       <button type="button" className="secondary-action-button" onClick={onToggleModify}>Modifier le rendu</button>
     </section>
   );
@@ -507,7 +508,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev15.15.2 FLAC CJS Fix</p>
+        <p className="version">PAXLAB Browser Engine - DEV15.16 Premium UX</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte en WAV ou FLAC.
@@ -516,7 +517,7 @@ function SimpleLanding({
           <span>Local navigateur</span>
           <span>Aucun upload</span>
           <span>A/B Original / Preview</span>
-          <span>Export WAV</span>
+          <span>Export WAV / FLAC</span>
         </div>
       </header>
 
@@ -528,9 +529,9 @@ function SimpleLanding({
           <h2>Simple, rapide, contrôlé</h2>
           <ol>
             <li><b>Importer</b><span>Charge ton morceau IA.</span></li>
-            <li><b>Choisir</b><span>Propre, Équilibré ou Impact.</span></li>
+            <li><b>Mixer</b><span>Mix YouTube ou rendu simple.</span></li>
             <li><b>Comparer</b><span>Écoute Original / Preview en A/B.</span></li>
-            <li><b>Exporter</b><span>Récupère ton WAV local.</span></li>
+            <li><b>Exporter</b><span>Récupère ton WAV ou FLAC local.</span></li>
           </ol>
         </div>
       </section>
@@ -562,7 +563,7 @@ export default function App() {
   const [renderProgressStep, setRenderProgressStep] = useState(0);
   const [renderProgressValue, setRenderProgressValue] = useState(6);
   const [exportedRevision, setExportedRevision] = useState<number | null>(null);
-  const [showExportModal, setShowExportModal] = useState(false);
+  const exportPanelRef = useRef<HTMLDivElement | null>(null);
   const [monitorEqualVolume, setMonitorEqualVolume] = useState(false);
   const renderTokenRef = useRef(0);
   const renderInFlightRef = useRef(false);
@@ -605,7 +606,6 @@ export default function App() {
       setShouldSelectPreviewAfterRender(false);
       setShowRenderEditor(false);
       setExportedRevision(null);
-      setShowExportModal(false);
       renderTokenRef.current += 1;
       return;
     }
@@ -630,7 +630,6 @@ export default function App() {
       setShouldSelectPreviewAfterRender(false);
       setShowRenderEditor(false);
       setExportedRevision(null);
-      setShowExportModal(false);
 
       try {
         const validationMessage = validateAudioFileCandidate(selectedFile as File);
@@ -731,7 +730,6 @@ export default function App() {
     setRenderProgressStep(0);
     setRenderProgressValue(8);
     setExportedRevision(null);
-    setShowExportModal(false);
 
     try {
       const result = await renderPreviewMaster(decodedAudio.audioBuffer, settingsToRender, (event) => {
@@ -792,7 +790,6 @@ export default function App() {
     setPreviewErrorMessage(null);
     setShouldSelectPreviewAfterRender(true);
     setExportedRevision(null);
-    setShowExportModal(false);
   }
 
   function handleApplyRecommended(settings: PreviewSettings) {
@@ -825,6 +822,10 @@ export default function App() {
     }
 
     setSelectedFile(file);
+  }
+
+  function handleScrollToExport() {
+    exportPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   useEffect(() => {
@@ -863,7 +864,7 @@ export default function App() {
 
       if (key === "e" && previewResult) {
         event.preventDefault();
-        setShowExportModal(true);
+        handleScrollToExport();
       }
     }
 
@@ -951,7 +952,7 @@ export default function App() {
                     onSeek={player.seek}
                     onSwitchSource={(source) => void player.switchSource(source)}
                     onFileSelected={handleSelectFile}
-                    onOpenExport={() => setShowExportModal(true)}
+                    onOpenExport={handleScrollToExport}
                     canOpenExport={Boolean(previewResult)}
                     equalVolume={monitorEqualVolume}
                     onToggleEqualVolume={() => setMonitorEqualVolume((value) => !value)}
@@ -967,6 +968,18 @@ export default function App() {
                     hasPendingChanges={hasPendingChanges}
                     onToggleModify={() => setShowRenderEditor((value) => !value)}
                   />
+                  <div ref={exportPanelRef}>
+                    <ExportPanel
+                      sourceFileName={selectedFile?.name ?? null}
+                      previewBuffer={previewResult.buffer}
+                      previewRevision={previewRevision}
+                      previewRenderedAt={previewRenderedAt}
+                      hasPendingChanges={hasPendingChanges}
+                      isRendering={previewStatus === "rendering"}
+                      onBeforeExport={player.stop}
+                      onExported={() => setExportedRevision(previewRevision)}
+                    />
+                  </div>
                   {showRenderEditor && (
                     <RenderChoiceCard
                       settings={previewSettings}
@@ -983,32 +996,6 @@ export default function App() {
 
                 </aside>
               </section>
-
-              {showExportModal && (
-                <div className="export-modal-backdrop" role="dialog" aria-modal="true" aria-label="Exporter la Preview">
-                  <div className="export-modal-card">
-                    <div className="export-modal-header">
-                      <div>
-                        <p className="eyebrow">Export local</p>
-                        <h2>Exporter la Preview</h2>
-                      </div>
-                      <button type="button" className="modal-close-button" onClick={() => setShowExportModal(false)} aria-label="Fermer l’export">
-                        ×
-                      </button>
-                    </div>
-                    <ExportPanel
-                      sourceFileName={selectedFile?.name ?? null}
-                      previewBuffer={previewResult.buffer}
-                      previewRevision={previewRevision}
-                      previewRenderedAt={previewRenderedAt}
-                      hasPendingChanges={hasPendingChanges}
-                      isRendering={previewStatus === "rendering"}
-                      onBeforeExport={player.stop}
-                      onExported={() => setExportedRevision(previewRevision)}
-                    />
-                  </div>
-                </div>
-              )}
             </>
           )}
 

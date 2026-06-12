@@ -11,14 +11,18 @@ function formatRatio(value: number): string {
   return `${(value * 100).toFixed(1)} %`;
 }
 
-function formatFizzDelta(before: number, after: number): string {
-  const pointReduction = Math.max(0, (before - after) * 100);
-
-  if (pointReduction < 0.05) {
+function formatBrightnessDelta(before: number, after: number): string {
+  if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
     return "Stable";
   }
 
-  return `-${pointReduction.toFixed(1)} pt`;
+  const relativeChange = ((after - before) / before) * 100;
+
+  if (Math.abs(relativeChange) < 1) {
+    return "Stable";
+  }
+
+  return `${relativeChange >= 0 ? "+" : ""}${relativeChange.toFixed(0)} % vs origine`;
 }
 
 function formatLufs(value: number): string {
@@ -128,7 +132,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               <strong>{formatDb(sourceMetrics.peakDb)}</strong>
             </div>
             <div>
-              <span>Fizz 9-16 kHz</span>
+              <span>Brillance IA</span>
               <strong>{formatRatio(sourceMetrics.fizzRatio)}</strong>
             </div>
           </div>
@@ -158,10 +162,10 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               previewScore={normalizePeak(result.afterMetrics.peakDb)}
             />
             <ComparisonRow
-              label="Aigus IA / fizz"
+              label="Brillance IA / fizz"
               original={formatRatio(result.beforeMetrics.fizzRatio)}
               preview={formatRatio(result.afterMetrics.fizzRatio)}
-              delta={formatFizzDelta(result.beforeMetrics.fizzRatio, result.afterMetrics.fizzRatio)}
+              delta={formatBrightnessDelta(result.beforeMetrics.fizzRatio, result.afterMetrics.fizzRatio)}
               originalScore={normalizePercent(result.beforeMetrics.fizzRatio)}
               previewScore={normalizePercent(result.afterMetrics.fizzRatio)}
             />
@@ -183,7 +187,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
           </div>
 
           <p className="message message-info">
-            Ces graphiques sont indicatifs. Ils servent à comprendre la Preview, sans remplacer une mesure LUFS officielle.
+            Ces graphiques sont indicatifs. La différence de brillance est exprimée en pourcentage relatif à la brillance d’origine.
           </p>
         </>
       )}

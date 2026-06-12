@@ -665,7 +665,7 @@ async function renderPreviewMasterInternal(
     appliedMoves.push("de-hiss aigu léger");
   }
   if (antiFizzReductionDb > 0.8) {
-    appliedMoves.push(settings.antiFatigue ? "AI Shimmer Control / aigus fatigants" : "anti-fizz / contrôle des aigus");
+    appliedMoves.push(settings.antiFatigue ? "AI Brightness Smoothing / brillance IA" : "anti-fizz / contrôle des aigus");
   }
   if (Math.abs(profile.lowShelfGain) > 0.2 || profile.subControlFrequency > 30) {
     appliedMoves.push("contrôle sub et bas du spectre");
@@ -705,7 +705,7 @@ async function renderPreviewMasterInternal(
     appliedMoves.push("recentrage DC offset");
   }
 
-  notifyProgress(onProgress, 7, 96, "Préparation WAV");
+  notifyProgress(onProgress, 7, 96, "Préparation export");
   const renderTimeMs = performance.now() - startedAt;
   const report: ProcessingReport = {
     profileLabel: preset.label,

@@ -38,7 +38,7 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
             </div>
             <div className="report-card">
               <span>Anti-fizz</span>
-              <strong>{result.settings.antiFatigue ? "Aigus fatigants" : result.report.brightnessLabel}</strong>
+              <strong>{result.settings.antiFatigue ? "AI Brightness Smoothing" : result.report.brightnessLabel}</strong>
             </div>
             <div className="report-card">
               <span>Clics réparés</span>

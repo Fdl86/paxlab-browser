@@ -127,13 +127,13 @@ function fizzObjective(result: PreviewRenderResult): ObjectiveItem {
   const softened = after <= before * 0.98;
 
   return {
-    label: "Aigus IA",
+    label: "Brillance IA",
     target: result.settings.antiFatigue ? "Réduction prioritaire" : "Contrôle doux",
     result: `${formatPercent(before)} → ${formatPercent(after)}`,
     status: softened ? "Adouci" : "Stable",
     tone: softened ? "success" : "neutral",
     marker: clampPercent(100 - Math.max(0, reduction) * 100),
-    note: softened ? "Fizz / brillance réduits." : "Pas de dureté excessive détectée."
+    note: softened ? "Brillance IA / fizz réduits." : "Pas de dureté excessive détectée."
   };
 }
 
@@ -187,7 +187,7 @@ function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string
   }
 
   if (result.settings.antiFatigue) {
-    return `PAXLAB a privilégié un rendu ${result.settings.autoIntensity === "impact" ? "puissant" : "contrôlé"}, avec réduction des aigus fatigants et marge peak finale à ${headroom.toFixed(1)} dB.`;
+    return `PAXLAB a privilégié un rendu ${result.settings.autoIntensity === "impact" ? "puissant" : "contrôlé"}, avec AI Brightness Smoothing actif et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
 
   if (result.settings.autoIntensity === "impact") {

@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-15-2-flac-cjs-fix",
+  "version": "1.0.0-dev15-16-premium-ux",
   "type": "module",
   "scripts": {
     "dev": "vite",
