@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-16-3-export-ui-hotfix",
+  "version": "1.0.0-dev15-16-4-player-export-alignment-hotfix",
   "type": "module",
   "scripts": {
     "dev": "vite",

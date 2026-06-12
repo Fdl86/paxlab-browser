@@ -422,7 +422,7 @@ function CompactStudioTopbar() {
     <header className="compact-studio-topbar compact-studio-topbar-minimal">
       <div className="compact-brand-block">
         <strong>PAXLAB Browser Engine</strong>
-        <span>DEV15.16.3 - local, simple, sans upload</span>
+        <span>DEV15.16.4 - local, simple, sans upload</span>
       </div>
       <div className="compact-topbar-actions">
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
@@ -508,7 +508,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - DEV15.16.3 Export UI hotfix</p>
+        <p className="version">PAXLAB Browser Engine - DEV15.16.4 Player and export alignment hotfix</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte en WAV ou FLAC.
@@ -960,15 +960,7 @@ export default function App() {
                 </div>
 
                 <aside className="guided-result-side compact-side-panel">
-                  <ResultSideSummary
-                    previewResult={previewResult}
-                    settings={readySettings}
-                    revision={previewRevision}
-                    renderedAt={previewRenderedAt}
-                    hasPendingChanges={hasPendingChanges}
-                    onToggleModify={() => setShowRenderEditor((value) => !value)}
-                  />
-                  <div ref={exportPanelRef}>
+                  <div ref={exportPanelRef} className="export-panel-anchor">
                     <ExportPanel
                       sourceFileName={selectedFile?.name ?? null}
                       previewBuffer={previewResult.buffer}
@@ -980,6 +972,14 @@ export default function App() {
                       onExported={() => setExportedRevision(previewRevision)}
                     />
                   </div>
+                  <ResultSideSummary
+                    previewResult={previewResult}
+                    settings={readySettings}
+                    revision={previewRevision}
+                    renderedAt={previewRenderedAt}
+                    hasPendingChanges={hasPendingChanges}
+                    onToggleModify={() => setShowRenderEditor((value) => !value)}
+                  />
                   {showRenderEditor && (
                     <RenderChoiceCard
                       settings={previewSettings}

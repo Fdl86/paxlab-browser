@@ -200,8 +200,6 @@ export function ExportPanel({
         <span className={canExport ? "status-pill ready-pill" : "status-pill"}>{canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}</span>
       </div>
 
-      <div className="export-format-header">Format final</div>
-
       <div className="export-choice-stack export-choice-row" aria-label="Format export">
         {EXPORT_CHOICES.map((choice) => (
           <button
@@ -216,7 +214,6 @@ export function ExportPanel({
             <span className="export-choice-copy">
               <strong>{choice.title}</strong>
             </span>
-            {choice.recommended && <em>Reco</em>}
           </button>
         ))}
       </div>

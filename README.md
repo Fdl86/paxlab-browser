@@ -1,53 +1,52 @@
-# PAXLAB Browser Engine - DEV15.16.3 Export UI hotfix
+# PAXLAB Browser Engine - DEV15.16.4 Player and export alignment hotfix
 
-Application web locale pour améliorer et exporter des morceaux IA/Suno directement dans le navigateur.
+PAXLAB Browser Engine est une application web locale Vite / React / TypeScript / Web Audio API destinée à améliorer des morceaux audio générés par IA, notamment Suno.
 
-PAXLAB reste 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Preview et export local WAV ou FLAC.
+L'application reste 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Preview, export local WAV ou FLAC.
 
-## DEV15.16.3
+## DEV15.16.4
 
-Version UX prudente basée sur DEV15.15.2 validée.
+Hotfix UX ciblée sur le lecteur et le panneau export, sans modification du moteur audio.
 
-- Intégration visuelle premium option B : lecteur A/B plus central, colonne export plus claire, hiérarchie plus proche de la maquette validée.
-- Export désormais visible directement dans la colonne droite après génération de Preview.
-- Sélection claire des formats : `FLAC 24-bit`, `WAV 24-bit`, `WAV 16-bit`.
-- `FLAC 24-bit` devient le choix recommandé par défaut pour YouTube.
-- Renommage de l’option `Aigus fatigants` en `AI Brightness Smoothing`.
-- Aide courte associée : `Calme les aigus métalliques, le fizz et la fatigue d’écoute.`
-- Correction des wordings restés orientés WAV : workflow, landing, overlay de rendu et export.
-- Le comparatif de brillance indique maintenant une variation relative en pourcentage par rapport à la brillance d’origine, par exemple `-34 % vs origine`.
-- Aucun changement volontaire sur le moteur audio, le Mix YouTube, le LUFS, le limiteur, le traitement `AI Brightness Smoothing` ou l’export FLAC validé.
-- Hotfix DEV15.16.1 : les boutons `Play / Pause`, `Stop` et `Changer de fichier` sont déplacés hors de la forme d’onde et compactés.
-- Hotfix DEV15.16.2 : suppression du bouton `Exporter` dans le lecteur, pour garder l’export uniquement dans la colonne droite.
-- Hotfix DEV15.16.2 : suppression du libellé technique `Switch A/B`.
-- Hotfix DEV15.16.2 : les boutons `Play / Pause`, `Stop` et `Changer de fichier` sont maintenant alignés avec `Original / Preview`.
-- Hotfix DEV15.16.2 : le libellé au-dessus de la forme d’onde devient `EN ÉCOUTE - Preview #X (heure)` ou `EN ÉCOUTE - Original`.
-- Hotfix DEV15.16.2 : suppression du texte d’aide `Clique sur la forme d’onde pour naviguer`.
-- Hotfix DEV15.16.2 : la forme d’onde passe sur une apparence en bâtonnets plus audio premium.
-- Hotfix DEV15.16.3 : le sélecteur `Original / Preview` est réduit et aligné avec les boutons `Play`, `Stop` et `Changer de fichier`.
-- Hotfix DEV15.16.3 : le panneau export est compacté avec le titre `Exporter la Preview #X - HH:MM:SS`.
-- Hotfix DEV15.16.3 : les formats `FLAC 24-bit`, `WAV 24-bit` et `WAV 16-bit` sont affichés sur une seule ligne sous le libellé `Format final`.
-- Hotfix DEV15.16.3 : le bouton de téléchargement est remonté pour réduire la hauteur du panneau export.
+### Changements
 
-## Base validée DEV15.15.2
+- Le bouton A/B `Preview` devient `Rendu PAXLAB` pour clarifier la version traitée.
+- Le sélecteur `Original / Rendu PAXLAB` est recentré au-dessus de la waveform.
+- Les boutons `Play`, `Stop` et `Changer de fichier` sont alignés à droite sur la même ligne de contrôle.
+- Les hauteurs du sélecteur A/B et des boutons de transport sont harmonisées.
+- Le badge `Reco` sous `FLAC 24-bit` est supprimé.
+- Le libellé `Format final` est supprimé au-dessus des formats export.
+- Le panneau export est remonté et aligné avec la zone principale du lecteur.
+- La hiérarchie du panneau export reste compacte : titre, choix du format, nom du fichier, téléchargement.
 
-DEV15.15.2 a validé l’export FLAC 24-bit : FLAC valide, `flac -t` OK, 48 kHz, stéréo, 24-bit, durée cohérente, STREAMINFO MD5 présent, PCM décodé identique au WAV PAXLAB 24-bit de référence.
+## État validé conservé
 
-## Workflow
+- Mix YouTube 1-click.
+- Export WAV 24-bit.
+- Export WAV 16-bit.
+- Export FLAC 24-bit.
+- A/B transparent Original / Preview.
+- Rapport simple avant / après.
+- Wording `Plafond peak maximum` conservé.
+- Le plafond peak reste un plafond de sécurité, pas une cible à atteindre.
+- Le calcul de différence de brillance reste exprimé en pourcentage relatif à la brillance d'origine.
+- Le moteur audio validé n'a pas été modifié.
 
-1. Importer un fichier WAV ou MP3.
-2. Générer une Preview avec Mix YouTube ou un rendu simple.
-3. Comparer Original / Preview en A/B transparent.
-4. Exporter localement en FLAC 24-bit, WAV 24-bit ou WAV 16-bit.
+## Workflow de test
+
+```bash
+npm install
+npm run build
+```
+
+Le build DEV15.16.4 a été vérifié avant livraison.
 
 ## Déploiement Cloudflare Pages
 
+Configuration recommandée :
+
 - Build command : `npm run build`
-- Build output directory : `dist`
-- Root directory : vide
+- Output directory : `dist`
+- Node : version Cloudflare Pages par défaut compatible Vite
 
-Le dossier `dist` ne doit pas être poussé dans le repo. Cloudflare doit le générer au build.
-
-## Note DEV
-
-Ne pas inclure `node_modules` dans le zip livré. Ne pas inclure `dist` dans le zip livré.
+Le zip de livraison ne contient pas `node_modules` et ne contient pas `dist`.

@@ -370,7 +370,7 @@ export function RealtimeMonitorPanel({
             disabled={!canUsePreview || isSwitching}
             onClick={() => onSwitchSource("preview")}
           >
-            Preview
+            Rendu PAXLAB
           </button>
         </div>
 
