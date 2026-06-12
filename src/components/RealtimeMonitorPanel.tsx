@@ -242,10 +242,11 @@ function TransportIcon({ type }: { type: "play" | "pause" | "stop" }) {
   );
 }
 
-function ChangeFileIcon() {
+function EjectIcon() {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path d="M8 2.2a5.8 5.8 0 0 1 5.45 3.82.75.75 0 1 1-1.42.48A4.3 4.3 0 0 0 4.1 5.78l1.04-.02a.75.75 0 0 1 .03 1.5l-2.75.06a.75.75 0 0 1-.77-.73l-.06-2.75a.75.75 0 0 1 1.5-.03l.02.86A5.78 5.78 0 0 1 8 2.2Zm5.58 6.48a.75.75 0 0 1 .77.73l.06 2.75a.75.75 0 0 1-1.5.03l-.02-.86A5.8 5.8 0 0 1 2.55 9.98a.75.75 0 1 1 1.42-.48 4.3 4.3 0 0 0 7.93.72l-1.04.02a.75.75 0 0 1-.03-1.5l2.75-.06Z" />
+      <polygon points="8,2 14,9 2,9" />
+      <rect x="2" y="11" width="12" height="2.5" rx="1" />
     </svg>
   );
 }
@@ -374,19 +375,16 @@ export function RealtimeMonitorPanel({
           </button>
         </div>
 
-        <div className="transport-row compact-controls inline-transport-controls">
-          <button type="button" className="transport-button compact-transport primary-transport" disabled={isSwitching} onClick={() => onPlayPause()}>
+        <div className="transport-row compact-controls inline-transport-controls transport-icon-only">
+          <button type="button" className="transport-button compact-transport primary-transport" disabled={isSwitching} onClick={() => onPlayPause()} aria-label={isPlaying ? "Pause" : "Play"}>
             <TransportIcon type={isPlaying ? "pause" : "play"} />
-            {isPlaying ? "Pause" : "Play"}
           </button>
-          <button type="button" className="transport-button compact-transport" onClick={() => onStop()}>
+          <button type="button" className="transport-button compact-transport" onClick={() => onStop()} aria-label="Stop">
             <TransportIcon type="stop" />
-            Stop
           </button>
           {onFileSelected && (
-            <label className="transport-button compact-transport change-track-control">
-              <ChangeFileIcon />
-              Changer de fichier
+            <label className="transport-button compact-transport change-track-control" aria-label="Éjecter / Changer de fichier">
+              <EjectIcon />
               <input
                 type="file"
                 accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
