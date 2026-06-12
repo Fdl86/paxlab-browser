@@ -422,7 +422,7 @@ function CompactStudioTopbar() {
     <header className="compact-studio-topbar compact-studio-topbar-minimal">
       <div className="compact-brand-block">
         <strong>PAXLAB Browser Engine</strong>
-        <span>DEV15.16 - local, simple, sans upload</span>
+        <span>DEV15.16.1 - local, simple, sans upload</span>
       </div>
       <div className="compact-topbar-actions">
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
@@ -508,7 +508,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - DEV15.16 Premium UX</p>
+        <p className="version">PAXLAB Browser Engine - DEV15.16.1 Premium UX hotfix</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte en WAV ou FLAC.

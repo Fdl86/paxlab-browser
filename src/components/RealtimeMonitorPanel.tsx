@@ -366,32 +366,35 @@ export function RealtimeMonitorPanel({
 
   return (
     <section className="panel realtime-panel">
-      <div className="monitor-source-switch" aria-label="Choix de la source de lecture">
-        <button
-          type="button"
-          className={activeSource === "original" ? "monitor-source-button active" : "monitor-source-button"}
-          disabled={!originalBuffer || isSwitching}
-          onClick={() => onSwitchSource("original")}
-        >
-          Original
-        </button>
-        <button
-          type="button"
-          className={activeSource === "preview" ? "monitor-source-button active" : "monitor-source-button"}
-          disabled={!canUsePreview || isSwitching}
-          onClick={() => onSwitchSource("preview")}
-        >
-          Preview
-        </button>
+      <div className="ab-switch-block">
+        <span>Switch A/B</span>
+        <div className="monitor-source-switch" aria-label="Choix de la source de lecture">
+          <button
+            type="button"
+            className={activeSource === "original" ? "monitor-source-button active" : "monitor-source-button"}
+            disabled={!originalBuffer || isSwitching}
+            onClick={() => onSwitchSource("original")}
+          >
+            Original
+          </button>
+          <button
+            type="button"
+            className={activeSource === "preview" ? "monitor-source-button active" : "monitor-source-button"}
+            disabled={!canUsePreview || isSwitching}
+            onClick={() => onSwitchSource("preview")}
+          >
+            Preview
+          </button>
+        </div>
         {onOpenExport && (
           <button
             type="button"
-            className="monitor-export-button"
+            className="monitor-export-button secondary-monitor-export"
             disabled={!canOpenExport}
             onClick={onOpenExport}
           >
             <ExportIcon />
-            Export
+            Exporter
           </button>
         )}
       </div>
@@ -425,28 +428,7 @@ export function RealtimeMonitorPanel({
             <div className="waveform-label-row">
               <div className="waveform-label-left">
                 <span>Écoute A/B</span>
-                <small>Structure</small>
-              </div>
-              <div className="waveform-actions compact-controls">
-                <button type="button" className="transport-button compact-transport" disabled={isSwitching} onClick={(event) => { event.stopPropagation(); onPlayPause(); }}>
-                  <TransportIcon type={isPlaying ? "pause" : "play"} />
-                  {isPlaying ? "Pause" : "Play"}
-                </button>
-                <button type="button" className="transport-button compact-transport" onClick={(event) => { event.stopPropagation(); onStop(); }}>
-                  <TransportIcon type="stop" />
-                  Stop
-                </button>
-                {onFileSelected && (
-                  <label className="transport-button compact-transport change-track-control" onClick={(event) => event.stopPropagation()}>
-                    <ChangeFileIcon />
-                    Changer
-                    <input
-                      type="file"
-                      accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
-                      onChange={(event) => handleFileChange(event.target.files?.[0])}
-                    />
-                  </label>
-                )}
+                <small>Clique sur la forme d'onde pour naviguer</small>
               </div>
             </div>
             <div className="waveform-canvas">
@@ -475,6 +457,28 @@ export function RealtimeMonitorPanel({
             style={{ "--progress": `${progress}%` } as CSSProperties}
             aria-label="Position de lecture"
           />
+
+          <div className="transport-row compact-controls">
+            <button type="button" className="transport-button compact-transport primary-transport" disabled={isSwitching} onClick={() => onPlayPause()}>
+              <TransportIcon type={isPlaying ? "pause" : "play"} />
+              {isPlaying ? "Pause" : "Play"}
+            </button>
+            <button type="button" className="transport-button compact-transport" onClick={() => onStop()}>
+              <TransportIcon type="stop" />
+              Stop
+            </button>
+            {onFileSelected && (
+              <label className="transport-button compact-transport change-track-control">
+                <ChangeFileIcon />
+                Changer de fichier
+                <input
+                  type="file"
+                  accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
+                  onChange={(event) => handleFileChange(event.target.files?.[0])}
+                />
+              </label>
+            )}
+          </div>
 
           <div className="compact-meter-row">
             <div className="compact-meter-pill">

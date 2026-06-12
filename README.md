@@ -1,10 +1,10 @@
-# PAXLAB Browser Engine - DEV15.16 Premium UX
+# PAXLAB Browser Engine - DEV15.16.1 Premium UX hotfix
 
 Application web locale pour améliorer et exporter des morceaux IA/Suno directement dans le navigateur.
 
 PAXLAB reste 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Preview et export local WAV ou FLAC.
 
-## DEV15.16
+## DEV15.16.1
 
 Version UX prudente basée sur DEV15.15.2 validée.
 
@@ -17,6 +17,8 @@ Version UX prudente basée sur DEV15.15.2 validée.
 - Correction des wordings restés orientés WAV : workflow, landing, overlay de rendu et export.
 - Le comparatif de brillance indique maintenant une variation relative en pourcentage par rapport à la brillance d’origine, par exemple `-34 % vs origine`.
 - Aucun changement volontaire sur le moteur audio, le Mix YouTube, le LUFS, le limiteur, le traitement `AI Brightness Smoothing` ou l’export FLAC validé.
+- Hotfix DEV15.16.1 : le switch `Original / Preview` est mieux identifié comme `Switch A/B`.
+- Hotfix DEV15.16.1 : les boutons `Play / Pause`, `Stop` et `Changer de fichier` sont déplacés hors de la forme d’onde et compactés.
 
 ## Base validée DEV15.15.2
 
