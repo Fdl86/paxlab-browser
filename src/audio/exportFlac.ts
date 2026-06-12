@@ -1,129 +1,53 @@
+import * as Flac from "libflacjs/dist/libflac.min.js";
+import { Encoder } from "libflacjs/lib/encoder";
+import SparkMD5 from "spark-md5";
 import { clamp } from "./audioBufferUtils";
 
 export interface FlacExportOptions {
   bitDepth: 16 | 24;
-  blockSize?: number;
+  compression?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  chunkSamples?: number;
 }
 
-interface FlacFrameInfo {
-  frameIndex: number;
-  startSample: number;
-  blockSamples: number;
-  byteLength: number;
+const DEFAULT_COMPRESSION_LEVEL = 5;
+const DEFAULT_CHUNK_SAMPLES = 65536;
+let flacReadyPromise: Promise<void> | null = null;
+
+function isFlacReady(): boolean {
+  return typeof Flac.isReady === "function" && Flac.isReady();
 }
 
-const DEFAULT_BLOCK_SIZE = 4096;
-
-function writeString(view: DataView, offset: number, value: string): number {
-  for (let index = 0; index < value.length; index += 1) {
-    view.setUint8(offset + index, value.charCodeAt(index));
+function waitForFlacReady(): Promise<void> {
+  if (isFlacReady()) {
+    return Promise.resolve();
   }
 
-  return offset + value.length;
-}
+  if (!flacReadyPromise) {
+    flacReadyPromise = new Promise((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        reject(new Error("Initialisation de l’encodeur FLAC trop longue."));
+      }, 10000);
 
-function writeUint24(view: DataView, offset: number, value: number): number {
-  const safeValue = Math.min(0xffffff, Math.max(0, Math.round(value)));
-  view.setUint8(offset, (safeValue >> 16) & 0xff);
-  view.setUint8(offset + 1, (safeValue >> 8) & 0xff);
-  view.setUint8(offset + 2, safeValue & 0xff);
-  return offset + 3;
-}
+      const finish = () => {
+        window.clearTimeout(timeoutId);
+        resolve();
+      };
 
-function getBytesPerSample(bitDepth: 16 | 24): number {
-  return bitDepth / 8;
-}
-
-function getSampleSizeCode(bitDepth: 16 | 24): number {
-  return bitDepth === 16 ? 4 : 6;
-}
-
-function utf8NumberLength(value: number): number {
-  if (value < 0x80) return 1;
-  if (value < 0x800) return 2;
-  if (value < 0x10000) return 3;
-  if (value < 0x200000) return 4;
-  if (value < 0x4000000) return 5;
-  return 6;
-}
-
-function writeUtf8Number(view: DataView, offset: number, value: number): number {
-  if (value < 0x80) {
-    view.setUint8(offset, value);
-    return offset + 1;
+      try {
+        if (typeof Flac.on === "function") {
+          (Flac.on as unknown as (event: string, callback: () => void) => void)("ready", finish);
+        } else if (typeof Flac.onready === "function") {
+          (Flac.onready as unknown as (callback: () => void) => void)(finish);
+        } else {
+          reject(new Error("Encodeur FLAC indisponible dans ce navigateur."));
+        }
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error("Initialisation FLAC impossible."));
+      }
+    });
   }
 
-  const length = utf8NumberLength(value);
-  const bytes = new Array<number>(length);
-
-  for (let index = length - 1; index > 0; index -= 1) {
-    bytes[index] = 0x80 | (value & 0x3f);
-    value >>= 6;
-  }
-
-  const firstByteMasks = [0, 0, 0xc0, 0xe0, 0xf0, 0xf8, 0xfc];
-  const payloadBits = 8 - length - 1;
-  bytes[0] = firstByteMasks[length] | (value & ((1 << payloadBits) - 1));
-
-  for (let index = 0; index < bytes.length; index += 1) {
-    view.setUint8(offset + index, bytes[index]);
-  }
-
-  return offset + length;
-}
-
-function crc8(view: DataView, start: number, length: number): number {
-  let crc = 0;
-
-  for (let offset = start; offset < start + length; offset += 1) {
-    crc ^= view.getUint8(offset);
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc = (crc & 0x80) !== 0 ? ((crc << 1) ^ 0x07) & 0xff : (crc << 1) & 0xff;
-    }
-  }
-
-  return crc;
-}
-
-function crc16(view: DataView, start: number, length: number): number {
-  let crc = 0;
-
-  for (let offset = start; offset < start + length; offset += 1) {
-    crc ^= view.getUint8(offset) << 8;
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x8005) & 0xffff : (crc << 1) & 0xffff;
-    }
-  }
-
-  return crc;
-}
-
-function writeFrameHeader(
-  view: DataView,
-  offset: number,
-  frameIndex: number,
-  blockSamples: number,
-  channelCount: number,
-  bitDepth: 16 | 24
-): number {
-  const start = offset;
-  const blockSizeCode = 7;
-  const sampleRateCode = 0;
-  const channelAssignment = channelCount - 1;
-  const sampleSizeCode = getSampleSizeCode(bitDepth);
-
-  view.setUint8(offset, 0xff);
-  view.setUint8(offset + 1, 0xf8);
-  view.setUint8(offset + 2, (blockSizeCode << 4) | sampleRateCode);
-  view.setUint8(offset + 3, (channelAssignment << 4) | (sampleSizeCode << 1));
-  offset += 4;
-
-  offset = writeUtf8Number(view, offset, frameIndex);
-  view.setUint16(offset, blockSamples - 1, false);
-  offset += 2;
-
-  view.setUint8(offset, crc8(view, start, offset - start));
-  return offset + 1;
+  return flacReadyPromise;
 }
 
 function floatToSignedInteger(sample: number, bitDepth: 16 | 24): number {
@@ -138,93 +62,77 @@ function floatToSignedInteger(sample: number, bitDepth: 16 | 24): number {
   return Math.max(-0x800000, Math.min(0x7fffff, Math.round(value)));
 }
 
-function writeSignedSample(view: DataView, offset: number, sample: number, bitDepth: 16 | 24): number {
-  const value = floatToSignedInteger(sample, bitDepth);
-
+function writeMd5Sample(view: DataView, offset: number, value: number, bitDepth: 16 | 24): number {
   if (bitDepth === 16) {
-    view.setInt16(offset, value, false);
+    view.setInt16(offset, value, true);
     return offset + 2;
   }
 
   const unsignedValue = value < 0 ? value + 0x1000000 : value;
-  view.setUint8(offset, (unsignedValue >> 16) & 0xff);
+  view.setUint8(offset, unsignedValue & 0xff);
   view.setUint8(offset + 1, (unsignedValue >> 8) & 0xff);
-  view.setUint8(offset + 2, unsignedValue & 0xff);
+  view.setUint8(offset + 2, (unsignedValue >> 16) & 0xff);
   return offset + 3;
 }
 
-function getFrameByteLength(frameIndex: number, blockSamples: number, channelCount: number, bitDepth: 16 | 24): number {
-  const headerLength = 4 + utf8NumberLength(frameIndex) + 2 + 1;
-  const subframesLength = channelCount * (1 + blockSamples * getBytesPerSample(bitDepth));
-  const crcLength = 2;
-  return headerLength + subframesLength + crcLength;
-}
-
-function getFrameInfos(sampleCount: number, channelCount: number, bitDepth: 16 | 24, blockSize: number): FlacFrameInfo[] {
-  const frames: FlacFrameInfo[] = [];
-
-  for (let startSample = 0, frameIndex = 0; startSample < sampleCount; startSample += blockSize, frameIndex += 1) {
-    const blockSamples = Math.min(blockSize, sampleCount - startSample);
-    frames.push({
-      frameIndex,
-      startSample,
-      blockSamples,
-      byteLength: getFrameByteLength(frameIndex, blockSamples, channelCount, bitDepth)
-    });
-  }
-
-  return frames;
-}
-
-function writeStreamInfo(
-  view: DataView,
-  offset: number,
-  sampleRate: number,
-  sampleCount: number,
+function writeInterleavedChunk(
+  output: Int32Array,
+  md5Bytes: Uint8Array,
+  channelData: Float32Array[],
+  startSample: number,
+  chunkLength: number,
   channelCount: number,
-  bitDepth: 16 | 24,
-  minBlockSize: number,
-  maxBlockSize: number,
-  minFrameSize: number,
-  maxFrameSize: number
-): number {
-  view.setUint8(offset, 0x80);
-  offset = writeUint24(view, offset + 1, 34);
+  bitDepth: 16 | 24
+) {
+  let writeIndex = 0;
+  let md5Offset = 0;
+  const md5View = new DataView(md5Bytes.buffer);
 
-  view.setUint16(offset, minBlockSize, false);
-  view.setUint16(offset + 2, maxBlockSize, false);
-  offset += 4;
+  for (let sampleIndex = 0; sampleIndex < chunkLength; sampleIndex += 1) {
+    const absoluteSample = startSample + sampleIndex;
 
-  offset = writeUint24(view, offset, minFrameSize);
-  offset = writeUint24(view, offset, maxFrameSize);
-
-  const streamInfoBits =
-    (BigInt(sampleRate) << 44n) |
-    (BigInt(channelCount - 1) << 41n) |
-    (BigInt(bitDepth - 1) << 36n) |
-    BigInt(sampleCount);
-
-  for (let byteIndex = 7; byteIndex >= 0; byteIndex -= 1) {
-    view.setUint8(offset + (7 - byteIndex), Number((streamInfoBits >> BigInt(byteIndex * 8)) & 0xffn));
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const value = floatToSignedInteger(channelData[channel]?.[absoluteSample] ?? 0, bitDepth);
+      output[writeIndex] = value;
+      writeIndex += 1;
+      md5Offset = writeMd5Sample(md5View, md5Offset, value, bitDepth);
+    }
   }
-  offset += 8;
-
-  for (let index = 0; index < 16; index += 1) {
-    view.setUint8(offset + index, 0);
-  }
-
-  return offset + 16;
 }
 
-export function encodeFlacFromAudioBuffer(
+function patchStreamInfoMd5(encoded: Uint8Array, md5Hex: string) {
+  if (encoded.length < 42) {
+    return;
+  }
+
+  const isNativeFlac =
+    encoded[0] === 0x66 &&
+    encoded[1] === 0x4c &&
+    encoded[2] === 0x61 &&
+    encoded[3] === 0x43;
+  const isStreamInfo = (encoded[4] & 0x7f) === 0;
+  const streamInfoLength = (encoded[5] << 16) | (encoded[6] << 8) | encoded[7];
+
+  if (!isNativeFlac || !isStreamInfo || streamInfoLength !== 34) {
+    return;
+  }
+
+  const md5Start = 4 + 4 + 18;
+  for (let index = 0; index < 16; index += 1) {
+    encoded[md5Start + index] = Number.parseInt(md5Hex.slice(index * 2, index * 2 + 2), 16);
+  }
+}
+
+export async function encodeFlacFromAudioBuffer(
   buffer: AudioBuffer,
   options: FlacExportOptions = { bitDepth: 24 }
-): Blob {
+): Promise<Blob> {
   const bitDepth = options.bitDepth;
-  const blockSize = Math.min(65535, Math.max(16, Math.round(options.blockSize ?? DEFAULT_BLOCK_SIZE)));
+  const compression = options.compression ?? DEFAULT_COMPRESSION_LEVEL;
   const channelCount = buffer.numberOfChannels;
   const sampleCount = buffer.length;
   const sampleRate = Math.round(buffer.sampleRate);
+  const chunkSamples = Math.max(1024, Math.round(options.chunkSamples ?? DEFAULT_CHUNK_SAMPLES));
 
   if (channelCount < 1 || channelCount > 8) {
     throw new Error("L’export FLAC local supporte 1 à 8 canaux.");
@@ -238,50 +146,61 @@ export function encodeFlacFromAudioBuffer(
     throw new Error("Aucun échantillon à exporter.");
   }
 
-  const frames = getFrameInfos(sampleCount, channelCount, bitDepth, blockSize);
-  const minBlockSize = Math.min(...frames.map((frame) => frame.blockSamples));
-  const maxBlockSize = Math.max(...frames.map((frame) => frame.blockSamples));
-  const minFrameSize = Math.min(...frames.map((frame) => frame.byteLength));
-  const maxFrameSize = Math.max(...frames.map((frame) => frame.byteLength));
-  const metadataLength = 4 + 4 + 34;
-  const totalLength = metadataLength + frames.reduce((sum, frame) => sum + frame.byteLength, 0);
-  const arrayBuffer = new ArrayBuffer(totalLength);
-  const view = new DataView(arrayBuffer);
-  const channelData = Array.from({ length: channelCount }, (_, channel) => buffer.getChannelData(channel));
+  if (bitDepth !== 16 && bitDepth !== 24) {
+    throw new Error("L’export FLAC supporte uniquement 16-bit et 24-bit.");
+  }
 
-  let offset = writeString(view, 0, "fLaC");
-  offset = writeStreamInfo(
-    view,
-    offset,
+  await waitForFlacReady();
+
+  const encoder = new Encoder(Flac, {
     sampleRate,
-    sampleCount,
-    channelCount,
-    bitDepth,
-    minBlockSize,
-    maxBlockSize,
-    minFrameSize,
-    maxFrameSize
-  );
+    channels: channelCount,
+    bitsPerSample: bitDepth,
+    compression,
+    totalSamples: sampleCount,
+    verify: false,
+    isOgg: false
+  });
 
-  for (const frame of frames) {
-    const frameStart = offset;
-    offset = writeFrameHeader(view, offset, frame.frameIndex, frame.blockSamples, channelCount, bitDepth);
+  if (!encoder.initialized) {
+    encoder.destroy();
+    throw new Error("Encodeur FLAC non initialisé.");
+  }
 
-    for (let channel = 0; channel < channelCount; channel += 1) {
-      view.setUint8(offset, 0x02);
-      offset += 1;
+  const channelData = Array.from({ length: channelCount }, (_, channel) => buffer.getChannelData(channel));
+  const md5 = new SparkMD5.ArrayBuffer();
+  const bytesPerSample = bitDepth / 8;
 
-      const samples = channelData[channel];
-      const endSample = frame.startSample + frame.blockSamples;
-      for (let sampleIndex = frame.startSample; sampleIndex < endSample; sampleIndex += 1) {
-        offset = writeSignedSample(view, offset, samples[sampleIndex] ?? 0, bitDepth);
+  try {
+    for (let startSample = 0; startSample < sampleCount; startSample += chunkSamples) {
+      const currentChunkLength = Math.min(chunkSamples, sampleCount - startSample);
+      const interleaved = new Int32Array(currentChunkLength * channelCount);
+      const md5Bytes = new Uint8Array(currentChunkLength * channelCount * bytesPerSample);
+      writeInterleavedChunk(interleaved, md5Bytes, channelData, startSample, currentChunkLength, channelCount, bitDepth);
+      md5.append(md5Bytes.buffer);
+
+      const ok = encoder.encode(interleaved, currentChunkLength, true);
+      if (!ok) {
+        throw new Error("Encodage FLAC interrompu.");
       }
     }
 
-    const frameCrc = crc16(view, frameStart, offset - frameStart);
-    view.setUint16(offset, frameCrc, false);
-    offset += 2;
-  }
+    const finished = encoder.encode();
+    if (!finished) {
+      throw new Error("Finalisation FLAC impossible.");
+    }
 
-  return new Blob([arrayBuffer], { type: "audio/flac" });
+    const encoded = encoder.getSamples();
+    if (!encoded || encoded.length <= 0) {
+      throw new Error("Fichier FLAC vide.");
+    }
+
+    const encodedCopy = new Uint8Array(encoded.byteLength);
+    encodedCopy.set(encoded);
+    patchStreamInfoMd5(encodedCopy, md5.end());
+
+    return new Blob([encodedCopy.buffer], { type: "audio/flac" });
+  } finally {
+    encoder.destroy();
+  }
 }

@@ -4295,7 +4295,7 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
   padding: 4px 7px !important;
 }
 
-/* DEV15.14 - FLAC export and clearer fizz units */
+/* DEV15.15 - libFLAC export and clearer fizz units */
 .export-primary-actions {
   display: grid;
   gap: 8px;

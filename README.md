@@ -1,8 +1,8 @@
-# PAXLAB Browser Engine - dev15.14 FLAC Export
+# PAXLAB Browser Engine - dev15.15 FLAC Encoder Fix
 
 Application web locale pour améliorer et exporter des morceaux IA/Suno directement dans le navigateur.
 
-## DEV15.14
+## DEV15.15
 
 Cette version ajoute l’export FLAC 24-bit tout en conservant les exports WAV existants.
 

@@ -53,6 +53,7 @@ export function ExportPanel({
 }: ExportPanelProps) {
   const [lastExportName, setLastExportName] = useState<string | null>(null);
   const [showOptions, setShowOptions] = useState(false);
+  const [isPreparingFlac, setIsPreparingFlac] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
   const suggestedFilename = useMemo(() => {
     const suffix = `paxlab-preview-${previewRevision || 1}-24bit`;
@@ -113,24 +114,28 @@ export function ExportPanel({
     downloadBlob(blob, filename);
   }
 
-  function handleFlacExport() {
+  async function handleFlacExport() {
     if (!previewBuffer || !prepareExport()) {
       return;
     }
+
+    setIsPreparingFlac(true);
 
     try {
       const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-24bit`;
       const fallbackName = buildSafeAudioFilename(sourceFileName, fallbackSuffix, "flac");
       const filename = buildCustomExportName(exportFilename, fallbackName, "flac", 24);
-      const blob = encodeFlacFromAudioBuffer(previewBuffer, { bitDepth: 24 });
+      const blob = await encodeFlacFromAudioBuffer(previewBuffer, { bitDepth: 24, compression: 5 });
       downloadBlob(blob, filename);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Export FLAC impossible.";
+      const message = error instanceof Error ? error.message : "Export FLAC indisponible, utilise WAV 24-bit.";
       setLastExportName(message);
+    } finally {
+      setIsPreparingFlac(false);
     }
   }
 
-  const canExport = Boolean(previewBuffer) && !hasPendingChanges && !isRendering;
+  const canExport = Boolean(previewBuffer) && !hasPendingChanges && !isRendering && !isPreparingFlac;
 
   return (
     <section className="panel export-panel simple-export-panel">
@@ -180,8 +185,8 @@ export function ExportPanel({
           disabled={!canExport}
           onClick={handleFlacExport}
         >
-          Télécharger FLAC 24-bit
-          <small>Lossless local pour archivage ou upload compatible</small>
+          {isPreparingFlac ? "Préparation FLAC..." : "Télécharger FLAC 24-bit"}
+          <small>Compression libFLAC locale, lossless 24-bit</small>
         </button>
       </div>
 
