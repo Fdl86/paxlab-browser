@@ -20,23 +20,103 @@ type FlacRuntime = {
   FLAC__stream_encoder_delete: (...args: unknown[]) => void;
 };
 
-type EncoderCtor = new (
-  flac: FlacRuntime,
-  options: {
-    sampleRate: number;
-    channels: number;
-    bitsPerSample: number;
-    compression: number;
-    totalSamples: number;
-    verify: boolean;
-    isOgg: boolean;
+class BrowserFlacEncoder {
+  private readonly Flac: FlacRuntime;
+  private readonly id: number;
+  private readonly channelCount: number;
+  private readonly data: Uint8Array[] = [];
+  private initializedValue = false;
+  private finishedValue = false;
+
+  constructor(
+    flac: FlacRuntime,
+    options: {
+      sampleRate: number;
+      channels: number;
+      bitsPerSample: number;
+      compression: number;
+      totalSamples: number;
+      verify: boolean;
+      isOgg: boolean;
+    }
+  ) {
+    this.Flac = flac;
+    this.channelCount = options.channels;
+    this.id = flac.create_libflac_encoder(
+      options.sampleRate,
+      options.channels,
+      options.bitsPerSample,
+      options.compression,
+      options.totalSamples,
+      options.verify
+    );
+
+    if (!this.id) {
+      return;
+    }
+
+    const writeCallback = (chunk: Uint8Array) => {
+      const copy = new Uint8Array(chunk.byteLength);
+      copy.set(chunk);
+      this.data.push(copy);
+    };
+
+    const initStatus = options.isOgg
+      ? flac.init_encoder_ogg_stream(this.id, writeCallback, undefined)
+      : flac.init_encoder_stream(this.id, writeCallback, undefined);
+
+    this.initializedValue = initStatus === 0;
   }
-) => {
-  initialized: boolean;
-  encode: (pcmData?: Int32Array, numberOfSamples?: number, isInterleaved?: boolean) => boolean;
-  getSamples: () => Uint8Array;
-  destroy: () => void;
-};
+
+  get initialized(): boolean {
+    return this.initializedValue;
+  }
+
+  encode(pcmData?: Int32Array, numberOfSamples?: number, isInterleaved = true): boolean {
+    if (!this.id || !this.initializedValue || this.finishedValue) {
+      return false;
+    }
+
+    if (!pcmData) {
+      return this.finish();
+    }
+
+    if (!isInterleaved) {
+      throw new Error("Encodage FLAC non interleavé non supporté.");
+    }
+
+    const sampleCount =
+      numberOfSamples ?? Math.floor(pcmData.length / Math.max(1, this.channelCount));
+
+    return Boolean(this.Flac.FLAC__stream_encoder_process_interleaved(this.id, pcmData, sampleCount));
+  }
+
+  getSamples(): Uint8Array {
+    const totalLength = this.data.reduce((total, chunk) => total + chunk.byteLength, 0);
+    const merged = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of this.data) {
+      merged.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return merged;
+  }
+
+  destroy(): void {
+    if (this.id) {
+      this.Flac.FLAC__stream_encoder_delete(this.id);
+    }
+    this.data.length = 0;
+    this.initializedValue = false;
+    this.finishedValue = true;
+  }
+
+  private finish(): boolean {
+    const ok = Boolean(this.Flac.FLAC__stream_encoder_finish(this.id));
+    this.finishedValue = ok;
+    return ok;
+  }
+}
 
 type SparkMd5ArrayBuffer = {
   append: (buffer: ArrayBuffer) => void;
@@ -45,7 +125,6 @@ type SparkMd5ArrayBuffer = {
 
 type FlacModules = {
   Flac: FlacRuntime;
-  Encoder: EncoderCtor;
   SparkMD5ArrayBuffer: new () => SparkMd5ArrayBuffer;
 };
 
@@ -61,25 +140,23 @@ function getBasePath(): string {
 
 async function loadFlacModules(): Promise<FlacModules> {
   if (!flacModulesPromise) {
+    const globalTarget = window as unknown as { FLAC_SCRIPT_LOCATION?: string };
+    globalTarget.FLAC_SCRIPT_LOCATION = `${getBasePath()}flac/`;
+
     flacModulesPromise = Promise.all([
       import("libflacjs/dist/libflac.min.js"),
-      import("libflacjs/lib/encoder"),
       import("spark-md5")
-    ]).then(([flacModule, encoderModule, sparkModule]) => {
-      const globalTarget = window as unknown as { FLAC_SCRIPT_LOCATION?: string };
-      globalTarget.FLAC_SCRIPT_LOCATION = `${getBasePath()}flac`;
-
+    ]).then(([flacModule, sparkModule]) => {
       const flacCandidate = flacModule as unknown as { default?: FlacRuntime } & FlacRuntime;
       const Flac = (flacCandidate.default ?? flacCandidate) as FlacRuntime;
-      const Encoder = (encoderModule as unknown as { Encoder: EncoderCtor }).Encoder;
       const sparkCandidate = sparkModule as unknown as { default?: { ArrayBuffer: new () => SparkMd5ArrayBuffer }; ArrayBuffer?: new () => SparkMd5ArrayBuffer };
       const SparkMD5ArrayBuffer = (sparkCandidate.default?.ArrayBuffer ?? sparkCandidate.ArrayBuffer) as new () => SparkMd5ArrayBuffer;
 
-      if (!Flac || !Encoder || !SparkMD5ArrayBuffer) {
+      if (!Flac || !SparkMD5ArrayBuffer) {
         throw new Error("Modules FLAC incomplets.");
       }
 
-      return { Flac, Encoder, SparkMD5ArrayBuffer };
+      return { Flac, SparkMD5ArrayBuffer };
     });
   }
 
@@ -223,10 +300,10 @@ export async function encodeFlacFromAudioBuffer(
     throw new Error("L’export FLAC supporte uniquement 16-bit et 24-bit.");
   }
 
-  const { Flac, Encoder, SparkMD5ArrayBuffer } = await loadFlacModules();
+  const { Flac, SparkMD5ArrayBuffer } = await loadFlacModules();
   await waitForFlacReady(Flac);
 
-  const encoder = new Encoder(Flac, {
+  const encoder = new BrowserFlacEncoder(Flac, {
     sampleRate,
     channels: channelCount,
     bitsPerSample: bitDepth,

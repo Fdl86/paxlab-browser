@@ -1,8 +1,8 @@
-# PAXLAB Browser Engine - dev15.15.1 FLAC Lazy Load Fix
+# PAXLAB Browser Engine - dev15.15.2 FLAC CJS Fix
 
 Application web locale pour améliorer et exporter des morceaux IA/Suno directement dans le navigateur.
 
-## DEV15.15.1
+## DEV15.15.2
 
 Cette version ajoute l’export FLAC 24-bit tout en conservant les exports WAV existants.
 
@@ -14,7 +14,7 @@ Cette version ajoute l’export FLAC 24-bit tout en conservant les exports WAV e
 - Aucun changement volontaire sur le rendu audio, le Mix YouTube, le LUFS, le limiteur ou les traitements.
 
 
-## Correctif DEV15.15.1
+## Correctif DEV15.15.2
 
 - Chargement de l’encodeur FLAC uniquement au moment de l’export.
 - L’application ne charge plus libFLAC au démarrage.
