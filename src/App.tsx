@@ -507,7 +507,7 @@ function SimpleLanding({
   return (
     <>
       <header className="guided-landing-hero">
-        <p className="version">PAXLAB Browser Engine - dev15.15 FLAC Encoder Fix</p>
+        <p className="version">PAXLAB Browser Engine - dev15.15.1 FLAC Lazy Load Fix</p>
         <h1>Améliore tes morceaux IA localement.</h1>
         <p>
           Importe un WAV ou MP3, choisis un rendu, génère une Preview plus propre et plus puissante, compare à l’écoute, puis exporte en WAV ou FLAC.
