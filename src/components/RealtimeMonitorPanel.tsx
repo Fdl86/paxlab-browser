@@ -250,14 +250,6 @@ function ChangeFileIcon() {
   );
 }
 
-function ExportIcon() {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-      <path d="M8 2.2a.75.75 0 0 1 .75.75v5.08l1.74-1.74a.75.75 0 1 1 1.06 1.06l-3.02 3.02a.75.75 0 0 1-1.06 0L4.45 7.35a.75.75 0 1 1 1.06-1.06l1.74 1.74V2.95A.75.75 0 0 1 8 2.2ZM3.75 10.8a.75.75 0 0 1 .75.75v.95h7v-.95a.75.75 0 0 1 1.5 0v1.7a.75.75 0 0 1-.75.75h-8.5a.75.75 0 0 1-.75-.75v-1.7a.75.75 0 0 1 .75-.75Z" />
-    </svg>
-  );
-}
-
 function meterLabel(status: RealtimeMeterState["status"]): string {
   if (status === "clipping") {
     return "Clipping";
@@ -298,8 +290,6 @@ export function RealtimeMonitorPanel({
   onSeek,
   onSwitchSource,
   onFileSelected,
-  onOpenExport,
-  canOpenExport = false,
   equalVolume = false,
   onToggleEqualVolume
 }: RealtimeMonitorPanelProps) {
@@ -325,12 +315,10 @@ export function RealtimeMonitorPanel({
     waveformCache.set(activeBuffer, cache);
     return built;
   }, [activeBuffer, originalBuffer]);
-  const path = useMemo(() => pathFromWaveformBins(waveformBins), [waveformBins]);
   const headroomSummary = useMemo(() => activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null, [activeBuffer]);
   const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
   const activeHeadroom = headroomSummary ? headroomSummary.finalHeadroomDb : meter.headroomDb;
   const previewLabel = previewRevision > 0 ? `Preview #${previewRevision}` : "Preview";
-  const previewInlineTime = previewRenderedAt ? `Version générée à ${previewRenderedAt}` : null;
   const nowPlayingLabel = activeSource === "original" ? "Original" : previewLabel;
   const previewStatusLabel =
     previewStatus === "rendering"
@@ -366,8 +354,7 @@ export function RealtimeMonitorPanel({
 
   return (
     <section className="panel realtime-panel">
-      <div className="ab-switch-block">
-        <span>Switch A/B</span>
+      <div className="ab-switch-block ab-control-bar">
         <div className="monitor-source-switch" aria-label="Choix de la source de lecture">
           <button
             type="button"
@@ -386,33 +373,28 @@ export function RealtimeMonitorPanel({
             Preview
           </button>
         </div>
-        {onOpenExport && (
-          <button
-            type="button"
-            className="monitor-export-button secondary-monitor-export"
-            disabled={!canOpenExport}
-            onClick={onOpenExport}
-          >
-            <ExportIcon />
-            Exporter
-          </button>
-        )}
-      </div>
 
-      <div className="now-playing-bar">
-        <div>
-          <p className="eyebrow">En écoute</p>
-          <h2>
-            {nowPlayingLabel}
-            {activeSource === "preview" && previewInlineTime && (
-              <small className="inline-render-time">{previewInlineTime}</small>
-            )}
-          </h2>
-          <span>{fileName ?? "Aucun fichier audio chargé"}</span>
+        <div className="transport-row compact-controls inline-transport-controls">
+          <button type="button" className="transport-button compact-transport primary-transport" disabled={isSwitching} onClick={() => onPlayPause()}>
+            <TransportIcon type={isPlaying ? "pause" : "play"} />
+            {isPlaying ? "Pause" : "Play"}
+          </button>
+          <button type="button" className="transport-button compact-transport" onClick={() => onStop()}>
+            <TransportIcon type="stop" />
+            Stop
+          </button>
+          {onFileSelected && (
+            <label className="transport-button compact-transport change-track-control">
+              <ChangeFileIcon />
+              Changer de fichier
+              <input
+                type="file"
+                accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
+                onChange={(event) => handleFileChange(event.target.files?.[0])}
+              />
+            </label>
+          )}
         </div>
-        <strong className={isPlaying ? "live-pill live" : "live-pill"}>
-          {isSwitching ? "Commutation" : isPlaying ? "En lecture" : "Pause"}
-        </strong>
       </div>
 
       {!activeBuffer && (
@@ -427,14 +409,38 @@ export function RealtimeMonitorPanel({
           <div className="monitor-waveform" onClick={handleClick} style={{ "--playhead": `${progress}%` } as CSSProperties}>
             <div className="waveform-label-row">
               <div className="waveform-label-left">
-                <span>Écoute A/B</span>
-                <small>Clique sur la forme d'onde pour naviguer</small>
+                <span>{activeSource === "preview" ? `EN ÉCOUTE - ${previewLabel}${previewRenderedAt ? ` (${previewRenderedAt})` : ""}` : "EN ÉCOUTE - Original"}</span>
+                <small>{fileName ?? "Aucun fichier audio chargé"}</small>
               </div>
+              <strong className={isPlaying ? "live-pill live" : "live-pill"}>
+                {isSwitching ? "Commutation" : isPlaying ? "En lecture" : "Pause"}
+              </strong>
             </div>
-            <div className="waveform-canvas">
-              <svg viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true">
+            <div className="waveform-canvas bar-waveform-canvas">
+              <svg className="bar-waveform-svg" viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true">
                 <line className="waveform-zero" x1="0" y1="55" x2="860" y2="55" />
-                <path d={path} />
+                {waveformBins.map((bin, index) => {
+                  const center = 55;
+                  const scale = 50;
+                  const step = 860 / Math.max(1, waveformBins.length);
+                  const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
+                  const amplitude = Math.max(Math.abs(bin.max), Math.abs(bin.min));
+                  const barHeight = Math.max(6, amplitude * scale * 2);
+                  const x = index * step + Math.max(0, (step - barWidth) / 2);
+                  const y = center - barHeight / 2;
+
+                  return (
+                    <rect
+                      key={`${index}-${bin.max.toFixed(4)}`}
+                      className="waveform-bar"
+                      x={x.toFixed(2)}
+                      y={y.toFixed(2)}
+                      width={barWidth.toFixed(2)}
+                      height={barHeight.toFixed(2)}
+                      rx="1.2"
+                    />
+                  );
+                })}
               </svg>
               <div className="playhead" />
             </div>
@@ -458,27 +464,6 @@ export function RealtimeMonitorPanel({
             aria-label="Position de lecture"
           />
 
-          <div className="transport-row compact-controls">
-            <button type="button" className="transport-button compact-transport primary-transport" disabled={isSwitching} onClick={() => onPlayPause()}>
-              <TransportIcon type={isPlaying ? "pause" : "play"} />
-              {isPlaying ? "Pause" : "Play"}
-            </button>
-            <button type="button" className="transport-button compact-transport" onClick={() => onStop()}>
-              <TransportIcon type="stop" />
-              Stop
-            </button>
-            {onFileSelected && (
-              <label className="transport-button compact-transport change-track-control">
-                <ChangeFileIcon />
-                Changer de fichier
-                <input
-                  type="file"
-                  accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
-                  onChange={(event) => handleFileChange(event.target.files?.[0])}
-                />
-              </label>
-            )}
-          </div>
 
           <div className="compact-meter-row">
             <div className="compact-meter-pill">
