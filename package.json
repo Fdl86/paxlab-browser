@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-16-2-player-ux-hotfix",
+  "version": "1.0.0-dev15-16-3-export-ui-hotfix",
   "type": "module",
   "scripts": {
     "dev": "vite",

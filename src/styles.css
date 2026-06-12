@@ -4921,3 +4921,145 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
     width: 100%;
   }
 }
+
+/* DEV15.16.3 - Compact A/B bar and export panel. UI only, audio engine untouched. */
+.ab-control-bar {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.ab-control-bar .monitor-source-switch {
+  width: clamp(280px, 34vw, 420px);
+  min-width: 0;
+  max-width: 420px;
+  margin: 0;
+  padding: 4px;
+  border-radius: 14px;
+}
+
+.realtime-panel .ab-switch-block .monitor-source-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 11px;
+  font-size: 0.82rem;
+}
+
+.inline-transport-controls {
+  min-width: 0;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.inline-transport-controls .compact-transport {
+  min-height: 38px;
+  min-width: 86px;
+  padding: 8px 12px;
+}
+
+.inline-transport-controls .change-track-control {
+  min-width: 154px;
+}
+
+.premium-export-panel {
+  padding: 14px;
+}
+
+.compact-export-heading {
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.compact-export-heading h2 {
+  font-size: clamp(1.05rem, 1.45vw, 1.32rem);
+  line-height: 1.12;
+}
+
+.export-format-header {
+  margin: 0 0 8px;
+  color: #28d7ff;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.export-choice-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.export-choice-row .export-choice-card {
+  grid-template-columns: auto minmax(0, 1fr);
+  min-height: 52px;
+  padding: 10px 9px;
+  gap: 8px;
+  border-radius: 14px;
+}
+
+.export-choice-row .export-choice-copy strong {
+  font-size: 0.82rem;
+  line-height: 1.1;
+}
+
+.export-choice-row .export-choice-card em {
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 3px 6px;
+  font-size: 0.56rem;
+  line-height: 1;
+}
+
+.premium-export-filename {
+  margin-top: 8px;
+}
+
+.export-filename-field span {
+  margin-bottom: 6px;
+}
+
+.export-filename-field input {
+  min-height: 38px;
+  padding: 9px 11px;
+}
+
+.premium-download-button.export-main-button {
+  min-height: 54px;
+  margin-top: 10px;
+}
+
+.premium-download-button.export-main-button small {
+  margin-top: 3px;
+}
+
+@media (max-width: 1180px) {
+  .ab-control-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .ab-control-bar .monitor-source-switch {
+    width: 100%;
+    max-width: none;
+  }
+
+  .inline-transport-controls {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .export-choice-row {
+    grid-template-columns: 1fr;
+  }
+
+  .export-choice-row .export-choice-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .export-choice-row .export-choice-card em {
+    grid-column: auto;
+  }
+}

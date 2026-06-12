@@ -1,10 +1,10 @@
-# PAXLAB Browser Engine - DEV15.16.2 Player UX hotfix
+# PAXLAB Browser Engine - DEV15.16.3 Export UI hotfix
 
 Application web locale pour améliorer et exporter des morceaux IA/Suno directement dans le navigateur.
 
 PAXLAB reste 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Preview et export local WAV ou FLAC.
 
-## DEV15.16.2
+## DEV15.16.3
 
 Version UX prudente basée sur DEV15.15.2 validée.
 
@@ -24,6 +24,10 @@ Version UX prudente basée sur DEV15.15.2 validée.
 - Hotfix DEV15.16.2 : le libellé au-dessus de la forme d’onde devient `EN ÉCOUTE - Preview #X (heure)` ou `EN ÉCOUTE - Original`.
 - Hotfix DEV15.16.2 : suppression du texte d’aide `Clique sur la forme d’onde pour naviguer`.
 - Hotfix DEV15.16.2 : la forme d’onde passe sur une apparence en bâtonnets plus audio premium.
+- Hotfix DEV15.16.3 : le sélecteur `Original / Preview` est réduit et aligné avec les boutons `Play`, `Stop` et `Changer de fichier`.
+- Hotfix DEV15.16.3 : le panneau export est compacté avec le titre `Exporter la Preview #X - HH:MM:SS`.
+- Hotfix DEV15.16.3 : les formats `FLAC 24-bit`, `WAV 24-bit` et `WAV 16-bit` sont affichés sur une seule ligne sous le libellé `Format final`.
+- Hotfix DEV15.16.3 : le bouton de téléchargement est remonté pour réduire la hauteur du panneau export.
 
 ## Base validée DEV15.15.2
 

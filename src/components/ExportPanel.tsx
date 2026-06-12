@@ -189,25 +189,20 @@ export function ExportPanel({
 
   return (
     <section className="panel export-panel simple-export-panel premium-export-panel">
-      <div className="panel-heading compact-heading">
+      <div className="panel-heading compact-heading compact-export-heading">
         <div>
-          <p className="eyebrow">Action principale</p>
-          <h2>Exporter la Preview</h2>
+          <h2>
+            {previewBuffer
+              ? `Exporter la Preview #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
+              : "Exporter la Preview"}
+          </h2>
         </div>
         <span className={canExport ? "status-pill ready-pill" : "status-pill"}>{canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}</span>
       </div>
 
-      <div className="export-status-card export-summary-card premium-export-summary">
-        <span>Version exportable</span>
-        <strong>
-          {previewBuffer
-            ? `Preview #${previewRevision}${previewRenderedAt ? ` · ${previewRenderedAt}` : ""}`
-            : "Aucune Preview"}
-        </strong>
-        <p>Choisis le format final local. Aucun upload, aucun serveur.</p>
-      </div>
+      <div className="export-format-header">Format final</div>
 
-      <div className="export-choice-stack" aria-label="Format export">
+      <div className="export-choice-stack export-choice-row" aria-label="Format export">
         {EXPORT_CHOICES.map((choice) => (
           <button
             key={choice.id}
@@ -220,9 +215,8 @@ export function ExportPanel({
             <span className="export-radio" aria-hidden="true" />
             <span className="export-choice-copy">
               <strong>{choice.title}</strong>
-              <small>{choice.help}</small>
             </span>
-            {choice.recommended && <em>Recommandé</em>}
+            {choice.recommended && <em>Reco</em>}
           </button>
         ))}
       </div>
