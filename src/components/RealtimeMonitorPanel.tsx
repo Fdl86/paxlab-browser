@@ -495,9 +495,6 @@ export function RealtimeMonitorPanel({
         </>
       )}
 
-      <p className="monitor-note">
-        Lecture courante. Les mesures détaillées restent disponibles dans les accordéons techniques.
-      </p>
     </section>
   );
 }

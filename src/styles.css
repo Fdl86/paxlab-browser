@@ -5210,3 +5210,81 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
     width: 100%;
   }
 }
+
+/* DEV15.17.1 - Transport alignment polish. UI only, audio engine untouched. */
+.guided-result-grid {
+  align-items: start;
+}
+
+.guided-ab-stage .realtime-panel {
+  height: auto;
+  min-height: 0;
+}
+
+.realtime-panel .ab-control-bar {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.realtime-panel .ab-control-bar .monitor-source-switch {
+  grid-column: 2;
+  align-self: center;
+  justify-self: center;
+  height: 42px;
+  width: clamp(300px, 32vw, 390px);
+}
+
+.realtime-panel .inline-transport-controls {
+  grid-column: 3;
+  align-self: center;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  margin: 0;
+}
+
+.realtime-panel .inline-transport-controls .compact-transport,
+.realtime-panel .transport-icon-only .compact-transport,
+.realtime-panel .inline-transport-controls .change-track-control,
+.realtime-panel .transport-row .change-track-control {
+  box-sizing: border-box;
+  flex: 0 0 42px;
+  width: 42px;
+  min-width: 42px;
+  max-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.realtime-panel .inline-transport-controls .compact-transport svg,
+.realtime-panel .inline-transport-controls .change-track-control svg {
+  width: 13px;
+  height: 13px;
+}
+
+.realtime-panel .monitor-note {
+  display: none;
+}
+
+@media (max-width: 1180px) {
+  .realtime-panel .ab-control-bar {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .realtime-panel .ab-control-bar .monitor-source-switch,
+  .realtime-panel .inline-transport-controls {
+    grid-column: 1;
+    justify-self: stretch;
+  }
+
+  .realtime-panel .inline-transport-controls {
+    justify-content: flex-start;
+  }
+}
