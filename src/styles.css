@@ -5331,3 +5331,27 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
 .listening-before-after-row .before-after-label span {
   margin-top: 2px;
 }
+/* DEV15.18.1 - Align AB active pill vertically. UI only. */
+.realtime-panel .ab-control-bar .monitor-source-switch {
+  box-sizing: border-box;
+  height: 42px;
+  min-height: 42px;
+  padding: 4px;
+  align-items: center;
+}
+
+.realtime-panel .ab-control-bar .monitor-source-button {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  min-height: 34px;
+  padding: 0 12px;
+  line-height: 1;
+}
+
+.realtime-panel .ab-control-bar .monitor-source-button.active {
+  height: 34px;
+  min-height: 34px;
+}
