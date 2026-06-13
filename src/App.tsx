@@ -527,7 +527,7 @@ function CompactStudioTopbar() {
     <header className="compact-studio-topbar compact-studio-topbar-minimal">
       <div className="compact-brand-block">
         <strong>PAXLAB Browser Engine</strong>
-        <span>DEV15.18.1 - local, simple, sans upload</span>
+        <span>DEV15.19 - local, sans upload</span>
       </div>
       <div className="compact-topbar-actions">
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
@@ -654,16 +654,14 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.18.1 Stability fixes
+          PAXLAB Browser Engine - DEV15.19 Flat UI
         </p>
-        <h1>Améliore tes morceaux IA localement.</h1>
+        <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
-          Importe un WAV ou MP3, choisis un rendu, génère une Preview plus
-          propre et plus puissante, compare à l’écoute, puis exporte en WAV ou
-          FLAC.
+          Traitement audio professionnel dans ton navigateur. Compare l’original et le rendu en A/B avant d’exporter.
         </p>
         <div className="guided-trust-row">
-          <span>Local navigateur</span>
+          <span>Local</span>
           <span>Aucun upload</span>
           <span>A/B Original / Preview</span>
           <span>Export WAV / FLAC</span>
@@ -1221,6 +1219,27 @@ export default function App() {
                 </div>
 
                 <aside className="guided-result-side compact-side-panel">
+                  <RenderChoiceCard
+                    settings={previewSettings}
+                    sourceAnalysis={sourceAnalysis}
+                    hasAudio={Boolean(decodedAudio)}
+                    hasPreview={Boolean(previewResult)}
+                    hasPendingChanges={hasPendingChanges}
+                    previewStatus={previewStatus}
+                    previewErrorMessage={previewErrorMessage}
+                    onSettingsChange={setPreviewSettings}
+                    onRenderPreview={() => void handleRenderPreview()}
+                  />
+                  <ResultSideSummary
+                    previewResult={previewResult}
+                    settings={readySettings}
+                    revision={previewRevision}
+                    renderedAt={previewRenderedAt}
+                    hasPendingChanges={hasPendingChanges}
+                    onToggleModify={() =>
+                      setShowRenderEditor((value) => !value)
+                    }
+                  />
                   <div ref={exportPanelRef} className="export-panel-anchor">
                     <ExportPanel
                       sourceFileName={selectedFile?.name ?? null}
@@ -1234,37 +1253,6 @@ export default function App() {
                       onRegenerateRequest={() => setShowRenderEditor(true)}
                     />
                   </div>
-                  <ResultSideSummary
-                    previewResult={previewResult}
-                    settings={readySettings}
-                    revision={previewRevision}
-                    renderedAt={previewRenderedAt}
-                    hasPendingChanges={hasPendingChanges}
-                    onToggleModify={() =>
-                      setShowRenderEditor((value) => !value)
-                    }
-                  />
-                  {!showRenderEditor && (
-                    <a
-                      className="expert-settings-anchor"
-                      href="#paxlab-expert-settings"
-                    >
-                      ↓ Réglages experts disponibles
-                    </a>
-                  )}
-                  {showRenderEditor && (
-                    <RenderChoiceCard
-                      settings={previewSettings}
-                      sourceAnalysis={sourceAnalysis}
-                      hasAudio={Boolean(decodedAudio)}
-                      hasPreview={Boolean(previewResult)}
-                      hasPendingChanges={hasPendingChanges}
-                      previewStatus={previewStatus}
-                      previewErrorMessage={previewErrorMessage}
-                      onSettingsChange={setPreviewSettings}
-                      onRenderPreview={() => void handleRenderPreview()}
-                    />
-                  )}
                 </aside>
               </section>
             </>

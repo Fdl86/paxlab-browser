@@ -1,33 +1,42 @@
-# PAXLAB Browser Engine - DEV15.18.1 Stability fixes
+# PAXLAB Browser Engine - DEV15.19 Flat UI
 
 PAXLAB Browser Engine est une application web locale Vite / React / TypeScript / Web Audio API destinée à améliorer des morceaux audio générés par IA, notamment Suno.
 
-L'application reste 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Preview, export local WAV ou FLAC.
+L'application reste 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Rendu PAXLAB, export local WAV ou FLAC.
 
-## DEV15.18.1
+## DEV15.19
 
-Release de stabilité basée sur DEV15.18. Le moteur audio, l'export WAV et l'export FLAC ne sont pas modifiés.
+Release UI basée sur DEV15.18.1. Le moteur audio, l'export WAV, l'export FLAC et le calcul de brillance ne sont pas modifiés.
 
-### Correctifs de stabilité
+### Direction visuelle
 
-- Sécurisation du verrou de rendu si un fichier change pendant une génération.
-- Raccourci clavier R aligné sur les réglages courants.
-- Export : l'ancien object URL est révoqué après le déclenchement du nouveau téléchargement, pas avant.
-- Waveform : clés SVG stables pour éviter les flashs au switch A/B.
-- Historique : la sélection d'une ancienne Preview réinitialise bien l'état d'export.
-- Mobile : suppression du seek doublon sur la waveform, le slider reste la seule entrée de navigation.
+- Passage vers une interface dark flat plus disciplinée.
+- Fond proche `#0a0a0f`.
+- Surfaces principales proches `#13131a` et `#1c1c26`.
+- Accent violet unique `#7c6dfa`.
+- Suppression visuelle des gradients et glows sur les composants principaux.
+- Hiérarchie typographique simplifiée : valeurs clés en blanc, labels en gris clair, éléments secondaires en gris désaturé.
 
-### Petites améliorations UI
+### Layout et workflow
 
-- Le stepper indique l'analyse en cours sur l'étape Mixer.
-- L'overlay de traitement se ferme immédiatement en cas d'erreur de Preview.
-- L'export affiche une action vers les réglages si la Preview doit être régénérée.
-- Le nom de fichier n'est plus nettoyé au blur, seulement au moment de l'export.
-- Alignement vertical du bouton actif Original / Rendu PAXLAB corrigé.
+- Layout principal en 2 colonnes : écoute et comparaison à gauche, configuration et export à droite.
+- Sidebar droite persistante avec choix du rendu, résumé Preview et export.
+- Export local visible dans le flux principal, avec CTA clair.
+- Message de confiance renforcé : Local - Aucun upload dans la topbar, l'upload et le CTA.
+- Stepper visuel plus lisible avec état actif violet.
+
+### Corrections UI groupées
+
+- Waveform désormais visuelle seulement : curseur par défaut, pas de curseur main.
+- Conservation du bouton éjecter au gabarit Play / Stop.
+- Conservation du bouton A/B Original / Rendu PAXLAB.
+- Conservation du rapport d'écoute DEV15.18.
+- Conservation des correctifs de stabilité DEV15.18.1.
 
 ## État validé conservé
 
 - Mix YouTube 1-click.
+- AI Brightness Smoothing.
 - Export WAV 24-bit.
 - Export WAV 16-bit.
 - Export FLAC 24-bit.
@@ -44,7 +53,7 @@ npm install
 npm run build
 ```
 
-Le build DEV15.18.1 a été vérifié avant livraison.
+Le build DEV15.19 a été vérifié avant livraison.
 
 ## Déploiement Cloudflare Pages
 

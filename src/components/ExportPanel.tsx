@@ -302,7 +302,7 @@ export function ExportPanel({
         onClick={handleSelectedExport}
       >
         {buttonLabel}
-        <small>Export local, aucun upload, Preview à jour</small>
+        <small>Local - Aucun upload - Preview à jour</small>
       </button>
 
       {!previewBuffer && (
