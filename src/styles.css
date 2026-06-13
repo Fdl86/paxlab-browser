@@ -8577,3 +8577,211 @@ body {
     padding: 30px 20px !important;
   }
 }
+
+
+/* DEV15.21.1 - Emergency layout hotfix after reference UI pass.
+   UI only: restores loaded-file card flow, render choices and processing modal rows. */
+.guided-source-card.loaded-file-stage-card,
+.loaded-file-stage-card {
+  display: block !important;
+  align-items: initial !important;
+  justify-content: initial !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 34px 36px !important;
+  overflow: hidden !important;
+}
+
+.loaded-file-stage-card .loaded-file-header {
+  display: grid !important;
+  grid-template-columns: 64px minmax(280px, 1fr) auto !important;
+  align-items: center !important;
+  gap: 22px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 0 28px !important;
+}
+
+.loaded-file-stage-card .loaded-file-copy {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  text-align: left !important;
+}
+
+.loaded-file-stage-card .loaded-file-copy h2 {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 0 8px !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.025em !important;
+}
+
+.loaded-file-stage-card .loaded-file-copy p,
+.loaded-file-stage-card .loaded-file-copy .eyebrow {
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.loaded-file-stage-card .loaded-file-change {
+  justify-self: end !important;
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+}
+
+.loaded-file-stage-card .loaded-source-waveform {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.loaded-file-stage-card .loaded-file-metadata {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Keep the simple render selector readable in the right column. */
+.guided-render-card .guided-render-options {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0 !important;
+  width: 100% !important;
+}
+
+.guided-render-card .guided-render-option {
+  display: block !important;
+  width: 100% !important;
+  min-height: 58px !important;
+  padding: 11px 48px 11px 48px !important;
+  text-align: left !important;
+  overflow: hidden !important;
+}
+
+.guided-render-card .guided-render-option strong,
+.guided-render-card .guided-render-option span {
+  display: block !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+.guided-render-card .guided-render-option::before {
+  left: 17px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+.guided-render-card .guided-render-option::after {
+  right: 16px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+
+.guided-render-card .guided-fatigue {
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 12px !important;
+  text-align: left !important;
+}
+
+.guided-render-card .guided-fatigue input {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+}
+
+.guided-render-card .guided-fatigue span,
+.guided-render-card .guided-fatigue strong {
+  min-width: 0 !important;
+  white-space: normal !important;
+  word-break: normal !important;
+}
+
+/* Processing modal row layout: number, label, status in natural reading order. */
+.detailed-processing-steps span {
+  display: grid !important;
+  grid-template-columns: 54px minmax(0, 1fr) 112px !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 50px !important;
+  padding: 0 16px !important;
+}
+
+.detailed-processing-steps span::before,
+.detailed-processing-steps .done::before,
+.detailed-processing-steps .active::before,
+.detailed-processing-steps .pending::before {
+  display: none !important;
+  content: none !important;
+}
+
+.detailed-processing-steps b {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  border: 1px solid #5b5673 !important;
+  border-radius: 999px !important;
+  color: #b6b2cf !important;
+  background: transparent !important;
+  font-style: normal !important;
+}
+
+.detailed-processing-steps .done b {
+  border-color: #7c6dfa !important;
+  color: #ffffff !important;
+  background: #7c6dfa !important;
+}
+
+.detailed-processing-steps .active b {
+  border-color: #7c6dfa !important;
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+.detailed-processing-steps em {
+  grid-column: 2 !important;
+  min-width: 0 !important;
+  text-align: left !important;
+  white-space: normal !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+
+.detailed-processing-steps small {
+  grid-column: 3 !important;
+  justify-self: end !important;
+  text-align: right !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 900px) {
+  .loaded-file-stage-card .loaded-file-header {
+    grid-template-columns: 64px minmax(0, 1fr) !important;
+  }
+
+  .loaded-file-stage-card .loaded-file-change {
+    grid-column: 1 / -1 !important;
+    justify-self: start !important;
+  }
+
+  .detailed-processing-steps span {
+    grid-template-columns: 44px minmax(0, 1fr) !important;
+  }
+
+  .detailed-processing-steps small {
+    grid-column: 2 !important;
+    justify-self: start !important;
+    text-align: left !important;
+  }
+}

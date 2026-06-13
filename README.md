@@ -1,6 +1,6 @@
-# PAXLAB Browser Engine - DEV15.21
+# PAXLAB Browser Engine - DEV15.21.1
 
-DEV15.21 applique la direction UI validée : page finale flat violet, lecteur compact avec feedback clair Original / Rendu PAXLAB, Volume égal intégré à la barre de contrôle, boutons de transport alignés à droite, partie droite simplifiée sans bloc Preview doublon, section Choisis le rendu plus compacte, état fichier chargé avec marges respirantes, et modale de préparation harmonisée avec le design violet. Le rendu de la modale est volontairement plus progressif avec des étapes plus détaillées.
+DEV15.21.1 corrige les cassures de layout apparues après DEV15.21. DEV15.21 applique la direction UI validée : page finale flat violet, lecteur compact avec feedback clair Original / Rendu PAXLAB, Volume égal intégré à la barre de contrôle, boutons de transport alignés à droite, partie droite simplifiée sans bloc Preview doublon, section Choisis le rendu plus compacte, état fichier chargé avec marges respirantes, et modale de préparation harmonisée avec le design violet. Le rendu de la modale est volontairement plus progressif avec des étapes plus détaillées.
 
 Le moteur audio, les exports WAV / FLAC et le calcul de brillance ne sont pas modifiés. Le fix waveform visuelle sans curseur main est conservé.
 
@@ -62,7 +62,7 @@ npm install
 npm run build
 ```
 
-Le build DEV15.21 a été vérifié avant livraison.
+Le build DEV15.21.1 a été vérifié avant livraison.
 
 ## Déploiement Cloudflare Pages
 
