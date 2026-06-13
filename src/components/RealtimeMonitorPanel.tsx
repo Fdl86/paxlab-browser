@@ -421,12 +421,12 @@ export function RealtimeMonitorPanel({
                 : "monitor-equal-toggle top-equal-toggle"
             }
           >
+            <span>Volume égal</span>
             <input
               type="checkbox"
               checked={equalVolume}
               onChange={onToggleEqualVolume}
             />
-            Volume égal
           </label>
         )}
 

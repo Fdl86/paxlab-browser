@@ -501,15 +501,15 @@ async function renderPreviewMasterInternal(
   onProgress?: RenderProgressCallback
 ): Promise<PreviewRenderResult> {
   const startedAt = performance.now();
-  notifyProgress(onProgress, 0, 10, "Chargement local");
-  await waitForProgressFrame(140);
+  notifyProgress(onProgress, 0, 8, "Chargement local");
+  await waitForProgressFrame(220);
   const beforeMetrics = analyzeAdvancedAudioBuffer(inputBuffer);
   notifyProgress(onProgress, 1, 22, "Analyse du morceau");
-  await waitForProgressFrame(140);
+  await waitForProgressFrame(240);
   const profile = getProcessingProfile(settings);
   const preset = getPresetById(settings.presetId);
   notifyProgress(onProgress, 2, 34, "Cible automatique");
-  await waitForProgressFrame(140);
+  await waitForProgressFrame(240);
 
   const cleanup = cleanupInputBuffer(inputBuffer, settings);
 
@@ -592,11 +592,11 @@ async function renderPreviewMasterInternal(
 
   source.start(0);
   notifyProgress(onProgress, 3, 48, "Correction du spectre");
-  await waitForProgressFrame(180);
+  await waitForProgressFrame(260);
 
   const renderedBuffer = await offlineContext.startRendering();
   notifyProgress(onProgress, 4, 64, "Optimisation dynamique");
-  await waitForProgressFrame(120);
+  await waitForProgressFrame(240);
   const stereoBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
   const isYoutubeMix = settings.autoIntensity === "youtube";
   const effectiveDensity = settings.spacePreserve || isYoutubeMix ? Math.round(settings.density * (isYoutubeMix ? 0.72 : 0.54)) : settings.density;
@@ -605,8 +605,8 @@ async function renderPreviewMasterInternal(
   const effectiveTargetRmsDb = isYoutubeMix ? Math.min(settings.targetRmsDb, -16.8) : settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
   const densityBuffer = applyGentleDensity(stereoBuffer, effectiveDensity);
   const preGainMetrics = analyzeAudioBuffer(densityBuffer);
-  notifyProgress(onProgress, 5, 74, "Normalisation du niveau");
-  await waitForProgressFrame(120);
+  notifyProgress(onProgress, 5, 76, "Normalisation du niveau");
+  await waitForProgressFrame(240);
   const leveledBuffer = applySafeTargetGain(
     densityBuffer,
     effectiveTargetRmsDb,
@@ -621,8 +621,8 @@ async function renderPreviewMasterInternal(
     settings.antiFatigue,
     settings.spacePreserve && !isYoutubeMix
   );
-  notifyProgress(onProgress, 6, 86, "Sécurité peak");
-  await waitForProgressFrame(120);
+  notifyProgress(onProgress, 6, 88, "Sécurité peak");
+  await waitForProgressFrame(220);
   const limiter = {
     buffer: calibrated.buffer,
     active: firstLimiter.active || calibrated.limiterActive,
@@ -717,7 +717,7 @@ async function renderPreviewMasterInternal(
   }
 
   notifyProgress(onProgress, 7, 96, "Préparation export");
-  await waitForProgressFrame(140);
+  await waitForProgressFrame(260);
   const renderTimeMs = performance.now() - startedAt;
   const report: ProcessingReport = {
     profileLabel: preset.label,

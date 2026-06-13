@@ -654,6 +654,116 @@ function PreviewReadyCard({
   );
 }
 
+function signedNumber(value: number, decimals = 1): string {
+  if (!Number.isFinite(value)) {
+    return "-";
+  }
+
+  return `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}`;
+}
+
+function brightnessRelativeChange(before: number, after: number): number {
+  if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
+    return 0;
+  }
+
+  return ((after - before) / before) * 100;
+}
+
+function listeningLoudnessLabel(delta: number): string {
+  if (delta <= -0.4) {
+    return "Moins de pression sonore";
+  }
+
+  if (delta >= 0.4) {
+    return "Niveau plus présent";
+  }
+
+  return "Niveau stable";
+}
+
+function listeningBrightnessLabel(deltaPercent: number): string {
+  if (deltaPercent <= -8) {
+    return "Aigus IA calmés";
+  }
+
+  if (deltaPercent >= 8) {
+    return "Brillance plus ouverte";
+  }
+
+  return "Brillance stable";
+}
+
+function listeningDynamicsLabel(delta: number): string {
+  if (delta >= -0.5) {
+    return "Respiration préservée";
+  }
+
+  if (delta <= -1.2) {
+    return "Rendu plus dense";
+  }
+
+  return "Dynamique contrôlée";
+}
+
+function PreviewChangeSummary({
+  previewResult,
+}: {
+  previewResult: PreviewRenderResult;
+}) {
+  const loudnessDelta =
+    previewResult.afterMetrics.estimatedLufs -
+    previewResult.beforeMetrics.estimatedLufs;
+  const brightnessDelta = brightnessRelativeChange(
+    previewResult.beforeMetrics.fizzRatio,
+    previewResult.afterMetrics.fizzRatio,
+  );
+  const dynamicsDelta =
+    previewResult.afterMetrics.crestFactorDb -
+    previewResult.beforeMetrics.crestFactorDb;
+  const headroom =
+    previewResult.report.loudness.headroomSummary?.finalHeadroomDb ??
+    previewResult.report.loudness.achievedHeadroomDb;
+  const brightnessValue =
+    Math.abs(brightnessDelta) < 1
+      ? "Stable"
+      : `${brightnessDelta >= 0 ? "+" : ""}${brightnessDelta.toFixed(0)} %`;
+
+  return (
+    <section className="preview-change-summary" aria-label="Résumé auditif du rendu">
+      <div className="preview-change-heading">
+        <div>
+          <p className="eyebrow">Ce que PAXLAB a changé</p>
+          <h2>Lecture rapide avant export</h2>
+        </div>
+        <span>Mesures estimées</span>
+      </div>
+      <div className="preview-change-grid">
+        <article>
+          <span>Niveau perçu</span>
+          <strong>{signedNumber(loudnessDelta)} LUFS</strong>
+          <small>{listeningLoudnessLabel(loudnessDelta)}</small>
+        </article>
+        <article>
+          <span>Brillance IA / fizz</span>
+          <strong>{brightnessValue}</strong>
+          <small>{listeningBrightnessLabel(brightnessDelta)} vs origine</small>
+        </article>
+        <article>
+          <span>Marge peak</span>
+          <strong>{headroom.toFixed(1)} dB</strong>
+          <small>Sécurité export OK</small>
+        </article>
+        <article>
+          <span>Respiration</span>
+          <strong>{dynamicsDelta >= -0.5 ? "Préservée" : "Contrôlée"}</strong>
+          <small>{listeningDynamicsLabel(dynamicsDelta)}</small>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function CompactStudioTopbar() {
   return (
     <header className="compact-studio-topbar compact-studio-topbar-minimal">
@@ -786,7 +896,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.21.1 Layout Hotfix
+          PAXLAB Browser Engine - DEV15.21.2 UI Polish
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1355,6 +1465,7 @@ export default function App() {
                       setMonitorEqualVolume((value) => !value)
                     }
                   />
+                  <PreviewChangeSummary previewResult={previewResult} />
                 </div>
 
                 <aside className="guided-result-side compact-side-panel">
