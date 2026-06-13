@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { encodeFlacFromAudioBuffer } from "../audio/exportFlac";
-import {
-  buildSafeAudioFilename,
-  encodeWavFromAudioBuffer,
-} from "../audio/exportWav";
+import { buildSafeAudioFilename, encodeWavFromAudioBuffer } from "../audio/exportWav";
 
 interface ExportPanelProps {
   sourceFileName: string | null;
@@ -14,7 +11,6 @@ interface ExportPanelProps {
   isRendering: boolean;
   onBeforeExport: () => void;
   onExported?: () => void;
-  onRegenerateRequest?: () => void;
 }
 
 type ExportFormat = "wav" | "flac";
@@ -34,22 +30,22 @@ const EXPORT_CHOICES: Array<{
     help: "Lossless compressé - YouTube",
     format: "flac",
     bitDepth: 24,
-    recommended: true,
+    recommended: true
   },
   {
     id: "wav24",
     title: "WAV 24-bit",
     help: "Référence Audacity / archive",
     format: "wav",
-    bitDepth: 24,
+    bitDepth: 24
   },
   {
     id: "wav16",
     title: "WAV 16-bit",
     help: "Compatibilité maximale",
     format: "wav",
-    bitDepth: 16,
-  },
+    bitDepth: 16
+  }
 ];
 
 function sanitizeAudioFilename(value: string, extension: ExportFormat): string {
@@ -66,29 +62,17 @@ function sanitizeAudioFilename(value: string, extension: ExportFormat): string {
   return `${safeBase || "paxlab-preview"}.${extension}`;
 }
 
-function buildCustomExportName(
-  baseName: string,
-  fallbackName: string,
-  extension: ExportFormat,
-  bitDepth: 16 | 24,
-): string {
+function buildCustomExportName(baseName: string, fallbackName: string, extension: ExportFormat, bitDepth: 16 | 24): string {
   const sourceName = baseName || fallbackName;
-  const withBitDepth =
-    bitDepth === 16 ? sourceName.replace(/24bit/i, "16bit") : sourceName;
+  const withBitDepth = bitDepth === 16 ? sourceName.replace(/24bit/i, "16bit") : sourceName;
   const sanitized = sanitizeAudioFilename(withBitDepth, extension);
 
   if (bitDepth === 16 && !sanitized.toLowerCase().includes("16bit")) {
-    return sanitized.replace(
-      new RegExp(`\\.${extension}$`, "i"),
-      `-16bit.${extension}`,
-    );
+    return sanitized.replace(new RegExp(`\\.${extension}$`, "i"), `-16bit.${extension}`);
   }
 
   if (bitDepth === 24 && !sanitized.toLowerCase().includes("24bit")) {
-    return sanitized.replace(
-      new RegExp(`\\.${extension}$`, "i"),
-      `-24bit.${extension}`,
-    );
+    return sanitized.replace(new RegExp(`\\.${extension}$`, "i"), `-24bit.${extension}`);
   }
 
   return sanitized;
@@ -102,24 +86,16 @@ export function ExportPanel({
   hasPendingChanges,
   isRendering,
   onBeforeExport,
-  onExported,
-  onRegenerateRequest,
+  onExported
 }: ExportPanelProps) {
   const [lastExportName, setLastExportName] = useState<string | null>(null);
-  const [selectedChoice, setSelectedChoice] =
-    useState<ExportChoiceId>("flac24");
+  const [selectedChoice, setSelectedChoice] = useState<ExportChoiceId>("flac24");
   const [isPreparingFlac, setIsPreparingFlac] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
-  const selectedExport =
-    EXPORT_CHOICES.find((choice) => choice.id === selectedChoice) ??
-    EXPORT_CHOICES[0];
+  const selectedExport = EXPORT_CHOICES.find((choice) => choice.id === selectedChoice) ?? EXPORT_CHOICES[0];
   const suggestedFilename = useMemo(() => {
     const suffix = `paxlab-preview-${previewRevision || 1}-24bit`;
-    return buildSafeAudioFilename(
-      sourceFileName,
-      suffix,
-      selectedExport.format,
-    );
+    return buildSafeAudioFilename(sourceFileName, suffix, selectedExport.format);
   }, [previewRevision, selectedExport.format, sourceFileName]);
   const [exportFilename, setExportFilename] = useState(suggestedFilename);
 
@@ -136,7 +112,7 @@ export function ExportPanel({
   }, []);
 
   function downloadBlob(blob: Blob, filename: string) {
-    const previousObjectUrl = objectUrlRef.current;
+    const previousUrl = objectUrlRef.current;
     const objectUrl = URL.createObjectURL(blob);
     objectUrlRef.current = objectUrl;
 
@@ -147,8 +123,8 @@ export function ExportPanel({
     link.click();
     link.remove();
 
-    if (previousObjectUrl) {
-      window.setTimeout(() => URL.revokeObjectURL(previousObjectUrl), 30000);
+    if (previousUrl) {
+      window.setTimeout(() => URL.revokeObjectURL(previousUrl), 1000);
     }
 
     setLastExportName(filename);
@@ -171,17 +147,8 @@ export function ExportPanel({
     }
 
     const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
-    const fallbackName = buildSafeAudioFilename(
-      sourceFileName,
-      fallbackSuffix,
-      "wav",
-    );
-    const filename = buildCustomExportName(
-      exportFilename,
-      fallbackName,
-      "wav",
-      bitDepth,
-    );
+    const fallbackName = buildSafeAudioFilename(sourceFileName, fallbackSuffix, "wav");
+    const filename = buildCustomExportName(exportFilename, fallbackName, "wav", bitDepth);
     const blob = encodeWavFromAudioBuffer(previewBuffer, { bitDepth });
     downloadBlob(blob, filename);
   }
@@ -195,27 +162,12 @@ export function ExportPanel({
 
     try {
       const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-24bit`;
-      const fallbackName = buildSafeAudioFilename(
-        sourceFileName,
-        fallbackSuffix,
-        "flac",
-      );
-      const filename = buildCustomExportName(
-        exportFilename,
-        fallbackName,
-        "flac",
-        24,
-      );
-      const blob = await encodeFlacFromAudioBuffer(previewBuffer, {
-        bitDepth: 24,
-        compression: 5,
-      });
+      const fallbackName = buildSafeAudioFilename(sourceFileName, fallbackSuffix, "flac");
+      const filename = buildCustomExportName(exportFilename, fallbackName, "flac", 24);
+      const blob = await encodeFlacFromAudioBuffer(previewBuffer, { bitDepth: 24, compression: 5 });
       downloadBlob(blob, filename);
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Export FLAC indisponible, utilise WAV 24-bit.";
+      const message = error instanceof Error ? error.message : "Export FLAC indisponible, utilise WAV 24-bit.";
       setLastExportName(message);
     } finally {
       setIsPreparingFlac(false);
@@ -231,15 +183,10 @@ export function ExportPanel({
     handleWavExport(selectedExport.bitDepth);
   }
 
-  const canExport =
-    Boolean(previewBuffer) &&
-    !hasPendingChanges &&
-    !isRendering &&
-    !isPreparingFlac;
-  const buttonLabel =
-    selectedExport.id === "flac24" && isPreparingFlac
-      ? "Préparation FLAC..."
-      : `Télécharger ${selectedExport.title}`;
+  const canExport = Boolean(previewBuffer) && !hasPendingChanges && !isRendering && !isPreparingFlac;
+  const buttonLabel = selectedExport.id === "flac24" && isPreparingFlac
+    ? "Préparation FLAC..."
+    : `Télécharger ${selectedExport.title}`;
 
   return (
     <section className="panel export-panel simple-export-panel premium-export-panel">
@@ -251,28 +198,15 @@ export function ExportPanel({
               : "Exporter la Preview"}
           </h2>
         </div>
-        <span className={canExport ? "status-pill ready-pill" : "status-pill"}>
-          {canExport
-            ? "Prêt"
-            : previewBuffer
-              ? "À régénérer"
-              : "Preview requise"}
-        </span>
+        <span className={canExport ? "status-pill ready-pill" : "status-pill"}>{canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}</span>
       </div>
 
-      <div
-        className="export-choice-stack export-choice-row"
-        aria-label="Format export"
-      >
+      <div className="export-choice-stack export-choice-row" aria-label="Format export">
         {EXPORT_CHOICES.map((choice) => (
           <button
             key={choice.id}
             type="button"
-            className={
-              selectedChoice === choice.id
-                ? "export-choice-card active"
-                : "export-choice-card"
-            }
+            className={selectedChoice === choice.id ? "export-choice-card active" : "export-choice-card"}
             aria-pressed={selectedChoice === choice.id}
             disabled={!previewBuffer || isRendering || isPreparingFlac}
             onClick={() => setSelectedChoice(choice.id)}
@@ -292,6 +226,7 @@ export function ExportPanel({
           value={exportFilename}
           disabled={!previewBuffer || isRendering || isPreparingFlac}
           onChange={(event) => setExportFilename(event.target.value)}
+          onBlur={() => setExportFilename((value) => sanitizeAudioFilename(value || suggestedFilename, selectedExport.format))}
         />
       </label>
 
@@ -302,30 +237,19 @@ export function ExportPanel({
         onClick={handleSelectedExport}
       >
         {buttonLabel}
-        <small>Local - Aucun upload - Preview à jour</small>
+        <small>Export local, aucun upload, Preview à jour</small>
       </button>
 
       {!previewBuffer && (
-        <p className="message message-info">
-          Génère d’abord une Preview pour activer l’export.
-        </p>
+        <p className="message message-info">Génère d’abord une Preview pour activer l’export.</p>
       )}
 
       {hasPendingChanges && previewBuffer && (
-        <p className="message message-warning export-action-warning">
-          Réglages modifiés. Régénère la Preview avant export.
-          {onRegenerateRequest && (
-            <button type="button" onClick={onRegenerateRequest}>
-              Ouvrir les réglages
-            </button>
-          )}
-        </p>
+        <p className="message message-warning">Réglages modifiés. Régénère la Preview avant export.</p>
       )}
 
       {lastExportName && !hasPendingChanges && (
-        <p className="message message-success">
-          Fichier préparé : {lastExportName}
-        </p>
+        <p className="message message-success">Fichier préparé : {lastExportName}</p>
       )}
     </section>
   );

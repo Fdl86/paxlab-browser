@@ -1,13 +1,6 @@
 import { useMemo, type CSSProperties } from "react";
-import {
-  analyzeHeadroomSummary,
-  formatDuration,
-} from "../audio/audioBufferUtils";
-import type {
-  PlaybackSource,
-  PreviewStatus,
-  RealtimeMeterState,
-} from "../audio/types";
+import { analyzeHeadroomSummary, formatDuration } from "../audio/audioBufferUtils";
+import type { PlaybackSource, PreviewStatus, RealtimeMeterState } from "../audio/types";
 
 interface RealtimeMonitorPanelProps {
   fileName: string | null;
@@ -112,16 +105,13 @@ function percentile(sortedValues: number[], ratio: number): number {
 
   const index = Math.min(
     sortedValues.length - 1,
-    Math.max(0, Math.round((sortedValues.length - 1) * ratio)),
+    Math.max(0, Math.round((sortedValues.length - 1) * ratio))
   );
 
   return sortedValues[index] ?? 0;
 }
 
-function buildWaveformStats(
-  buffer: AudioBuffer | null,
-  bins = 420,
-): WaveformStatsBin[] {
+function buildWaveformStats(buffer: AudioBuffer | null, bins = 420): WaveformStatsBin[] {
   if (!buffer || buffer.length <= 0) {
     return [];
   }
@@ -151,7 +141,7 @@ function buildWaveformStats(
 
     waveformStats.push({
       rms: sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0,
-      peak: Math.min(1, peak),
+      peak: Math.min(1, peak)
     });
   }
 
@@ -171,7 +161,7 @@ function buildWaveformBins(
   buffer: AudioBuffer | null,
   referenceBuffer: AudioBuffer | null,
   mode: WaveformViewMode,
-  bins = 420,
+  bins = 420
 ): WaveformBin[] {
   const activeStats = buildWaveformStats(buffer, bins);
 
@@ -179,50 +169,33 @@ function buildWaveformBins(
     return [];
   }
 
-  const referenceStats =
-    mode === "level"
-      ? buildWaveformStats(referenceBuffer ?? buffer, bins)
-      : activeStats;
-  const referenceRms = getReferenceRms(
-    referenceStats.length ? referenceStats : activeStats,
-  );
+  const referenceStats = mode === "level" ? buildWaveformStats(referenceBuffer ?? buffer, bins) : activeStats;
+  const referenceRms = getReferenceRms(referenceStats.length ? referenceStats : activeStats);
   const waveformBins: WaveformBin[] = [];
 
   for (let index = 0; index < activeStats.length; index += 1) {
-    const previous = activeStats[index - 1] ??
-      activeStats[index] ?? { rms: 0, peak: 0 };
+    const previous = activeStats[index - 1] ?? activeStats[index] ?? { rms: 0, peak: 0 };
     const current = activeStats[index] ?? { rms: 0, peak: 0 };
     const next = activeStats[index + 1] ?? current;
-    const smoothedRms =
-      previous.rms * 0.18 + current.rms * 0.64 + next.rms * 0.18;
-    const smoothedPeak =
-      previous.peak * 0.12 + current.peak * 0.76 + next.peak * 0.12;
+    const smoothedRms = previous.rms * 0.18 + current.rms * 0.64 + next.rms * 0.18;
+    const smoothedPeak = previous.peak * 0.12 + current.peak * 0.76 + next.peak * 0.12;
 
     // Dev08.4 : la waveform principale devient une vue de structure basée sur RMS.
     // Les pics gardent une petite influence, mais ne peuvent plus transformer un master limité en bloc visuel.
-    const rmsBody =
-      Math.pow(Math.min(3.2, smoothedRms / referenceRms), 0.72) * 0.42;
-    const peakAccent =
-      Math.pow(
-        Math.min(3.8, smoothedPeak / Math.max(referenceRms * 2.8, 0.001)),
-        0.48,
-      ) * 0.12;
+    const rmsBody = Math.pow(Math.min(3.2, smoothedRms / referenceRms), 0.72) * 0.42;
+    const peakAccent = Math.pow(Math.min(3.8, smoothedPeak / Math.max(referenceRms * 2.8, 0.001)), 0.48) * 0.12;
     const amplitude = Math.min(0.84, Math.max(0.012, rmsBody + peakAccent));
 
     waveformBins.push({
       min: -amplitude,
-      max: amplitude,
+      max: amplitude
     });
   }
 
   return waveformBins;
 }
 
-function pathFromWaveformBins(
-  waveformBins: WaveformBin[],
-  width = 860,
-  height = 110,
-): string {
+function pathFromWaveformBins(waveformBins: WaveformBin[], width = 860, height = 110): string {
   if (!waveformBins.length) {
     return "";
   }
@@ -232,12 +205,12 @@ function pathFromWaveformBins(
   const step = width / Math.max(1, waveformBins.length - 1);
   const top = waveformBins.map(
     (bin, index) =>
-      `${index === 0 ? "M" : "L"}${(index * step).toFixed(2)},${(center - bin.max * scale).toFixed(2)}`,
+      `${index === 0 ? "M" : "L"}${(index * step).toFixed(2)},${(center - bin.max * scale).toFixed(2)}`
   );
   const bottom = waveformBins
     .map(
       (bin, index) =>
-        `L${((waveformBins.length - 1 - index) * step).toFixed(2)},${(center - bin.min * scale).toFixed(2)}`,
+        `L${((waveformBins.length - 1 - index) * step).toFixed(2)},${(center - bin.min * scale).toFixed(2)}`
     )
     .join(" ");
 
@@ -319,12 +292,9 @@ export function RealtimeMonitorPanel({
   onSwitchSource,
   onFileSelected,
   equalVolume = false,
-  onToggleEqualVolume,
+  onToggleEqualVolume
 }: RealtimeMonitorPanelProps) {
-  const activeBuffer =
-    activeSource === "preview"
-      ? (previewBuffer ?? originalBuffer)
-      : originalBuffer;
+  const activeBuffer = activeSource === "preview" ? previewBuffer ?? originalBuffer : originalBuffer;
   const waveformBins = useMemo(() => {
     if (!activeBuffer) {
       return [];
@@ -340,32 +310,17 @@ export function RealtimeMonitorPanel({
       return cached;
     }
 
-    const built = buildWaveformBins(
-      activeBuffer,
-      originalBuffer,
-      "structure",
-      bins,
-    );
+    const built = buildWaveformBins(activeBuffer, originalBuffer, "structure", bins);
     const cache = existingCache ?? new Map<string, WaveformBin[]>();
     cache.set(cacheKey, built);
     waveformCache.set(activeBuffer, cache);
     return built;
   }, [activeBuffer, originalBuffer]);
-  const headroomSummary = useMemo(
-    () => (activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null),
-    [activeBuffer],
-  );
-  const progress =
-    duration > 0
-      ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
-      : 0;
-  const activeHeadroom = headroomSummary
-    ? headroomSummary.finalHeadroomDb
-    : meter.headroomDb;
-  const previewLabel =
-    previewRevision > 0 ? `Preview #${previewRevision}` : "Preview";
-  const nowPlayingLabel =
-    activeSource === "original" ? "Original" : previewLabel;
+  const headroomSummary = useMemo(() => activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null, [activeBuffer]);
+  const progress = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+  const activeHeadroom = headroomSummary ? headroomSummary.finalHeadroomDb : meter.headroomDb;
+  const previewLabel = previewRevision > 0 ? `Preview #${previewRevision}` : "Preview";
+  const nowPlayingLabel = activeSource === "original" ? "Original" : previewLabel;
   const previewStatusLabel =
     previewStatus === "rendering"
       ? "Rendu..."
@@ -375,17 +330,14 @@ export function RealtimeMonitorPanel({
           : `#${previewRevision}${previewRenderedAt ? ` · ${previewRenderedAt}` : ""}`
         : "Non générée";
 
+
   function handleFileChange(file: File | undefined) {
     if (!file || !onFileSelected) {
       return;
     }
 
     const fileName = file.name.toLowerCase();
-    const isAudio =
-      file.type.startsWith("audio/") ||
-      [".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif"].some(
-        (extension) => fileName.endsWith(extension),
-      );
+    const isAudio = file.type.startsWith("audio/") || [".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac", ".aiff", ".aif"].some((extension) => fileName.endsWith(extension));
 
     if (isAudio) {
       onFileSelected(file);
@@ -395,17 +347,10 @@ export function RealtimeMonitorPanel({
   return (
     <section className="panel realtime-panel">
       <div className="ab-switch-block ab-control-bar">
-        <div
-          className="monitor-source-switch"
-          aria-label="Choix de la source de lecture"
-        >
+        <div className="monitor-source-switch" aria-label="Choix de la source de lecture">
           <button
             type="button"
-            className={
-              activeSource === "original"
-                ? "monitor-source-button active"
-                : "monitor-source-button"
-            }
+            className={activeSource === "original" ? "monitor-source-button active" : "monitor-source-button"}
             disabled={!originalBuffer || isSwitching}
             onClick={() => onSwitchSource("original")}
           >
@@ -413,11 +358,7 @@ export function RealtimeMonitorPanel({
           </button>
           <button
             type="button"
-            className={
-              activeSource === "preview"
-                ? "monitor-source-button active"
-                : "monitor-source-button"
-            }
+            className={activeSource === "preview" ? "monitor-source-button active" : "monitor-source-button"}
             disabled={!canUsePreview || isSwitching}
             onClick={() => onSwitchSource("preview")}
           >
@@ -426,28 +367,14 @@ export function RealtimeMonitorPanel({
         </div>
 
         <div className="transport-row compact-controls inline-transport-controls transport-icon-only">
-          <button
-            type="button"
-            className="transport-button compact-transport primary-transport"
-            disabled={isSwitching}
-            onClick={() => onPlayPause()}
-            aria-label={isPlaying ? "Pause" : "Play"}
-          >
+          <button type="button" className="transport-button compact-transport primary-transport" disabled={isSwitching} onClick={() => onPlayPause()} aria-label={isPlaying ? "Pause" : "Play"}>
             <TransportIcon type={isPlaying ? "pause" : "play"} />
           </button>
-          <button
-            type="button"
-            className="transport-button compact-transport"
-            onClick={() => onStop()}
-            aria-label="Stop"
-          >
+          <button type="button" className="transport-button compact-transport" onClick={() => onStop()} aria-label="Stop">
             <TransportIcon type="stop" />
           </button>
           {onFileSelected && (
-            <label
-              className="transport-button compact-transport change-track-control"
-              aria-label="Éjecter / Changer de fichier"
-            >
+            <label className="transport-button compact-transport change-track-control" aria-label="Éjecter / Changer de fichier">
               <EjectIcon />
               <input
                 type="file"
@@ -462,58 +389,31 @@ export function RealtimeMonitorPanel({
       {!activeBuffer && (
         <div className="empty-state small-empty-state">
           <p>Aucun signal à afficher.</p>
-          <span>
-            Importe un fichier audio pour activer le monitoring temps réel.
-          </span>
+          <span>Importe un fichier audio pour activer le monitoring temps réel.</span>
         </div>
       )}
 
       {activeBuffer && (
         <>
-          <div
-            className="monitor-waveform"
-            style={{ "--playhead": `${progress}%` } as CSSProperties}
-          >
+          <div className="monitor-waveform" style={{ "--playhead": `${progress}%` } as CSSProperties}>
             <div className="waveform-label-row">
               <div className="waveform-label-left">
-                <span>
-                  {activeSource === "preview"
-                    ? `EN ÉCOUTE - ${previewLabel}${previewRenderedAt ? ` (${previewRenderedAt})` : ""}`
-                    : "EN ÉCOUTE - Original"}
-                </span>
+                <span>{activeSource === "preview" ? `EN ÉCOUTE - ${previewLabel}${previewRenderedAt ? ` (${previewRenderedAt})` : ""}` : "EN ÉCOUTE - Original"}</span>
                 <small>{fileName ?? "Aucun fichier audio chargé"}</small>
               </div>
               <strong className={isPlaying ? "live-pill live" : "live-pill"}>
-                {isSwitching
-                  ? "Commutation"
-                  : isPlaying
-                    ? "En lecture"
-                    : "Pause"}
+                {isSwitching ? "Commutation" : isPlaying ? "En lecture" : "Pause"}
               </strong>
             </div>
             <div className="waveform-canvas bar-waveform-canvas">
-              <svg
-                className="bar-waveform-svg"
-                viewBox="0 0 860 110"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <line
-                  className="waveform-zero"
-                  x1="0"
-                  y1="55"
-                  x2="860"
-                  y2="55"
-                />
+              <svg className="bar-waveform-svg" viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true">
+                <line className="waveform-zero" x1="0" y1="55" x2="860" y2="55" />
                 {waveformBins.map((bin, index) => {
                   const center = 55;
                   const scale = 50;
                   const step = 860 / Math.max(1, waveformBins.length);
                   const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
-                  const amplitude = Math.max(
-                    Math.abs(bin.max),
-                    Math.abs(bin.min),
-                  );
+                  const amplitude = Math.max(Math.abs(bin.max), Math.abs(bin.min));
                   const barHeight = Math.max(6, amplitude * scale * 2);
                   const x = index * step + Math.max(0, (step - barWidth) / 2);
                   const y = center - barHeight / 2;
@@ -553,6 +453,7 @@ export function RealtimeMonitorPanel({
             aria-label="Position de lecture"
           />
 
+
           <div className="compact-meter-row">
             <div className="compact-meter-pill">
               <span>Peak lecture</span>
@@ -575,27 +476,16 @@ export function RealtimeMonitorPanel({
             <span>{nowPlayingLabel}</span>
             <span>{previewStatusLabel}</span>
             {onToggleEqualVolume && (
-              <label
-                className={
-                  equalVolume
-                    ? "monitor-equal-toggle active"
-                    : "monitor-equal-toggle"
-                }
-              >
-                <input
-                  type="checkbox"
-                  checked={equalVolume}
-                  onChange={onToggleEqualVolume}
-                />
+              <label className={equalVolume ? "monitor-equal-toggle active" : "monitor-equal-toggle"}>
+                <input type="checkbox" checked={equalVolume} onChange={onToggleEqualVolume} />
                 Volume égal
               </label>
             )}
-            <strong className={`meter-status ${meter.status}`}>
-              {meterLabel(meter.status)}
-            </strong>
+            <strong className={`meter-status ${meter.status}`}>{meterLabel(meter.status)}</strong>
           </div>
         </>
       )}
+
     </section>
   );
 }
