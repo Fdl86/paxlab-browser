@@ -11,12 +11,16 @@ function formatRatio(value: number): string {
   return `${(value * 100).toFixed(1)} %`;
 }
 
-function formatBrightnessDelta(before: number, after: number): string {
+function brightnessRelativeChange(before: number, after: number): number {
   if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
-    return "Stable";
+    return 0;
   }
 
-  const relativeChange = ((after - before) / before) * 100;
+  return ((after - before) / before) * 100;
+}
+
+function formatBrightnessDelta(before: number, after: number): string {
+  const relativeChange = brightnessRelativeChange(before, after);
 
   if (Math.abs(relativeChange) < 1) {
     return "Stable";
@@ -61,11 +65,93 @@ function normalizeCrest(value: number, isYoutubeMix = false, isImpact = false): 
   return clampPercent(((value - 7) / 10) * 100);
 }
 
+function loudnessListeningLabel(before: number, after: number): string {
+  const delta = after - before;
+
+  if (delta <= -0.4) {
+    return "Moins de pression sonore";
+  }
+
+  if (delta >= 0.4) {
+    return "Niveau plus présent";
+  }
+
+  return "Niveau perçu stable";
+}
+
+function peakListeningLabel(before: number, after: number): string {
+  const delta = after - before;
+
+  if (delta >= 0.5) {
+    return "Crêtes plus libres";
+  }
+
+  if (delta <= -0.5) {
+    return "Peak calmé";
+  }
+
+  return "Peak stable";
+}
+
+function brightnessListeningLabel(before: number, after: number): string {
+  const relativeChange = brightnessRelativeChange(before, after);
+
+  if (relativeChange <= -8) {
+    return "Aigus IA calmés";
+  }
+
+  if (relativeChange >= 8) {
+    return "Brillance plus ouverte";
+  }
+
+  return "Brillance stable";
+}
+
+function dynamicsListeningLabel(before: number, after: number): string {
+  const delta = after - before;
+
+  if (delta >= -0.5) {
+    return "Respiration préservée";
+  }
+
+  if (delta <= -1.2) {
+    return "Rendu plus dense";
+  }
+
+  return "Dynamique contrôlée";
+}
+
+function bassListeningLabel(result: PreviewRenderResult): string {
+  const before = result.beforeMetrics.subRatio + result.beforeMetrics.lowRatio;
+  const after = result.afterMetrics.subRatio + result.afterMetrics.lowRatio;
+  const delta = after - before;
+
+  if (delta >= 0.01) {
+    return "Assise grave renforcée";
+  }
+
+  if (delta <= -0.01) {
+    return "Grave allégé";
+  }
+
+  return "Grave stable";
+}
+
+function buildListeningSummary(result: PreviewRenderResult): string {
+  const loudness = loudnessListeningLabel(result.beforeMetrics.estimatedLufs, result.afterMetrics.estimatedLufs);
+  const brightness = brightnessListeningLabel(result.beforeMetrics.fizzRatio, result.afterMetrics.fizzRatio);
+  const dynamics = dynamicsListeningLabel(result.beforeMetrics.crestFactorDb, result.afterMetrics.crestFactorDb);
+  const bass = bassListeningLabel(result);
+
+  return `${loudness}, ${brightness.toLowerCase()}, ${bass.toLowerCase()}, ${dynamics.toLowerCase()}.`;
+}
+
 function ComparisonRow({
   label,
   original,
   preview,
   delta,
+  listening,
   originalScore,
   previewScore
 }: {
@@ -73,13 +159,15 @@ function ComparisonRow({
   original: string;
   preview: string;
   delta: string;
+  listening: string;
   originalScore: number;
   previewScore: number;
 }) {
   return (
-    <article className="before-after-row">
+    <article className="before-after-row listening-before-after-row">
       <div className="before-after-label">
         <strong>{label}</strong>
+        <small>{listening}</small>
         <span>{delta}</span>
       </div>
       <div className="before-after-bars">
@@ -108,7 +196,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
       <div className="panel-heading compact-heading">
         <div>
           <p className="eyebrow">Avant / Après</p>
-          <h2>Ce que la Preview a changé</h2>
+          <h2>Lecture auditive du rendu</h2>
         </div>
         {result && <span className="status-pill">Mesures estimées</span>}
       </div>
@@ -144,12 +232,18 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
 
       {result && (
         <>
+          <div className="listening-summary-card">
+            <span>Traduction à l'écoute</span>
+            <strong>{buildListeningSummary(result)}</strong>
+          </div>
+
           <div className="before-after-list">
             <ComparisonRow
               label="Niveau perçu"
               original={formatLufs(result.beforeMetrics.estimatedLufs)}
               preview={formatLufs(result.afterMetrics.estimatedLufs)}
               delta={formatDelta(result.afterMetrics.estimatedLufs - result.beforeMetrics.estimatedLufs, " LUFS")}
+              listening={loudnessListeningLabel(result.beforeMetrics.estimatedLufs, result.afterMetrics.estimatedLufs)}
               originalScore={normalizeLufs(result.beforeMetrics.estimatedLufs)}
               previewScore={normalizeLufs(result.afterMetrics.estimatedLufs)}
             />
@@ -158,6 +252,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               original={formatDb(result.beforeMetrics.peakDb)}
               preview={formatDb(result.afterMetrics.peakDb)}
               delta={formatDelta(result.afterMetrics.peakDb - result.beforeMetrics.peakDb, " dB")}
+              listening={peakListeningLabel(result.beforeMetrics.peakDb, result.afterMetrics.peakDb)}
               originalScore={normalizePeak(result.beforeMetrics.peakDb)}
               previewScore={normalizePeak(result.afterMetrics.peakDb)}
             />
@@ -166,6 +261,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               original={formatRatio(result.beforeMetrics.fizzRatio)}
               preview={formatRatio(result.afterMetrics.fizzRatio)}
               delta={formatBrightnessDelta(result.beforeMetrics.fizzRatio, result.afterMetrics.fizzRatio)}
+              listening={brightnessListeningLabel(result.beforeMetrics.fizzRatio, result.afterMetrics.fizzRatio)}
               originalScore={normalizePercent(result.beforeMetrics.fizzRatio)}
               previewScore={normalizePercent(result.afterMetrics.fizzRatio)}
             />
@@ -174,6 +270,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               original={formatDb(result.beforeMetrics.crestFactorDb)}
               preview={formatDb(result.afterMetrics.crestFactorDb)}
               delta={result.afterMetrics.crestFactorDb < result.beforeMetrics.crestFactorDb ? "Plus dense" : "Préservée"}
+              listening={dynamicsListeningLabel(result.beforeMetrics.crestFactorDb, result.afterMetrics.crestFactorDb)}
               originalScore={normalizeCrest(result.beforeMetrics.crestFactorDb, isYoutubeMix, isImpact)}
               previewScore={normalizeCrest(result.afterMetrics.crestFactorDb, isYoutubeMix, isImpact)}
             />
@@ -187,7 +284,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
           </div>
 
           <p className="message message-info">
-            Ces graphiques sont indicatifs. La différence de brillance est exprimée en pourcentage relatif à la brillance d’origine.
+            La différence de brillance est exprimée en pourcentage relatif à la brillance d'origine. Les mesures restent indicatives et doivent être validées à l'écoute.
           </p>
         </>
       )}

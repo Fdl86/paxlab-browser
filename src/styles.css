@@ -5288,3 +5288,46 @@ select { border: 1px solid var(--line); border-radius: 13px; padding: 11px 12px;
     justify-content: flex-start;
   }
 }
+
+/* DEV15.18 - Final UI cleanup and listening report. UI only, audio engine untouched. */
+.listening-summary-card {
+  margin: 0 0 12px;
+  padding: 13px 14px;
+  border: 1px solid rgba(72, 216, 255, 0.20);
+  border-radius: 17px;
+  background:
+    linear-gradient(135deg, rgba(72, 216, 255, 0.095), rgba(116, 242, 177, 0.055)),
+    rgba(255, 255, 255, 0.034);
+}
+
+.listening-summary-card span {
+  display: block;
+  color: #28d7ff;
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.listening-summary-card strong {
+  display: block;
+  margin-top: 7px;
+  color: #f6fbff;
+  font-size: 0.95rem;
+  line-height: 1.38;
+}
+
+.listening-before-after-row .before-after-label {
+  gap: 4px;
+}
+
+.listening-before-after-row .before-after-label small {
+  color: #c8d7e7;
+  font-size: 0.76rem;
+  font-weight: 780;
+  line-height: 1.26;
+}
+
+.listening-before-after-row .before-after-label span {
+  margin-top: 2px;
+}
