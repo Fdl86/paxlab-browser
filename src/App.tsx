@@ -524,10 +524,10 @@ function PreviewReadyCard({
 
 function CompactStudioTopbar() {
   return (
-    <header className="compact-studio-topbar compact-studio-topbar-minimal">
+    <header className="compact-studio-topbar compact-studio-topbar-minimal" role="banner">
       <div className="compact-brand-block">
-        <strong>PAXLAB Browser Engine</strong>
-        <span>DEV15.19 - local, sans upload</span>
+        <strong>PAXLAB</strong>
+        <span>Browser Engine · DEV15.20</span>
       </div>
       <div className="compact-topbar-actions">
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">

@@ -6093,3 +6093,618 @@ a:focus-visible {
     justify-self: stretch;
   }
 }
+
+/* DEV15.20 - Structure premium maquette. UI only, audio engine untouched. */
+
+/* ─── Reset cascade problématique des versions précédentes ─── */
+
+/* Neutralise tous les background-image/gradient injectés par DEV12→DEV15.18 */
+.compact-studio-topbar,
+.compact-studio-topbar.compact-studio-topbar-minimal,
+.guided-shell::before,
+.panel,
+.privacy-card,
+.realtime-panel,
+.guided-render-card,
+.guided-source-card,
+.guided-ab-stage .realtime-panel,
+.guided-accordion,
+.primary-button,
+.export-main-button,
+.premium-download-button.export-main-button,
+.guided-render-cta,
+.monitor-source-button.active,
+.mode-toggle button.active,
+.segmented-control button.active,
+.waveform-mode-toggle button.active,
+.guided-step.active b {
+  background-image: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+/* ─── Topbar : fixe en haut, pleine largeur ─── */
+
+.compact-studio-topbar.compact-studio-topbar-minimal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  margin: 0;
+  padding: 0 24px;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  border-radius: 0;
+  background: #0d0d14 !important;
+}
+
+/* ─── Shell : compense la topbar fixe ─── */
+
+.guided-shell {
+  padding-top: 68px;
+}
+
+/* ─── Brand block : horizontal compact ─── */
+
+.compact-brand-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compact-brand-block strong {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.01em;
+}
+
+.compact-brand-block strong::before {
+  content: "";
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: #7c6dfa;
+  flex-shrink: 0;
+}
+
+.compact-brand-block > span {
+  font-size: 11px;
+  color: #5a5a7a;
+  margin-top: 0;
+}
+
+/* ─── Trust badges : pilules discrètes ─── */
+
+.compact-trust-badges {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.compact-trust-badges span,
+.guided-trust-row span,
+.guided-mini-trust span,
+.status-pill,
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 99px;
+  background: #1c1c26;
+  color: #9090b0;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.live-pill.live,
+.ready-pill,
+.status-pill.ready-pill,
+.meter-status.good {
+  color: #5dcaa5;
+  border-color: rgba(93,202,165,0.2);
+  background: rgba(93,202,165,0.08);
+}
+
+/* ─── Topbar actions : version tag discret ─── */
+
+.compact-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ─── Stepper : barre horizontale fine ─── */
+
+.guided-stepper {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 0 20px;
+  height: 52px;
+  margin: 0 0 16px;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  background: #13131a !important;
+  grid-template-columns: none !important;
+}
+
+.guided-stepper::before {
+  content: "";
+  position: absolute;
+  left: 60px;
+  right: 60px;
+  top: 50%;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  transform: translateY(-50%);
+}
+
+.guided-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  z-index: 1;
+  grid-template-columns: none !important;
+  grid-template-areas: none !important;
+  min-height: 0;
+}
+
+.guided-step b {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #2d2d3a;
+  background: #1c1c26 !important;
+  color: #5a5a7a;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  grid-area: unset !important;
+  margin-top: 0;
+}
+
+.guided-step span {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5a5a7a;
+  grid-area: unset !important;
+}
+
+.guided-step small {
+  display: none;
+}
+
+.guided-step.active b {
+  border-color: #7c6dfa !important;
+  background: #7c6dfa !important;
+  color: #ffffff;
+}
+
+.guided-step.active span {
+  color: #e0e0f0;
+}
+
+.guided-step.active::before {
+  display: none;
+}
+
+.guided-step.done b {
+  border-color: #3d3a5a;
+  background: #2d2850 !important;
+  color: #a594fc;
+}
+
+.guided-step.done span {
+  color: #7070a0;
+}
+
+/* ─── Panels : flat surfaces sombres ─── */
+
+.panel,
+.privacy-card {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 14px !important;
+  background: #13131a !important;
+  padding: 18px;
+}
+
+/* ─── Landing : hero texte aligné gauche ─── */
+
+.guided-landing-hero {
+  justify-items: start;
+  text-align: left;
+  padding: 28px 0 16px;
+}
+
+.guided-landing-hero h1 {
+  font-size: clamp(2rem, 4vw, 4.2rem);
+  letter-spacing: -0.055em;
+  line-height: 1.04;
+  color: #ffffff;
+}
+
+.guided-landing-hero p:not(.version) {
+  color: #9090b0;
+  max-width: 560px;
+}
+
+.version {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a594fc;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+/* ─── Drop zone ─── */
+
+.drop-zone {
+  border: 1.5px dashed rgba(124,109,250,0.35) !important;
+  border-radius: 14px !important;
+  background: #0f0f15 !important;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.drop-zone:hover,
+.drop-zone-active {
+  border-color: #7c6dfa !important;
+  background: rgba(124,109,250,0.06) !important;
+  transform: none !important;
+}
+
+.drop-zone-icon {
+  background: #7c6dfa;
+  color: #ffffff;
+  border-radius: 8px;
+}
+
+/* ─── Layout 2 colonnes ─── */
+
+.guided-config-grid,
+.guided-result-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 360px !important;
+  gap: 14px !important;
+  align-items: start !important;
+}
+
+/* ─── Sidebar sticky ─── */
+
+.guided-result-side,
+.compact-side-panel {
+  position: sticky;
+  top: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: start;
+}
+
+/* ─── Realtime panel ─── */
+
+.realtime-panel,
+.guided-ab-stage .realtime-panel {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 14px !important;
+  background: #13131a !important;
+  padding: 18px !important;
+  min-height: 0 !important;
+}
+
+/* ─── Waveform ─── */
+
+.realtime-panel .monitor-waveform {
+  border-radius: 10px !important;
+  background: #0a0a0f !important;
+  border-color: rgba(255,255,255,0.06) !important;
+  cursor: default !important;
+}
+
+.monitor-waveform,
+.monitor-waveform *,
+.waveform-canvas,
+.bar-waveform-canvas,
+.bar-waveform-svg {
+  cursor: default !important;
+}
+
+.waveform-bar { fill: #7c6dfa !important; opacity: 0.9; }
+.waveform-zero { stroke: rgba(255,255,255,0.06) !important; }
+.realtime-panel .playhead { background: #a594fc !important; box-shadow: none !important; }
+.monitor-timeline, .timeline { accent-color: #7c6dfa !important; }
+
+/* ─── Transport buttons ─── */
+
+.realtime-panel .inline-transport-controls .compact-transport,
+.realtime-panel .transport-icon-only .compact-transport,
+.realtime-panel .change-track-control,
+.transport-button {
+  width: 36px !important;
+  height: 36px !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 10px !important;
+  background: #1c1c26 !important;
+  color: #e0e0f0 !important;
+  box-shadow: none !important;
+}
+
+.realtime-panel .primary-transport {
+  background: #7c6dfa !important;
+  border-color: #7c6dfa !important;
+  color: #ffffff !important;
+}
+
+/* ─── A/B source switch ─── */
+
+.monitor-source-switch {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #0a0a0f !important;
+  border-radius: 10px !important;
+  padding: 4px !important;
+}
+
+.monitor-source-button {
+  border-radius: 7px !important;
+  color: #9090b0 !important;
+  background: transparent !important;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.monitor-source-button.active,
+.mode-toggle button.active,
+.segmented-control button.active {
+  color: #ffffff !important;
+  background: #7c6dfa !important;
+}
+
+/* ─── Render options ─── */
+
+.guided-render-option {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #1c1c26 !important;
+  border-radius: 12px !important;
+  padding: 14px !important;
+}
+
+.guided-render-option.active {
+  border-color: #7c6dfa !important;
+  background: rgba(124,109,250,0.18) !important;
+}
+
+.guided-render-option strong { color: #ffffff; }
+.guided-render-option small, .guided-render-option span { color: #7070a0; }
+
+/* ─── Anti-fatigue toggle ─── */
+
+.guided-fatigue {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: transparent !important;
+  border-radius: 10px;
+}
+
+.guided-fatigue.active {
+  border-color: #7c6dfa !important;
+  background: rgba(124,109,250,0.10) !important;
+}
+
+/* ─── Boutons primaires ─── */
+
+.primary-button,
+.guided-render-cta,
+.export-main-button,
+.premium-download-button.export-main-button {
+  background: #7c6dfa !important;
+  border: 1px solid #7c6dfa !important;
+  border-radius: 10px !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+}
+
+.primary-button:hover:not(:disabled),
+.guided-render-cta:hover:not(:disabled),
+.export-main-button:hover:not(:disabled) {
+  background: #6d5ff0 !important;
+  border-color: #6d5ff0 !important;
+}
+
+/* ─── Boutons secondaires ─── */
+
+.secondary-action-button,
+.secondary-file-button,
+.expert-settings-anchor,
+.export-action-warning button {
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  background: #1c1c26 !important;
+  border-radius: 9px !important;
+  color: #e0e0f0 !important;
+  box-shadow: none !important;
+}
+
+/* ─── Export panel ─── */
+
+.export-choice-card {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #1c1c26 !important;
+  border-radius: 10px !important;
+}
+
+.export-choice-card.active {
+  border-color: #7c6dfa !important;
+  background: rgba(124,109,250,0.18) !important;
+}
+
+.export-filename-field input {
+  background: #0a0a0f !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 8px !important;
+  color: #e0e0f0 !important;
+}
+
+/* ─── Accordéons ─── */
+
+.guided-accordion,
+.guided-details-drawer {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #13131a !important;
+  border-radius: 12px !important;
+}
+
+.guided-accordion summary {
+  color: #e0e0f0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ─── Metre pills ─── */
+
+.compact-meter-pill {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #1c1c26 !important;
+  border-radius: 10px !important;
+}
+
+.compact-meter-pill strong { color: #ffffff; }
+.compact-meter-pill span { color: #7070a0; }
+.compact-meter-pill .meter-status.good { color: #5dcaa5; }
+
+/* ─── Eyebrow labels ─── */
+
+.eyebrow,
+.privacy-card span,
+.selected-file-label,
+.metric-card span,
+.session-card span,
+.meter-card span,
+.report-card span,
+.export-status-card span,
+.advisor-summary span,
+.segmented-control-block > span,
+.quality-strip span,
+.history-item small,
+.waveform-label-left > span,
+.compact-meter-pill span,
+.export-filename-field span,
+.listening-summary-card span,
+.before-after-label span {
+  color: #a594fc !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.11em !important;
+  text-transform: uppercase !important;
+}
+
+/* ─── Messages ─── */
+
+.message {
+  border-radius: 10px !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #1c1c26 !important;
+}
+
+/* ─── Processing overlay orb ─── */
+
+.processing-orb {
+  background: #7c6dfa !important;
+  box-shadow: 0 0 32px rgba(124,109,250,0.35) !important;
+}
+
+.guided-processing-card {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #13131a !important;
+  border-radius: 16px !important;
+}
+
+/* ─── Compact preview status bar ─── */
+
+.compact-preview-status {
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  background: #13131a !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+}
+
+.compact-preview-status span:nth-of-type(1) {
+  color: #ffffff !important;
+  background: #7c6dfa !important;
+  border-color: #7c6dfa !important;
+}
+
+/* ─── Mobile responsive ─── */
+
+@media (max-width: 1080px) {
+  .guided-config-grid,
+  .guided-result-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .guided-result-side,
+  .compact-side-panel {
+    position: static !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .compact-studio-topbar.compact-studio-topbar-minimal {
+    height: auto;
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .compact-trust-badges {
+    flex-wrap: wrap;
+  }
+
+  .guided-shell {
+    padding-top: 80px;
+  }
+
+  .guided-stepper {
+    flex-wrap: wrap;
+    height: auto !important;
+    padding: 12px 16px;
+    gap: 10px;
+  }
+
+  .guided-stepper::before {
+    display: none;
+  }
+
+  .guided-render-options,
+  .guided-result-side .guided-render-options,
+  .export-choice-row,
+  .compact-meter-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .realtime-panel .ab-control-bar {
+    grid-template-columns: 1fr !important;
+  }
+}
