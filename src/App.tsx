@@ -752,6 +752,8 @@ export default function App() {
   const [monitorEqualVolume, setMonitorEqualVolume] = useState(false);
   const renderTokenRef = useRef(0);
   const renderInFlightRef = useRef(false);
+  const previewSettingsRef = useRef(previewSettings);
+  previewSettingsRef.current = previewSettings;
 
   const previewMonitorGainDb = useMemo(
     () => getPreviewMonitorGainDb(previewResult, monitorEqualVolume),
@@ -1086,7 +1088,7 @@ export default function App() {
 
       if (key === "r" && decodedAudio && previewStatus !== "rendering") {
         event.preventDefault();
-        void handleRenderPreview();
+        void handleRenderPreview(previewSettingsRef.current);
         return;
       }
 
