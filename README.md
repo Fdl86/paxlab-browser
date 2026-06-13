@@ -1,10 +1,15 @@
-# PAXLAB Browser Engine - DEV15.20
+# PAXLAB Browser Engine - DEV15.20.1
 
-DEV15.20 applique la direction flat violet de référence sur la base DEV15.19 : interface sombre disciplinée, accent violet unique, topbar compacte, layout 2 colonnes plus net, sidebar persistante et export visible. Le moteur audio, les exports WAV / FLAC et le calcul de brillance ne sont pas modifiés.
+DEV15.20.1 corrige les problèmes visuels relevés sur DEV15.20 : logo topbar stabilisé, sidebar sans scroll interne, export plus visible, landing structurée, waveform visuelle sans curseur main et layout flat violet mieux stabilisé. Le moteur audio, les exports WAV / FLAC et le calcul de brillance ne sont pas modifiés.
 
 PAXLAB Browser Engine est une application web locale Vite / React / TypeScript / Web Audio API destinée à améliorer des morceaux audio générés par IA, notamment Suno.
 
 L'application reste 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Rendu PAXLAB, export local WAV ou FLAC.
+
+
+## DEV15.20
+
+Release UI de référence flat violet basée sur DEV15.19. Direction sombre disciplinée, accent violet unique, topbar compacte, layout 2 colonnes, sidebar persistante et export visible.
 
 ## DEV15.19
 
@@ -55,7 +60,7 @@ npm install
 npm run build
 ```
 
-Le build DEV15.19 a été vérifié avant livraison.
+Le build DEV15.20.1 a été vérifié avant livraison.
 
 ## Déploiement Cloudflare Pages
 

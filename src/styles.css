@@ -7099,3 +7099,455 @@ label {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* DEV15.20.1 - Flat UI cleanup from visual review. UI only, audio engine untouched. */
+.guided-shell {
+  width: min(1280px, calc(100% - 32px)) !important;
+  min-height: calc(100vh - 16px) !important;
+  margin: 8px auto !important;
+  overflow: hidden !important;
+  border-radius: 10px !important;
+  border-color: #2a2a38 !important;
+  background: #0a0a0f !important;
+}
+
+.compact-studio-topbar.compact-studio-topbar-minimal {
+  height: 54px !important;
+  min-height: 54px !important;
+  padding: 0 24px !important;
+  gap: 24px !important;
+  background: #13131a !important;
+  border-bottom: 1px solid #2a2a38 !important;
+}
+
+.compact-brand-block {
+  display: grid !important;
+  grid-template-columns: 28px auto auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 300px !important;
+  max-width: 360px !important;
+}
+
+.compact-brand-block::before {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 7px !important;
+  background: #7c6dfa !important;
+  box-shadow: inset 0 0 0 8px rgba(255, 255, 255, 0.90) !important;
+}
+
+.compact-brand-block strong,
+.compact-brand-block span {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  letter-spacing: 0 !important;
+}
+
+.compact-brand-block strong {
+  color: #ffffff !important;
+  font-size: 1.02rem !important;
+  font-weight: 850 !important;
+}
+
+.compact-brand-block span {
+  color: #a8a5c3 !important;
+  font-size: 0.82rem !important;
+  font-weight: 650 !important;
+}
+
+.compact-brand-block strong::before,
+.compact-brand-block span::before {
+  content: none !important;
+}
+
+.compact-topbar-actions {
+  gap: 22px !important;
+}
+
+.compact-trust-badges span {
+  min-height: 34px !important;
+  padding: 0 17px !important;
+  border-radius: 999px !important;
+  background: #1c1c26 !important;
+  border-color: #2a2a38 !important;
+  color: #d5d1f5 !important;
+  font-size: 0.8rem !important;
+  font-weight: 750 !important;
+}
+
+.compact-trust-badges span:nth-child(3) {
+  min-width: auto !important;
+  color: #d5d1f5 !important;
+  font-size: 0.8rem !important;
+}
+
+.compact-trust-badges span:nth-child(3)::before {
+  content: none !important;
+}
+
+.compact-trust-badges::after,
+.compact-topbar-actions::before {
+  color: #a8a5c3 !important;
+  font-size: 0.84rem !important;
+  font-weight: 700 !important;
+}
+
+.compact-topbar-actions::after {
+  min-height: 42px !important;
+  padding: 0 30px !important;
+  border-radius: 999px !important;
+  color: #ffffff !important;
+  background: #7c6dfa !important;
+  font-size: 0.94rem !important;
+  font-weight: 850 !important;
+}
+
+.guided-landing-hero {
+  padding: 28px 40px 16px !important;
+}
+
+.guided-landing-hero h1 {
+  max-width: 510px !important;
+  font-size: clamp(2.35rem, 4vw, 3.15rem) !important;
+  line-height: 1.08 !important;
+}
+
+.guided-landing-grid {
+  grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr) !important;
+  gap: 18px !important;
+  padding: 18px 40px 40px !important;
+  align-items: stretch !important;
+}
+
+.guided-landing-grid > :first-child,
+.guided-config-grid > :first-child,
+.guided-result-grid > :first-child {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.guided-landing-grid .upload-panel,
+.guided-landing-grid .drop-zone,
+.guided-workflow-card {
+  margin: 0 !important;
+}
+
+.guided-landing-grid .drop-zone {
+  max-width: none !important;
+  min-height: 286px !important;
+}
+
+.guided-workflow-card {
+  padding: 28px !important;
+  border: 1px solid #2a2a38 !important;
+  border-radius: 12px !important;
+  background: #13131a !important;
+}
+
+.guided-stepper {
+  max-width: 365px !important;
+  margin: 22px 28px 18px !important;
+}
+
+.guided-result-grid {
+  grid-template-columns: minmax(0, 1fr) 608px !important;
+  min-height: auto !important;
+  gap: 0 !important;
+  align-items: start !important;
+}
+
+.guided-ab-stage {
+  min-width: 0 !important;
+}
+
+.realtime-panel,
+.guided-ab-stage .realtime-panel {
+  min-height: auto !important;
+  padding: 36px 40px 30px !important;
+  background: #0a0a0f !important;
+}
+
+.realtime-panel .ab-control-bar {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+  gap: 22px !important;
+  margin: 0 0 30px !important;
+}
+
+.realtime-panel .ab-control-bar .monitor-source-switch {
+  justify-self: start !important;
+  width: auto !important;
+  min-width: 322px !important;
+  height: 92px !important;
+  min-height: 92px !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+}
+
+.realtime-panel .inline-transport-controls {
+  justify-self: end !important;
+  gap: 14px !important;
+}
+
+.realtime-panel .ab-control-bar .monitor-source-button {
+  width: 152px !important;
+  height: 92px !important;
+  min-height: 92px !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  background: #0a0a0f !important;
+  border-color: #56536a !important;
+  font-size: 1.32rem !important;
+  font-weight: 520 !important;
+  text-align: center !important;
+}
+
+.realtime-panel .ab-control-bar .monitor-source-button.active {
+  border-color: #56536a !important;
+  background: #0a0a0f !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.realtime-panel .inline-transport-controls .compact-transport,
+.realtime-panel .inline-transport-controls .change-track-control {
+  width: 56px !important;
+  min-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  padding: 0 !important;
+}
+
+.realtime-panel .monitor-waveform {
+  min-height: 430px !important;
+  padding: 26px !important;
+  border-radius: 18px !important;
+  background: #13131a !important;
+  cursor: default !important;
+}
+
+.monitor-waveform,
+.monitor-waveform svg,
+.monitor-waveform rect,
+.monitor-waveform path {
+  cursor: default !important;
+}
+
+.realtime-panel .waveform-label-row {
+  margin-bottom: 72px !important;
+}
+
+.realtime-panel .monitor-waveform svg {
+  height: 118px !important;
+}
+
+.waveform-bar {
+  fill: #7c6dfa !important;
+}
+
+.monitor-time-row {
+  margin: 14px 0 8px !important;
+}
+
+.monitor-timeline {
+  margin: 0 !important;
+}
+
+.compact-meter-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 16px !important;
+  margin-top: 28px !important;
+}
+
+.compact-meter-pill {
+  min-height: 90px !important;
+  padding: 18px !important;
+}
+
+.compact-now-playing-strip {
+  margin-top: 22px !important;
+  min-height: 64px !important;
+}
+
+.guided-result-side,
+.compact-side-panel {
+  position: static !important;
+  top: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  border-left: 1px solid #2a2a38 !important;
+  background: #0a0a0f !important;
+}
+
+.guided-result-side > *,
+.compact-side-panel > * {
+  padding: 24px 30px !important;
+  border-bottom: 1px solid #2a2a38 !important;
+}
+
+.guided-result-side .export-panel-anchor {
+  order: 1 !important;
+}
+
+.guided-result-side .compact-side-summary {
+  order: 2 !important;
+}
+
+.guided-result-side .guided-render-card {
+  order: 3 !important;
+}
+
+.premium-export-panel .compact-export-heading {
+  margin-bottom: 18px !important;
+}
+
+.premium-export-panel h2 {
+  color: #ffffff !important;
+  font-size: 1.06rem !important;
+  line-height: 1.25 !important;
+  text-transform: none !important;
+}
+
+.export-choice-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.export-choice-card {
+  min-height: 82px !important;
+  padding: 14px 16px !important;
+  border-radius: 9px !important;
+}
+
+.export-choice-card.active {
+  border-color: #7c6dfa !important;
+  background: #302a59 !important;
+}
+
+.export-filename-field input {
+  height: 40px !important;
+  font-size: 0.92rem !important;
+}
+
+.premium-download-button.export-main-button {
+  min-height: 72px !important;
+  margin-top: 18px !important;
+  border-radius: 999px !important;
+  background: #7c6dfa !important;
+}
+
+.compact-side-summary .secondary-action-button {
+  margin-top: 14px !important;
+}
+
+.guided-result-side .guided-render-card {
+  padding-top: 26px !important;
+}
+
+.guided-render-options,
+.guided-result-side .guided-render-options {
+  gap: 10px !important;
+}
+
+.guided-render-option,
+.guided-result-side .guided-render-option {
+  min-height: 72px !important;
+  padding: 12px !important;
+}
+
+.guided-fatigue {
+  min-height: 40px !important;
+}
+
+.guided-main-cta {
+  min-height: 56px !important;
+}
+
+.guided-accordions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  border-top: 1px solid #2a2a38 !important;
+}
+
+.guided-accordion {
+  border: 0 !important;
+  border-right: 1px solid #2a2a38 !important;
+  border-radius: 0 !important;
+}
+
+.guided-accordion:last-child {
+  border-right: 0 !important;
+}
+
+.guided-accordion summary {
+  min-height: 64px !important;
+  padding: 16px 18px !important;
+}
+
+.guided-footer-note {
+  display: block !important;
+  text-align: center !important;
+}
+
+@media (max-width: 1180px) {
+  .guided-result-grid,
+  .guided-landing-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .guided-result-side,
+  .compact-side-panel {
+    border-left: 0 !important;
+    border-top: 1px solid #2a2a38 !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .compact-studio-topbar.compact-studio-topbar-minimal {
+    height: auto !important;
+    min-height: 54px !important;
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+    padding: 12px 16px !important;
+  }
+
+  .compact-brand-block {
+    min-width: 0 !important;
+  }
+
+  .guided-stepper {
+    max-width: none !important;
+    margin: 18px 18px !important;
+  }
+
+  .realtime-panel,
+  .guided-ab-stage .realtime-panel {
+    padding: 22px !important;
+  }
+
+  .realtime-panel .ab-control-bar {
+    grid-template-columns: 1fr !important;
+  }
+
+  .realtime-panel .inline-transport-controls {
+    justify-self: start !important;
+  }
+
+  .realtime-panel .monitor-waveform {
+    min-height: 300px !important;
+  }
+}

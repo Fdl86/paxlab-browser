@@ -526,8 +526,8 @@ function CompactStudioTopbar() {
   return (
     <header className="compact-studio-topbar compact-studio-topbar-minimal">
       <div className="compact-brand-block">
-        <strong>PAXLAB Browser Engine</strong>
-        <span>DEV15.20 - local, sans upload</span>
+        <strong>PAXLAB</strong>
+        <span>Browser Engine</span>
       </div>
       <div className="compact-topbar-actions">
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
@@ -654,7 +654,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.20 Flat UI
+          PAXLAB Browser Engine - DEV15.20.1 Flat UI
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1121,6 +1121,8 @@ export default function App() {
         previewStatus={previewStatus}
       />
 
+      <CompactStudioTopbar />
+
       {!decodedAudio && (
         <SimpleLanding
           selectedFile={selectedFile}
@@ -1132,8 +1134,6 @@ export default function App() {
 
       {decodedAudio && (
         <>
-          <CompactStudioTopbar />
-
           <WorkflowStepper
             step={workflowStep}
             analysisStatus={analysisStatus}
