@@ -54,7 +54,7 @@ export function UploadPanel({
     <section className="panel upload-panel hero-upload-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Upload local</p>
+          <p className="eyebrow">Local - Aucun upload</p>
           <h2>Dépose ton morceau</h2>
         </div>
         <span className="status-pill">Local</span>
@@ -87,8 +87,8 @@ export function UploadPanel({
         />
 
         <span className="drop-zone-icon" aria-hidden="true">↥</span>
-        <span className="drop-zone-title">Glisse ton audio</span>
-        <span className="drop-zone-subtitle">WAV, MP3 et formats audio compatibles navigateur. Aucun upload serveur.</span>
+        <span className="drop-zone-title">Glisse un fichier audio ici</span>
+        <span className="drop-zone-subtitle">WAV - MP3 - FLAC - AAC - AIFF - jusqu’à 300 MB. Local - Aucun upload.</span>
       </label>
 
       {localWarning && <p className="message message-warning">{localWarning}</p>}
