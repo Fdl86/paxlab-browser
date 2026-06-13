@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-19-flat-ui",
+  "version": "1.0.0-dev15-20-flat-reference-ui",
   "type": "module",
   "scripts": {
     "dev": "vite",

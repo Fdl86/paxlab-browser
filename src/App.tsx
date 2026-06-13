@@ -524,10 +524,10 @@ function PreviewReadyCard({
 
 function CompactStudioTopbar() {
   return (
-    <header className="compact-studio-topbar compact-studio-topbar-minimal" role="banner">
+    <header className="compact-studio-topbar compact-studio-topbar-minimal">
       <div className="compact-brand-block">
-        <strong>PAXLAB</strong>
-        <span>Browser Engine · DEV15.20</span>
+        <strong>PAXLAB Browser Engine</strong>
+        <span>DEV15.20 - local, sans upload</span>
       </div>
       <div className="compact-topbar-actions">
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
@@ -654,7 +654,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.19 Flat UI
+          PAXLAB Browser Engine - DEV15.20 Flat UI
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -752,8 +752,6 @@ export default function App() {
   const [monitorEqualVolume, setMonitorEqualVolume] = useState(false);
   const renderTokenRef = useRef(0);
   const renderInFlightRef = useRef(false);
-  const previewSettingsRef = useRef(previewSettings);
-  previewSettingsRef.current = previewSettings;
 
   const previewMonitorGainDb = useMemo(
     () => getPreviewMonitorGainDb(previewResult, monitorEqualVolume),
@@ -1088,7 +1086,7 @@ export default function App() {
 
       if (key === "r" && decodedAudio && previewStatus !== "rendering") {
         event.preventDefault();
-        void handleRenderPreview(previewSettingsRef.current);
+        void handleRenderPreview();
         return;
       }
 
