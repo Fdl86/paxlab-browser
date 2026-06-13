@@ -27,6 +27,10 @@ function notifyProgress(onProgress: RenderProgressCallback | undefined, stepInde
   onProgress?.({ stepIndex, progress, label });
 }
 
+function waitForProgressFrame(durationMs = 110): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, durationMs));
+}
+
 const YOUTUBE_SAFE_TARGET_LUFS = -14.4;
 const YOUTUBE_MAX_LUFS = -14.0;
 const YOUTUBE_PEAK_TARGET_DB = -2.2;
@@ -498,11 +502,14 @@ async function renderPreviewMasterInternal(
 ): Promise<PreviewRenderResult> {
   const startedAt = performance.now();
   notifyProgress(onProgress, 0, 10, "Chargement local");
+  await waitForProgressFrame(140);
   const beforeMetrics = analyzeAdvancedAudioBuffer(inputBuffer);
   notifyProgress(onProgress, 1, 22, "Analyse du morceau");
+  await waitForProgressFrame(140);
   const profile = getProcessingProfile(settings);
   const preset = getPresetById(settings.presetId);
   notifyProgress(onProgress, 2, 34, "Cible automatique");
+  await waitForProgressFrame(140);
 
   const cleanup = cleanupInputBuffer(inputBuffer, settings);
 
@@ -585,9 +592,11 @@ async function renderPreviewMasterInternal(
 
   source.start(0);
   notifyProgress(onProgress, 3, 48, "Correction du spectre");
+  await waitForProgressFrame(180);
 
   const renderedBuffer = await offlineContext.startRendering();
   notifyProgress(onProgress, 4, 64, "Optimisation dynamique");
+  await waitForProgressFrame(120);
   const stereoBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
   const isYoutubeMix = settings.autoIntensity === "youtube";
   const effectiveDensity = settings.spacePreserve || isYoutubeMix ? Math.round(settings.density * (isYoutubeMix ? 0.72 : 0.54)) : settings.density;
@@ -597,6 +606,7 @@ async function renderPreviewMasterInternal(
   const densityBuffer = applyGentleDensity(stereoBuffer, effectiveDensity);
   const preGainMetrics = analyzeAudioBuffer(densityBuffer);
   notifyProgress(onProgress, 5, 74, "Normalisation du niveau");
+  await waitForProgressFrame(120);
   const leveledBuffer = applySafeTargetGain(
     densityBuffer,
     effectiveTargetRmsDb,
@@ -612,6 +622,7 @@ async function renderPreviewMasterInternal(
     settings.spacePreserve && !isYoutubeMix
   );
   notifyProgress(onProgress, 6, 86, "Sécurité peak");
+  await waitForProgressFrame(120);
   const limiter = {
     buffer: calibrated.buffer,
     active: firstLimiter.active || calibrated.limiterActive,
@@ -706,6 +717,7 @@ async function renderPreviewMasterInternal(
   }
 
   notifyProgress(onProgress, 7, 96, "Préparation export");
+  await waitForProgressFrame(140);
   const renderTimeMs = performance.now() - startedAt;
   const report: ProcessingReport = {
     profileLabel: preset.label,

@@ -203,8 +203,8 @@ function ProcessingOverlay({
 
   return (
     <div className="guided-processing-overlay" role="status" aria-live="polite">
-      <div className="guided-processing-card">
-        <div className="processing-orb" aria-hidden="true" />
+      <div className="guided-processing-card processing-modal-violet">
+        <div className="processing-logo-mark" aria-hidden="true">×</div>
         <p className="eyebrow">Traitement local</p>
         <h2>Préparation de la Preview</h2>
         <p>
@@ -217,14 +217,26 @@ function ProcessingOverlay({
           <span />
         </div>
         <strong>
-          {Math.round(safeProgress)} % · {RENDER_STEPS[activeIndex]}
+          {Math.round(safeProgress)} % - {RENDER_STEPS[activeIndex]}
         </strong>
-        <div className="guided-processing-steps">
-          {RENDER_STEPS.map((step, index) => (
-            <span key={step} className={index <= activeIndex ? "done" : ""}>
-              {step}
-            </span>
-          ))}
+        <div className="guided-processing-steps detailed-processing-steps">
+          {RENDER_STEPS.map((step, index) => {
+            const stateClass =
+              index < activeIndex ? "done" : index === activeIndex ? "active" : "pending";
+            return (
+              <span key={step} className={stateClass}>
+                <b>{String(index + 1).padStart(2, "0")}</b>
+                <em>{step}</em>
+                <small>
+                  {index < activeIndex
+                    ? "Terminé"
+                    : index === activeIndex
+                      ? "En cours"
+                      : "En attente"}
+                </small>
+              </span>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -274,6 +286,58 @@ function WorkflowStepper({
   );
 }
 
+
+function buildStaticWaveformBars(buffer: AudioBuffer | null, bins = 180): Array<{ height: number }> {
+  if (!buffer || buffer.length <= 0) {
+    return [];
+  }
+
+  const channelCount = buffer.numberOfChannels;
+  const step = Math.max(1, Math.floor(buffer.length / bins));
+  const raw: number[] = [];
+
+  for (let bin = 0; bin < bins; bin += 1) {
+    const start = bin * step;
+    const end = Math.min(buffer.length, start + step);
+    let sumSquares = 0;
+    let sampleCount = 0;
+
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const data = buffer.getChannelData(channel);
+      for (let index = start; index < end; index += 1) {
+        const sample = data[index] ?? 0;
+        sumSquares += sample * sample;
+        sampleCount += 1;
+      }
+    }
+
+    raw.push(sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0);
+  }
+
+  const sorted = raw.filter((value) => value > 0.00001).sort((a, b) => a - b);
+  const reference = Math.max(0.0008, sorted[Math.floor(sorted.length * 0.92)] ?? 0.0008);
+
+  return raw.map((value, index) => {
+    const previous = raw[index - 1] ?? value;
+    const next = raw[index + 1] ?? value;
+    const smooth = previous * 0.18 + value * 0.64 + next * 0.18;
+    const normalized = Math.min(1, Math.pow(Math.min(3.2, smooth / reference), 0.72) * 0.72 + 0.08);
+    return { height: Math.max(8, normalized * 88) };
+  });
+}
+
+function formatChannelLabel(channelCount: number): string {
+  if (channelCount === 1) {
+    return "1 (Mono)";
+  }
+
+  if (channelCount === 2) {
+    return "2 (Stéréo)";
+  }
+
+  return `${channelCount} canaux`;
+}
+
 function SourceLoadedCard({
   decodedAudio,
   onFileSelected,
@@ -289,27 +353,95 @@ function SourceLoadedCard({
     onFileSelected(file);
   }
 
+  const sourceBars = buildStaticWaveformBars(decodedAudio.audioBuffer);
+
   return (
-    <section className="panel guided-source-card">
-      <div>
-        <p className="eyebrow">Morceau chargé</p>
-        <h2>{decodedAudio.file.name}</h2>
-        <p>
-          {formatDuration(decodedAudio.info.durationSeconds)} ·{" "}
-          {decodedAudio.info.sampleRate.toLocaleString("fr-FR")} Hz ·{" "}
-          {decodedAudio.info.numberOfChannels} canal
-          {decodedAudio.info.numberOfChannels > 1 ? "x" : ""}
-        </p>
+    <section className="panel guided-source-card loaded-file-stage-card">
+      <div className="loaded-file-header">
+        <div className="loaded-file-icon" aria-hidden="true">♪</div>
+        <div className="loaded-file-copy">
+          <p className="eyebrow">Morceau chargé</p>
+          <h2>{decodedAudio.file.name}</h2>
+          <p>
+            {formatDuration(decodedAudio.info.durationSeconds)} ·{" "}
+            {decodedAudio.info.sampleRate.toLocaleString("fr-FR")} Hz ·{" "}
+            {formatChannelLabel(decodedAudio.info.numberOfChannels)}
+          </p>
+        </div>
+        <label className="secondary-file-button icon-button-label loaded-file-change">
+          <span aria-hidden="true">↺</span>
+          Changer de fichier
+          <input
+            type="file"
+            accept={AUDIO_ACCEPT}
+            onChange={(event) => handleChange(event.target.files?.[0])}
+          />
+        </label>
       </div>
-      <label className="secondary-file-button icon-button-label">
-        <span aria-hidden="true">↺</span>
-        Changer de fichier
-        <input
-          type="file"
-          accept={AUDIO_ACCEPT}
-          onChange={(event) => handleChange(event.target.files?.[0])}
-        />
-      </label>
+
+      <div className="loaded-source-waveform" aria-hidden="true">
+        {sourceBars.map((bar, index) => (
+          <i key={index} style={{ height: `${bar.height}%` }} />
+        ))}
+      </div>
+
+      <div className="loaded-file-metadata">
+        <span>
+          <small>Durée</small>
+          <b>{formatDuration(decodedAudio.info.durationSeconds)}</b>
+        </span>
+        <span>
+          <small>Fréquence d’échantillonnage</small>
+          <b>{decodedAudio.info.sampleRate.toLocaleString("fr-FR")} Hz</b>
+        </span>
+        <span>
+          <small>Canaux</small>
+          <b>{formatChannelLabel(decodedAudio.info.numberOfChannels)}</b>
+        </span>
+        <span>
+          <small>Format</small>
+          <b>{decodedAudio.file.type || "Audio navigateur"}</b>
+        </span>
+      </div>
+    </section>
+  );
+}
+
+
+function ProcessingNextStepCard({
+  hasAudio,
+  isRendering,
+  onRenderPreview,
+}: {
+  hasAudio: boolean;
+  isRendering: boolean;
+  onRenderPreview: () => void;
+}) {
+  return (
+    <section className="panel guided-next-step-card">
+      <p className="eyebrow">Prochaine étape : préparation du rendu</p>
+      <div className="next-step-track" aria-hidden="true">
+        <span className="active"><b>1</b><strong>Fichier chargé</strong><small>Prêt pour l’analyse</small></span>
+        <i />
+        <span><b>2</b><strong>Analyse du morceau</strong><small>Détection et mesure</small></span>
+        <i />
+        <span><b>3</b><strong>Traitements</strong><small>Corrections et optimisations</small></span>
+        <i />
+        <span><b>4</b><strong>Rendu</strong><small>Export du résultat</small></span>
+      </div>
+      <div className="next-step-action-row">
+        <p>
+          Ton morceau est prêt. Lance l’analyse pour détecter le spectre, le niveau et les éventuels problèmes.
+        </p>
+        <button
+          type="button"
+          className="primary-button"
+          disabled={!hasAudio || isRendering}
+          onClick={onRenderPreview}
+        >
+          Lancer l’analyse
+        </button>
+      </div>
     </section>
   );
 }
@@ -654,7 +786,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.20.1 Flat UI
+          PAXLAB Browser Engine - DEV15.21 Reference UI
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1134,11 +1266,6 @@ export default function App() {
 
       {decodedAudio && (
         <>
-          <WorkflowStepper
-            step={workflowStep}
-            analysisStatus={analysisStatus}
-          />
-
           {decodeStatus === "error" && decodeErrorMessage && (
             <p className="message message-error standalone-message">
               {decodeErrorMessage}
@@ -1156,35 +1283,47 @@ export default function App() {
           )}
 
           {!previewResult && (
-            <section className="guided-config-grid">
-              <SourceLoadedCard
-                decodedAudio={decodedAudio}
-                onFileSelected={handleSelectFile}
-              />
-              <RenderChoiceCard
-                settings={previewSettings}
-                sourceAnalysis={sourceAnalysis}
-                hasAudio={Boolean(decodedAudio)}
-                hasPreview={Boolean(previewResult)}
-                hasPendingChanges={hasPendingChanges}
-                previewStatus={previewStatus}
-                previewErrorMessage={previewErrorMessage}
-                onSettingsChange={setPreviewSettings}
-                onRenderPreview={() => void handleRenderPreview()}
-              />
+            <section className="guided-config-grid loaded-layout-grid">
+              <div className="loaded-main-column">
+                <SourceLoadedCard
+                  decodedAudio={decodedAudio}
+                  onFileSelected={handleSelectFile}
+                />
+                <ProcessingNextStepCard
+                  hasAudio={Boolean(decodedAudio)}
+                  isRendering={previewStatus === "rendering"}
+                  onRenderPreview={() => void handleRenderPreview()}
+                />
+              </div>
+              <aside className="loaded-side-column">
+                <RenderChoiceCard
+                  settings={previewSettings}
+                  sourceAnalysis={sourceAnalysis}
+                  hasAudio={Boolean(decodedAudio)}
+                  hasPreview={Boolean(previewResult)}
+                  hasPendingChanges={hasPendingChanges}
+                  previewStatus={previewStatus}
+                  previewErrorMessage={previewErrorMessage}
+                  onSettingsChange={setPreviewSettings}
+                  onRenderPreview={() => void handleRenderPreview()}
+                />
+                <section className="panel preparation-card">
+                  <p className="eyebrow">Préparation du rendu</p>
+                  <p>Aucun traitement en cours. Lance l’analyse pour commencer.</p>
+                  <button type="button" disabled>Démarrer le rendu</button>
+                </section>
+                <details className="guided-accordion side-technical-drawer">
+                  <summary>
+                    <span>Détails techniques</span>
+                    <small>Informations sur l’analyse et le traitement.</small>
+                  </summary>
+                </details>
+              </aside>
             </section>
           )}
 
           {previewResult && (
             <>
-              <CompactPreviewSummary
-                previewResult={previewResult}
-                settings={readySettings}
-                revision={previewRevision}
-                renderedAt={previewRenderedAt}
-                hasPendingChanges={hasPendingChanges}
-              />
-
               <section className="guided-result-grid">
                 <div className="guided-ab-stage">
                   <RealtimeMonitorPanel
@@ -1229,16 +1368,6 @@ export default function App() {
                     previewErrorMessage={previewErrorMessage}
                     onSettingsChange={setPreviewSettings}
                     onRenderPreview={() => void handleRenderPreview()}
-                  />
-                  <ResultSideSummary
-                    previewResult={previewResult}
-                    settings={readySettings}
-                    revision={previewRevision}
-                    renderedAt={previewRenderedAt}
-                    hasPendingChanges={hasPendingChanges}
-                    onToggleModify={() =>
-                      setShowRenderEditor((value) => !value)
-                    }
                   />
                   <div ref={exportPanelRef} className="export-panel-anchor">
                     <ExportPanel

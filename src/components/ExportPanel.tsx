@@ -239,7 +239,7 @@ export function ExportPanel({
   const buttonLabel =
     selectedExport.id === "flac24" && isPreparingFlac
       ? "Préparation FLAC..."
-      : `Télécharger ${selectedExport.title}`;
+      : `Exporter ${selectedExport.title}`;
 
   return (
     <section className="panel export-panel simple-export-panel premium-export-panel">
@@ -247,8 +247,8 @@ export function ExportPanel({
         <div>
           <h2>
             {previewBuffer
-              ? `Exporter la Preview #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
-              : "Exporter la Preview"}
+              ? `Exporter le rendu #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
+              : "Exporter le rendu"}
           </h2>
         </div>
         <span className={canExport ? "status-pill ready-pill" : "status-pill"}>

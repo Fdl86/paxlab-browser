@@ -362,18 +362,6 @@ export function RealtimeMonitorPanel({
   const activeHeadroom = headroomSummary
     ? headroomSummary.finalHeadroomDb
     : meter.headroomDb;
-  const previewLabel =
-    previewRevision > 0 ? `Preview #${previewRevision}` : "Preview";
-  const nowPlayingLabel =
-    activeSource === "original" ? "Original" : previewLabel;
-  const previewStatusLabel =
-    previewStatus === "rendering"
-      ? "Rendu..."
-      : previewStatus === "ready"
-        ? hasPendingChanges
-          ? `#${previewRevision} à régénérer`
-          : `#${previewRevision}${previewRenderedAt ? ` · ${previewRenderedAt}` : ""}`
-        : "Non générée";
 
   function handleFileChange(file: File | undefined) {
     if (!file || !onFileSelected) {
@@ -424,6 +412,23 @@ export function RealtimeMonitorPanel({
             Rendu PAXLAB
           </button>
         </div>
+
+        {onToggleEqualVolume && (
+          <label
+            className={
+              equalVolume
+                ? "monitor-equal-toggle active top-equal-toggle"
+                : "monitor-equal-toggle top-equal-toggle"
+            }
+          >
+            <input
+              type="checkbox"
+              checked={equalVolume}
+              onChange={onToggleEqualVolume}
+            />
+            Volume égal
+          </label>
+        )}
 
         <div className="transport-row compact-controls inline-transport-controls transport-icon-only">
           <button
@@ -478,7 +483,7 @@ export function RealtimeMonitorPanel({
               <div className="waveform-label-left">
                 <span>
                   {activeSource === "preview"
-                    ? `EN ÉCOUTE - ${previewLabel}${previewRenderedAt ? ` (${previewRenderedAt})` : ""}`
+                    ? "EN ÉCOUTE - Rendu PAXLAB"
                     : "EN ÉCOUTE - Original"}
                 </span>
                 <small>{fileName ?? "Aucun fichier audio chargé"}</small>
@@ -571,29 +576,6 @@ export function RealtimeMonitorPanel({
             </div>
           </div>
 
-          <div className="compact-now-playing-strip">
-            <span>{nowPlayingLabel}</span>
-            <span>{previewStatusLabel}</span>
-            {onToggleEqualVolume && (
-              <label
-                className={
-                  equalVolume
-                    ? "monitor-equal-toggle active"
-                    : "monitor-equal-toggle"
-                }
-              >
-                <input
-                  type="checkbox"
-                  checked={equalVolume}
-                  onChange={onToggleEqualVolume}
-                />
-                Volume égal
-              </label>
-            )}
-            <strong className={`meter-status ${meter.status}`}>
-              {meterLabel(meter.status)}
-            </strong>
-          </div>
         </>
       )}
     </section>
