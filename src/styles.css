@@ -9045,3 +9045,143 @@ body {
     display: grid !important;
   }
 }
+
+/* DEV15.21.3 - Sidebar width, switches and topbar cleanup. UI only, audio engine untouched. */
+.compact-topbar-actions::after {
+  content: none !important;
+  display: none !important;
+}
+
+.guided-result-side.compact-side-panel,
+.compact-side-panel {
+  align-items: stretch !important;
+  gap: 18px !important;
+}
+
+.guided-result-side.compact-side-panel > .guided-render-card,
+.guided-result-side.compact-side-panel > .export-panel-anchor,
+.compact-side-panel > .guided-render-card,
+.compact-side-panel > .export-panel-anchor {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.guided-result-side.compact-side-panel > .export-panel-anchor > .export-panel,
+.compact-side-panel > .export-panel-anchor > .export-panel,
+.guided-result-side .export-panel-anchor .premium-export-panel,
+.compact-side-panel .export-panel-anchor .premium-export-panel {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  padding: 20px !important;
+  border: 1px solid #2a2a38 !important;
+  border-radius: 12px !important;
+  background: #13131a !important;
+}
+
+.guided-result-side.compact-side-panel > .guided-render-card,
+.compact-side-panel > .guided-render-card {
+  padding: 20px !important;
+}
+
+.guided-result-side .export-choice-row,
+.compact-side-panel .export-choice-row {
+  width: 100% !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.guided-render-card .guided-fatigue,
+.compact-side-panel .guided-render-card .guided-fatigue {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 44px !important;
+  align-items: center !important;
+  gap: 14px !important;
+  min-height: 52px !important;
+  margin: 14px 0 0 !important;
+  padding: 0 14px !important;
+  border: 1px solid #2a2a38 !important;
+  border-radius: 8px !important;
+  background: #13131a !important;
+  text-align: left !important;
+}
+
+.guided-render-card .guided-fatigue span,
+.compact-side-panel .guided-render-card .guided-fatigue span {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  min-width: 0 !important;
+  display: block !important;
+}
+
+.guided-render-card .guided-fatigue strong,
+.compact-side-panel .guided-render-card .guided-fatigue strong {
+  display: block !important;
+  color: #ffffff !important;
+  font-size: 0.84rem !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+}
+
+.guided-render-card .guided-fatigue small,
+.compact-side-panel .guided-render-card .guided-fatigue small {
+  display: none !important;
+}
+
+.guided-render-card .guided-fatigue input,
+.compact-side-panel .guided-render-card .guided-fatigue input {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  width: 44px !important;
+  height: 24px !important;
+  min-width: 44px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  border: 1px solid #3b394c !important;
+  border-radius: 999px !important;
+  background: #1c1c26 !important;
+  position: relative !important;
+  cursor: pointer !important;
+}
+
+.guided-render-card .guided-fatigue input::before,
+.compact-side-panel .guided-render-card .guided-fatigue input::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 3px !important;
+  top: 3px !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 999px !important;
+  background: #f4f1ff !important;
+  transition: transform 160ms ease !important;
+}
+
+.guided-render-card .guided-fatigue input:checked,
+.compact-side-panel .guided-render-card .guided-fatigue input:checked {
+  border-color: #7c6dfa !important;
+  background: #7c6dfa !important;
+}
+
+.guided-render-card .guided-fatigue input:checked::before,
+.compact-side-panel .guided-render-card .guided-fatigue input:checked::before {
+  transform: translateX(20px) !important;
+}
+
+@media (max-width: 760px) {
+  .guided-result-side.compact-side-panel > .guided-render-card,
+  .guided-result-side.compact-side-panel > .export-panel-anchor,
+  .compact-side-panel > .guided-render-card,
+  .compact-side-panel > .export-panel-anchor {
+    padding: 0 !important;
+  }
+}

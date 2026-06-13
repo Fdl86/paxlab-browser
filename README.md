@@ -1,6 +1,6 @@
-# PAXLAB Browser Engine - DEV15.21.2
+# PAXLAB Browser Engine - DEV15.21.3
 
-DEV15.21.2 polit l’interface de référence après DEV15.21.1 : la colonne droite place désormais le bloc Rendu au-dessus de l’export, les deux blocs utilisent la même largeur, le lecteur reçoit un résumé compact de lecture avant export, le toggle Volume égal est harmonisé en switch violet, la zone pré-import respire davantage et la modale de préparation garde une progression plus lisible avec un libellé neutre.
+DEV15.21.3 corrige les conflits CSS visibles après DEV15.21.2 : le bloc export reprend la même largeur que le bloc rendu, le switch AI Brightness Smoothing est réaligné, le bouton Exporter le rendu est retiré de la topbar pour éviter toute confusion, et les overrides de sidebar sont stabilisés.
 
 Le moteur audio, les exports WAV / FLAC et le calcul de brillance ne sont pas modifiés. Le fix waveform visuelle sans curseur main est conservé.
 
@@ -62,7 +62,7 @@ npm install
 npm run build
 ```
 
-Le build DEV15.21.2 a été vérifié avant livraison.
+Le build DEV15.21.3 a été vérifié avant livraison.
 
 ## Déploiement Cloudflare Pages
 

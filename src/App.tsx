@@ -896,7 +896,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.21.2 UI Polish
+          PAXLAB Browser Engine - DEV15.21.3 Sidebar CSS Fix
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
