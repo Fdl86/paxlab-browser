@@ -1171,3 +1171,18 @@ body{background:#0a0a0f !important;}
 .guided-render-card .guided-fatigue input:checked, .compact-side-panel .guided-render-card .guided-fatigue input:checked{border-color:#7c6dfa !important;background:#7c6dfa !important;}
 .guided-render-card .guided-fatigue input:checked::before, .compact-side-panel .guided-render-card .guided-fatigue input:checked::before{transform:translateX(20px) !important;}
 @media (max-width: 760px){.guided-result-side.compact-side-panel > .guided-render-card, .guided-result-side.compact-side-panel > .export-panel-anchor, .compact-side-panel > .guided-render-card, .compact-side-panel > .export-panel-anchor{padding:0 !important;}}
+
+/* DEV15.22 - Recommended Preview flow. */
+.loaded-file-analysis-status{margin:16px 0 0;color:#b6b2cf;font-size:0.88rem;line-height:1.45;}
+.loaded-file-analysis-status.ready{color:#d8d4ff;}
+.loaded-file-analysis-status.running{color:#b0a7ff;}
+.loaded-file-analysis-status.error{color:#ffb4b4;}
+.recommended-preview-note{display:grid;gap:5px;margin:14px 0 12px;padding:12px 14px;border:1px solid rgba(124,109,250,0.45);border-radius:10px;background:rgba(124,109,250,0.10);}
+.recommended-preview-note strong{color:#fff;font-size:0.9rem;}
+.recommended-preview-note span{color:#c5c0e8;font-size:0.78rem;line-height:1.35;}
+.guided-render-option.recommended:not(.active){border-color:rgba(124,109,250,0.42) !important;background:#19172b !important;}
+.guided-render-option em,.guided-fatigue em{display:inline-flex;align-items:center;justify-content:center;justify-self:start;margin-top:5px;padding:2px 7px;border:1px solid rgba(124,109,250,0.5);border-radius:999px;color:#d8d4ff;background:rgba(124,109,250,0.14);font-size:0.62rem;font-style:normal;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;}
+.guided-render-card .guided-fatigue.recommended{border-color:rgba(124,109,250,0.48) !important;background:#19172b !important;}
+.guided-render-card .guided-fatigue em{display:none;}
+.loaded-side-column .side-technical-drawer{margin-top:0;}
+@media (max-width:760px){.recommended-preview-note{padding:10px 12px;}.loaded-file-analysis-status{font-size:0.82rem;}}

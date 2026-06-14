@@ -14,6 +14,7 @@ import { DEFAULT_PREVIEW_SETTINGS } from "./audio/previewPresets";
 import { renderPreviewMaster } from "./audio/renderPreviewMaster";
 import { useABAudioPlayer } from "./audio/useABAudioPlayer";
 import type {
+  AdvancedAudioMetrics,
   AnalysisStatus,
   AutoIntensityId,
   DecodedAudioData,
@@ -78,6 +79,82 @@ const SIMPLE_RENDERS: Array<{
     text: "Niveau stabilisé, peak prudent, grave et aigus IA contrôlés.",
   },
 ];
+
+
+interface RecommendedPreviewPlan {
+  settings: PreviewSettings;
+  autoIntensity: AutoIntensityId;
+  antiFatigue: boolean;
+  label: string;
+  reason: string;
+}
+
+function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): RecommendedPreviewPlan {
+  const brightOrFizz =
+    metrics.highTotalRatio > 0.38 ||
+    metrics.fizzRatio > 0.065 ||
+    metrics.brightnessRatio > 0.22;
+  const clippedOrHot =
+    metrics.clippingSamples > 25 || metrics.approxTruePeakDb > -0.45;
+  const compact =
+    metrics.crestFactorDb < 7.6 || metrics.loudnessRangeEstimate < 4.5;
+  const quietAndDynamic =
+    metrics.estimatedLufs <= -17.5 &&
+    metrics.crestFactorDb >= 8.8 &&
+    metrics.loudnessRangeEstimate >= 4.8 &&
+    !brightOrFizz &&
+    !clippedOrHot;
+  const alreadySmooth =
+    metrics.highTotalRatio < 0.29 &&
+    metrics.fizzRatio < 0.045 &&
+    metrics.estimatedLufs <= -13.8 &&
+    !compact;
+
+  let autoIntensity: AutoIntensityId = "youtube";
+  let antiFatigue = brightOrFizz;
+  let label = "Mix YouTube";
+  let reason = "Sortie vidéo recommandée : niveau stabilisé, peak prudent et aigus IA contrôlés.";
+
+  if (quietAndDynamic) {
+    autoIntensity = "impact";
+    antiFatigue = false;
+    label = "Impact";
+    reason = "Source basse et assez dynamique : PAXLAB recommande plus de densité avant validation A/B.";
+  } else if (alreadySmooth) {
+    autoIntensity = "balanced";
+    antiFatigue = false;
+    label = "Équilibré";
+    reason = "Source déjà plutôt saine : rendu équilibré conseillé, sans assombrir inutilement.";
+  } else if (brightOrFizz) {
+    autoIntensity = "youtube";
+    antiFatigue = true;
+    label = "Mix YouTube + AI Brightness Smoothing";
+    reason = "Brillance IA ou fizz détecté : PAXLAB recommande le lissage des aigus pour une écoute plus confortable.";
+  } else if (clippedOrHot || compact) {
+    autoIntensity = "youtube";
+    antiFatigue = false;
+    label = "Mix YouTube";
+    reason = "Source dense ou proche du plafond : rendu YouTube prudent recommandé avant export.";
+  }
+
+  const settings = buildSettingsFromAnalysis(
+    metrics,
+    autoIntensity === "youtube" ? "youtube" : "auto",
+    {
+      autoIntensity,
+      antiFatigue,
+      spacePreserve: false,
+    },
+  );
+
+  return {
+    settings,
+    autoIntensity,
+    antiFatigue,
+    label,
+    reason,
+  };
+}
 
 const AUDIO_ACCEPT = "audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif";
 const MAX_AUDIO_FILE_SIZE_BYTES = 300 * 1024 * 1024;
@@ -340,9 +417,11 @@ function formatChannelLabel(channelCount: number): string {
 
 function SourceLoadedCard({
   decodedAudio,
+  analysisStatus,
   onFileSelected,
 }: {
   decodedAudio: DecodedAudioData;
+  analysisStatus: AnalysisStatus;
   onFileSelected: (file: File) => void;
 }) {
   function handleChange(file: File | undefined) {
@@ -382,6 +461,16 @@ function SourceLoadedCard({
         </label>
       </div>
 
+      <p className={`loaded-file-analysis-status ${analysisStatus}`}>
+        {analysisStatus === "running"
+          ? "Analyse locale en cours..."
+          : analysisStatus === "ready"
+            ? "Analyse locale terminée - Preview recommandée prête à générer à droite."
+            : analysisStatus === "error"
+              ? "Analyse locale indisponible - vérifie le fichier ou recharge-le."
+              : "Analyse locale automatique après chargement."}
+      </p>
+
       <div className="loaded-source-waveform" aria-hidden="true">
         {sourceBars.map((bar, index) => (
           <i key={index} style={{ height: `${bar.height}%` }} />
@@ -411,47 +500,12 @@ function SourceLoadedCard({
 }
 
 
-function ProcessingNextStepCard({
-  hasAudio,
-  isRendering,
-  onRenderPreview,
-}: {
-  hasAudio: boolean;
-  isRendering: boolean;
-  onRenderPreview: () => void;
-}) {
-  return (
-    <section className="panel guided-next-step-card">
-      <p className="eyebrow">Prochaine étape : préparation du rendu</p>
-      <div className="next-step-track" aria-hidden="true">
-        <span className="active"><b>1</b><strong>Fichier chargé</strong><small>Prêt pour l’analyse</small></span>
-        <i />
-        <span><b>2</b><strong>Analyse du morceau</strong><small>Détection et mesure</small></span>
-        <i />
-        <span><b>3</b><strong>Traitements</strong><small>Corrections et optimisations</small></span>
-        <i />
-        <span><b>4</b><strong>Rendu</strong><small>Export du résultat</small></span>
-      </div>
-      <div className="next-step-action-row">
-        <p>
-          Ton morceau est prêt. Lance l’analyse pour détecter le spectre, le niveau et les éventuels problèmes.
-        </p>
-        <button
-          type="button"
-          className="primary-button"
-          disabled={!hasAudio || isRendering}
-          onClick={onRenderPreview}
-        >
-          Lancer l’analyse
-        </button>
-      </div>
-    </section>
-  );
-}
 
 function RenderChoiceCard({
   settings,
   sourceAnalysis,
+  analysisStatus,
+  recommendedPlan,
   hasAudio,
   hasPreview,
   hasPendingChanges,
@@ -462,6 +516,8 @@ function RenderChoiceCard({
 }: {
   settings: PreviewSettings;
   sourceAnalysis: SourceAnalysisResult | null;
+  analysisStatus: AnalysisStatus;
+  recommendedPlan: RecommendedPreviewPlan | null;
   hasAudio: boolean;
   hasPreview: boolean;
   hasPendingChanges: boolean;
@@ -471,6 +527,12 @@ function RenderChoiceCard({
   onRenderPreview: () => void;
 }) {
   const isRendering = previewStatus === "rendering";
+  const canGenerate = hasAudio && analysisStatus === "ready" && Boolean(sourceAnalysis) && !isRendering;
+  const isRecommendedSelection = Boolean(
+    recommendedPlan &&
+      settings.autoIntensity === recommendedPlan.autoIntensity &&
+      settings.antiFatigue === recommendedPlan.antiFatigue,
+  );
 
   function rebuild(partial: Partial<PreviewSettings>) {
     const base = {
@@ -521,55 +583,81 @@ function RenderChoiceCard({
 
   const buttonLabel = isRendering
     ? "Préparation en cours..."
-    : hasPreview
-      ? hasPendingChanges
-        ? "Régénérer la Preview"
-        : "Générer une autre Preview"
-      : "Générer la Preview";
+    : analysisStatus === "error"
+      ? "Analyse indisponible"
+      : analysisStatus !== "ready" || !sourceAnalysis
+        ? "Analyse locale en cours..."
+        : hasPreview
+        ? hasPendingChanges
+          ? "Régénérer la Preview"
+          : "Générer une autre Preview"
+        : isRecommendedSelection
+          ? "Générer la Preview recommandée"
+          : "Générer la Preview";
 
   return (
-    <section className="panel guided-render-card">
+    <section id="paxlab-render-card" className="panel guided-render-card">
       <div className="guided-card-heading">
         <div>
           <p className="eyebrow">Rendu</p>
           <h2>Choisis le rendu</h2>
         </div>
-        <span className="status-pill">Mode simple</span>
+        <span className="status-pill">{isRecommendedSelection ? "Recommandé" : recommendedPlan ? "Personnalisé" : "Analyse"}</span>
       </div>
 
+      {recommendedPlan && (
+        <div className="recommended-preview-note">
+          <strong>Preview recommandée : {recommendedPlan.label}</strong>
+          <span>{recommendedPlan.reason}</span>
+        </div>
+      )}
+
       <div className="guided-render-options" aria-label="Choix du rendu">
-        {SIMPLE_RENDERS.map((render) => (
-          <button
-            key={render.id}
-            type="button"
-            className={
-              settings.autoIntensity === render.id
-                ? "guided-render-option active"
-                : "guided-render-option"
-            }
-            disabled={!hasAudio || isRendering}
-            onClick={() =>
-              rebuild({
-                autoIntensity: render.id,
-                presetId: render.id === "youtube" ? "youtube" : "auto",
-              })
-            }
-          >
-            <strong>{render.label}</strong>
-            <span>{render.title}</span>
-            <small>{render.text}</small>
-          </button>
-        ))}
+        {SIMPLE_RENDERS.map((render) => {
+          const isActive = settings.autoIntensity === render.id;
+          const isRecommended = recommendedPlan?.autoIntensity === render.id;
+          const className = [
+            "guided-render-option",
+            isActive ? "active" : "",
+            isRecommended ? "recommended" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
+
+          return (
+            <button
+              key={render.id}
+              type="button"
+              className={className}
+              disabled={!hasAudio || isRendering || analysisStatus === "running"}
+              onClick={() =>
+                rebuild({
+                  autoIntensity: render.id,
+                  presetId: render.id === "youtube" ? "youtube" : "auto",
+                })
+              }
+            >
+              <strong>{render.label}</strong>
+              <span>{render.title}</span>
+              {isRecommended && <em>Recommandé</em>}
+              <small>{render.text}</small>
+            </button>
+          );
+        })}
       </div>
 
       <label
-        className={
-          settings.antiFatigue ? "guided-fatigue active" : "guided-fatigue"
-        }
+        className={[
+          "guided-fatigue",
+          settings.antiFatigue ? "active" : "",
+          recommendedPlan?.antiFatigue ? "recommended" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
       >
         <input
           type="checkbox"
-          disabled={!hasAudio || isRendering}
+          disabled={!hasAudio || isRendering || analysisStatus === "running"}
           checked={settings.antiFatigue}
           onChange={(event) => rebuild({ antiFatigue: event.target.checked })}
         />
@@ -578,18 +666,19 @@ function RenderChoiceCard({
           <small>
             Calme les aigus métalliques, le fizz et la fatigue d’écoute.
           </small>
+          {recommendedPlan?.antiFatigue && <em>Recommandé</em>}
         </span>
       </label>
 
       <button
         type="button"
         className="primary-button guided-main-cta"
-        disabled={!hasAudio || isRendering}
+        disabled={!canGenerate}
         onClick={onRenderPreview}
       >
         {buttonLabel}
         <small>
-          Traitement local, version de comparaison à valider à l’écoute
+          Analyse automatique, traitement local, validation à l’écoute
         </small>
       </button>
 
@@ -899,7 +988,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.21.4 Stability CSS Cleanup
+          PAXLAB Browser Engine - DEV15.22 Recommended Preview
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -934,7 +1023,7 @@ function SimpleLanding({
             </li>
             <li>
               <b>Mixer</b>
-              <span>Mix YouTube ou rendu simple.</span>
+              <span>Preview recommandée automatiquement.</span>
             </li>
             <li>
               <b>Comparer</b>
@@ -1017,6 +1106,14 @@ export default function App() {
       Boolean(previewResult) &&
       !areSettingsEqual(appliedPreviewSettings, previewSettings),
     [appliedPreviewSettings, previewResult, previewSettings],
+  );
+
+  const recommendedPlan = useMemo(
+    () =>
+      sourceAnalysis
+        ? buildRecommendedPreviewPlan(sourceAnalysis.metrics)
+        : null,
+    [sourceAnalysis],
   );
 
   useEffect(() => {
@@ -1122,8 +1219,10 @@ export default function App() {
           return;
         }
 
+        const recommended = buildRecommendedPreviewPlan(result.metrics);
+
         setSourceAnalysis(result);
-        setPreviewSettings(buildSettingsFromAnalysis(result.metrics));
+        setPreviewSettings({ ...recommended.settings });
         setAnalysisStatus("ready");
       } catch (error) {
         if (!isCurrentAudio) {
@@ -1150,6 +1249,8 @@ export default function App() {
     async (settingsOverride?: PreviewSettings) => {
       if (
         !decodedAudio?.audioBuffer ||
+        !sourceAnalysis ||
+        analysisStatus !== "ready" ||
         renderInFlightRef.current ||
         previewStatus === "rendering"
       ) {
@@ -1235,11 +1336,13 @@ export default function App() {
       }
     },
     [
+      analysisStatus,
       decodedAudio?.audioBuffer,
       player,
       previewCounter,
       previewSettings,
       previewStatus,
+      sourceAnalysis,
     ],
   );
 
@@ -1290,6 +1393,13 @@ export default function App() {
     }
 
     setSelectedFile(file);
+  }
+
+  function handleScrollToRender() {
+    document.getElementById("paxlab-render-card")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   }
 
   function handleScrollToExport() {
@@ -1400,18 +1510,16 @@ export default function App() {
               <div className="loaded-main-column">
                 <SourceLoadedCard
                   decodedAudio={decodedAudio}
+                  analysisStatus={analysisStatus}
                   onFileSelected={handleSelectFile}
-                />
-                <ProcessingNextStepCard
-                  hasAudio={Boolean(decodedAudio)}
-                  isRendering={previewStatus === "rendering"}
-                  onRenderPreview={() => void handleRenderPreview()}
                 />
               </div>
               <aside className="loaded-side-column">
                 <RenderChoiceCard
                   settings={previewSettings}
                   sourceAnalysis={sourceAnalysis}
+                  analysisStatus={analysisStatus}
+                  recommendedPlan={recommendedPlan}
                   hasAudio={Boolean(decodedAudio)}
                   hasPreview={Boolean(previewResult)}
                   hasPendingChanges={hasPendingChanges}
@@ -1420,11 +1528,7 @@ export default function App() {
                   onSettingsChange={setPreviewSettings}
                   onRenderPreview={() => void handleRenderPreview()}
                 />
-                <section className="panel preparation-card">
-                  <p className="eyebrow">Préparation du rendu</p>
-                  <p>Aucun traitement en cours. Lance l’analyse pour commencer.</p>
-                  <button type="button" disabled>Démarrer le rendu</button>
-                </section>
+
                 <details className="guided-accordion side-technical-drawer">
                   <summary>
                     <span>Détails techniques</span>
@@ -1475,6 +1579,8 @@ export default function App() {
                   <RenderChoiceCard
                     settings={previewSettings}
                     sourceAnalysis={sourceAnalysis}
+                    analysisStatus={analysisStatus}
+                    recommendedPlan={recommendedPlan}
                     hasAudio={Boolean(decodedAudio)}
                     hasPreview={Boolean(previewResult)}
                     hasPendingChanges={hasPendingChanges}
@@ -1493,7 +1599,7 @@ export default function App() {
                       isRendering={previewStatus === "rendering"}
                       onBeforeExport={player.stop}
                       onExported={() => setExportedRevision(previewRevision)}
-                      onRegenerateRequest={() => setShowRenderEditor(true)}
+                      onRegenerateRequest={handleScrollToRender}
                     />
                   </div>
                 </aside>
