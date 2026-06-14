@@ -90,7 +90,7 @@ export function SessionStatusPanel({
           <div>
             <span>Morceau</span>
             <strong>{decodedAudio.file.name}</strong>
-            <small>{info ? `${formatDuration(info.durationSeconds)} · ${info.numberOfChannels} canal${info.numberOfChannels > 1 ? "x" : ""}` : "Décodage local"}</small>
+            <small>{info ? `${formatDuration(info.durationSeconds)} · ${info.numberOfChannels} ${info.numberOfChannels > 1 ? "canaux" : "canal"}` : "Décodage local"}</small>
           </div>
 
           <div>

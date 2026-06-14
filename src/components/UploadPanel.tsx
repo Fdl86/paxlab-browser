@@ -83,7 +83,10 @@ export function UploadPanel({
         <input
           type="file"
           accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
-          onChange={(event) => handleFile(event.target.files?.[0])}
+          onChange={(event) => {
+            handleFile(event.target.files?.[0]);
+            event.target.value = "";
+          }}
         />
 
         <span className="drop-zone-icon" aria-hidden="true">↥</span>

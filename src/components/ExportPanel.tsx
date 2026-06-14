@@ -106,6 +106,7 @@ export function ExportPanel({
   onRegenerateRequest,
 }: ExportPanelProps) {
   const [lastExportName, setLastExportName] = useState<string | null>(null);
+  const [exportErrorMessage, setExportErrorMessage] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] =
     useState<ExportChoiceId>("flac24");
   const [isPreparingFlac, setIsPreparingFlac] = useState(false);
@@ -151,6 +152,7 @@ export function ExportPanel({
       window.setTimeout(() => URL.revokeObjectURL(previousObjectUrl), 30000);
     }
 
+    setExportErrorMessage(null);
     setLastExportName(filename);
     onExported?.();
   }
@@ -160,6 +162,7 @@ export function ExportPanel({
       return false;
     }
 
+    setExportErrorMessage(null);
     onBeforeExport();
 
     return true;
@@ -216,7 +219,8 @@ export function ExportPanel({
         error instanceof Error
           ? error.message
           : "Export FLAC indisponible, utilise WAV 24-bit.";
-      setLastExportName(message);
+      setExportErrorMessage(message);
+      setLastExportName(null);
     } finally {
       setIsPreparingFlac(false);
     }
@@ -251,13 +255,20 @@ export function ExportPanel({
               : "Exporter le rendu"}
           </h2>
         </div>
-        <span className={canExport ? "status-pill ready-pill" : "status-pill"}>
-          {canExport
-            ? "Prêt"
-            : previewBuffer
-              ? "À régénérer"
-              : "Preview requise"}
-        </span>
+        {previewBuffer && hasPendingChanges && onRegenerateRequest ? (
+          <button
+            type="button"
+            className="status-pill status-pill-button"
+            onClick={onRegenerateRequest}
+            title="Régénérer la Preview avec les réglages actuels."
+          >
+            À régénérer
+          </button>
+        ) : (
+          <span className={canExport ? "status-pill ready-pill" : "status-pill"}>
+            {canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}
+          </span>
+        )}
       </div>
 
       <div
@@ -322,7 +333,11 @@ export function ExportPanel({
         </p>
       )}
 
-      {lastExportName && !hasPendingChanges && (
+      {exportErrorMessage && (
+        <p className="message message-error">{exportErrorMessage}</p>
+      )}
+
+      {lastExportName && !hasPendingChanges && !exportErrorMessage && (
         <p className="message message-success">
           Fichier préparé : {lastExportName}
         </p>

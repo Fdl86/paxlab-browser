@@ -374,7 +374,10 @@ function SourceLoadedCard({
           <input
             type="file"
             accept={AUDIO_ACCEPT}
-            onChange={(event) => handleChange(event.target.files?.[0])}
+            onChange={(event) => {
+              handleChange(event.target.files?.[0]);
+              event.target.value = "";
+            }}
           />
         </label>
       </div>
@@ -896,7 +899,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.21.3 Sidebar CSS Fix
+          PAXLAB Browser Engine - DEV15.21.4 Stability CSS Cleanup
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

@@ -420,6 +420,7 @@ export function RealtimeMonitorPanel({
                 ? "monitor-equal-toggle active top-equal-toggle"
                 : "monitor-equal-toggle top-equal-toggle"
             }
+            title="Compense le gain du rendu pour comparer à volume perçu identique."
           >
             <span>Volume égal</span>
             <input
@@ -457,7 +458,10 @@ export function RealtimeMonitorPanel({
               <input
                 type="file"
                 accept="audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif"
-                onChange={(event) => handleFileChange(event.target.files?.[0])}
+                onChange={(event) => {
+                  handleFileChange(event.target.files?.[0]);
+                  event.target.value = "";
+                }}
               />
             </label>
           )}
