@@ -36,15 +36,15 @@ const SIMPLE_PRESETS: Array<{
 }> = [
   {
     id: "safe",
-    label: "Propre",
-    promise: "Plus doux",
-    help: "Garde le morceau naturel et confortable."
+    label: "Nettoyage léger",
+    promise: "Correction douce",
+    help: "Corrige doucement sans changer le caractère du morceau."
   },
   {
     id: "balanced",
-    label: "Équilibré",
-    promise: "Le choix simple",
-    help: "Plus fort, plus net, sans trop pousser."
+    label: "Traitement naturel",
+    promise: "Stable et musical",
+    help: "Rendu stable, musical, sans excès."
   },
   {
     id: "impact",
@@ -74,7 +74,7 @@ function repairHelp(level: SourceRepairLevel): string {
 
 function autoIntensityLabel(value: AutoIntensityId): string {
   if (value === "safe") {
-    return "Propre";
+    return "Nettoyage léger";
   }
 
   if (value === "impact") {
@@ -85,7 +85,7 @@ function autoIntensityLabel(value: AutoIntensityId): string {
     return "Mix YouTube";
   }
 
-  return "Équilibré";
+  return "Traitement naturel";
 }
 
 function formatPreviewReady(revision: number, renderedAt: string | null): string {

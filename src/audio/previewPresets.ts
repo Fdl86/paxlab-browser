@@ -43,9 +43,9 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
   },
   {
     id: "balanced",
-    label: "Équilibré",
+    label: "Traitement naturel",
     description:
-      "Traitement moins marqué, utile quand le morceau est déjà propre et qu’on veut surtout comparer.",
+      "Traitement stable et musical, utile quand le morceau est déjà propre et qu’on veut surtout comparer.",
     settings: {
       presetId: "balanced",
       highTreatment: "neutral",

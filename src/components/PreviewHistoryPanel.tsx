@@ -25,10 +25,10 @@ function formatAuto(settings: PreviewSettings): string {
   }
 
   if (settings.autoIntensity === "safe") {
-    return "Prudent";
+    return "Nettoyage léger";
   }
 
-  return "Équilibré";
+  return "Traitement naturel";
 }
 
 function formatLabel(settings: PreviewSettings): string {

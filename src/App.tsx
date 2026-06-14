@@ -48,6 +48,18 @@ const RENDER_STEPS = [
   "Préparation export",
 ];
 
+const ANALYSIS_STEPS = [
+  "Décodage audio",
+  "Mesure du niveau",
+  "Analyse spectrale",
+  "Détection brillance IA",
+  "Choix de la Preview recommandée",
+];
+
+function waitForVisualStep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 const SIMPLE_RENDERS: Array<{
   id: AutoIntensityId;
   label: string;
@@ -56,15 +68,15 @@ const SIMPLE_RENDERS: Array<{
 }> = [
   {
     id: "safe",
-    label: "Propre",
-    title: "Naturel et confortable",
-    text: "Garde plus de marge et évite de trop pousser.",
+    label: "Nettoyage léger",
+    title: "Correction discrète",
+    text: "Corrige doucement sans changer le caractère du morceau.",
   },
   {
     id: "balanced",
-    label: "Équilibré",
-    title: "Le choix recommandé",
-    text: "Plus net, plus stable, sans perdre la respiration.",
+    label: "Traitement naturel",
+    title: "Rendu stable et musical",
+    text: "Rendu stable, musical, sans excès.",
   },
   {
     id: "impact",
@@ -123,8 +135,8 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
   } else if (alreadySmooth) {
     autoIntensity = "balanced";
     antiFatigue = false;
-    label = "Équilibré";
-    reason = "Source déjà plutôt saine : rendu équilibré conseillé, sans assombrir inutilement.";
+    label = "Traitement naturel";
+    reason = "Source déjà plutôt saine : traitement naturel conseillé, sans assombrir inutilement.";
   } else if (brightOrFizz) {
     autoIntensity = "youtube";
     antiFatigue = true;
@@ -239,7 +251,7 @@ function areSettingsEqual(
 
 function intensityLabel(value: AutoIntensityId): string {
   if (value === "safe") {
-    return "Propre";
+    return "Nettoyage léger";
   }
 
   if (value === "impact") {
@@ -250,11 +262,72 @@ function intensityLabel(value: AutoIntensityId): string {
     return "Mix YouTube";
   }
 
-  return "Équilibré";
+  return "Traitement naturel";
 }
 
 function sourceAcceptsAudio(file: File): boolean {
   return validateAudioFileCandidate(file) === null;
+}
+
+function AnalysisOverlay({
+  isVisible,
+  activeStep,
+  progress,
+}: {
+  isVisible: boolean;
+  activeStep: number;
+  progress: number;
+}) {
+  if (!isVisible) {
+    return null;
+  }
+
+  const safeProgress = Math.min(100, Math.max(6, progress));
+  const activeIndex = Math.min(
+    ANALYSIS_STEPS.length - 1,
+    Math.max(0, activeStep),
+  );
+
+  return (
+    <div className="guided-processing-overlay analysis-processing-overlay" role="status" aria-live="polite">
+      <div className="guided-processing-card processing-modal-violet analysis-processing-card">
+        <div className="processing-logo-mark" aria-hidden="true">×</div>
+        <p className="eyebrow">Analyse locale</p>
+        <h2>Analyse du morceau</h2>
+        <p>
+          PAXLAB mesure le niveau, la brillance et la dynamique pour proposer une Preview adaptée.
+        </p>
+        <div
+          className="guided-progress"
+          style={{ "--progress": `${safeProgress}%` } as CSSProperties}
+        >
+          <span />
+        </div>
+        <strong>
+          {Math.round(safeProgress)} % - {ANALYSIS_STEPS[activeIndex]}
+        </strong>
+        <div className="guided-processing-steps detailed-processing-steps analysis-processing-steps">
+          {ANALYSIS_STEPS.map((step, index) => {
+            const stateClass =
+              index < activeIndex ? "done" : index === activeIndex ? "active" : "pending";
+            return (
+              <span key={step} className={stateClass}>
+                <b>{String(index + 1).padStart(2, "0")}</b>
+                <em>{step}</em>
+                <small>
+                  {index < activeIndex
+                    ? "Terminé"
+                    : index === activeIndex
+                      ? "En cours"
+                      : "En attente"}
+                </small>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ProcessingOverlay({
@@ -988,7 +1061,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.22 Recommended Preview
+          PAXLAB Browser Engine - DEV15.22.1 Analysis Dialog
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1082,10 +1155,14 @@ export default function App() {
   const [renderProgressStep, setRenderProgressStep] = useState(0);
   const [renderProgressValue, setRenderProgressValue] = useState(6);
   const [exportedRevision, setExportedRevision] = useState<number | null>(null);
+  const [analysisOverlayVisible, setAnalysisOverlayVisible] = useState(false);
+  const [analysisVisualStep, setAnalysisVisualStep] = useState(0);
+  const [analysisVisualProgress, setAnalysisVisualProgress] = useState(6);
   const exportPanelRef = useRef<HTMLDivElement | null>(null);
   const [monitorEqualVolume, setMonitorEqualVolume] = useState(false);
   const renderTokenRef = useRef(0);
   const renderInFlightRef = useRef(false);
+  const analysisTokenRef = useRef(0);
 
   const previewMonitorGainDb = useMemo(
     () => getPreviewMonitorGainDb(previewResult, monitorEqualVolume),
@@ -1135,13 +1212,22 @@ export default function App() {
       setShouldSelectPreviewAfterRender(false);
       setShowRenderEditor(false);
       setExportedRevision(null);
+      setAnalysisOverlayVisible(false);
+      setAnalysisVisualStep(0);
+      setAnalysisVisualProgress(6);
       renderTokenRef.current += 1;
+      analysisTokenRef.current += 1;
       return;
     }
 
     let isCurrentFile = true;
 
     async function runDecode() {
+      const decodeToken = analysisTokenRef.current + 1;
+      analysisTokenRef.current = decodeToken;
+      setAnalysisOverlayVisible(true);
+      setAnalysisVisualStep(0);
+      setAnalysisVisualProgress(8);
       setDecodeStatus("loading");
       setDecodedAudio(null);
       setDecodeErrorMessage(null);
@@ -1174,6 +1260,8 @@ export default function App() {
           return;
         }
 
+        setAnalysisVisualStep(1);
+        setAnalysisVisualProgress(24);
         setDecodedAudio(decoded);
         setDecodeStatus("success");
       } catch (error) {
@@ -1187,6 +1275,7 @@ export default function App() {
             : "Erreur inconnue pendant le décodage audio.";
         setDecodeErrorMessage(message);
         setDecodeStatus("error");
+        setAnalysisOverlayVisible(false);
       }
     }
 
@@ -1206,26 +1295,68 @@ export default function App() {
     const buffer = decodedAudio.audioBuffer;
 
     async function runAnalysis() {
+      const analysisToken = analysisTokenRef.current + 1;
+      analysisTokenRef.current = analysisToken;
+      const isActiveAnalysis = () =>
+        isCurrentAudio && analysisToken === analysisTokenRef.current;
+
       setAnalysisStatus("running");
       setSourceAnalysis(null);
       setAnalysisErrorMessage(null);
+      setAnalysisOverlayVisible(true);
+      setAnalysisVisualStep(1);
+      setAnalysisVisualProgress(32);
 
-      await new Promise((resolve) => window.setTimeout(resolve, 20));
+      const startedAt = performance.now();
 
       try {
+        await waitForVisualStep(180);
+        if (!isActiveAnalysis()) {
+          return;
+        }
+
+        setAnalysisVisualStep(2);
+        setAnalysisVisualProgress(50);
         const result = analyzeSource(buffer);
 
-        if (!isCurrentAudio) {
+        if (!isActiveAnalysis()) {
+          return;
+        }
+
+        await waitForVisualStep(220);
+        if (!isActiveAnalysis()) {
+          return;
+        }
+
+        setAnalysisVisualStep(3);
+        setAnalysisVisualProgress(68);
+        await waitForVisualStep(220);
+        if (!isActiveAnalysis()) {
           return;
         }
 
         const recommended = buildRecommendedPreviewPlan(result.metrics);
+        setAnalysisVisualStep(4);
+        setAnalysisVisualProgress(86);
+
+        const elapsed = performance.now() - startedAt;
+        await waitForVisualStep(Math.max(180, 1150 - elapsed));
+        if (!isActiveAnalysis()) {
+          return;
+        }
 
         setSourceAnalysis(result);
         setPreviewSettings({ ...recommended.settings });
         setAnalysisStatus("ready");
+        setAnalysisVisualProgress(100);
+
+        window.setTimeout(() => {
+          if (isActiveAnalysis()) {
+            setAnalysisOverlayVisible(false);
+          }
+        }, 280);
       } catch (error) {
-        if (!isCurrentAudio) {
+        if (!isActiveAnalysis()) {
           return;
         }
 
@@ -1235,6 +1366,7 @@ export default function App() {
             : "Erreur inconnue pendant l’analyse locale.";
         setAnalysisErrorMessage(message);
         setAnalysisStatus("error");
+        setAnalysisOverlayVisible(false);
       }
     }
 
@@ -1389,6 +1521,7 @@ export default function App() {
       setDecodeErrorMessage(validationMessage);
       setPreviewStatus("idle");
       setPreviewResult(null);
+      setAnalysisOverlayVisible(false);
       return;
     }
 
@@ -1469,6 +1602,11 @@ export default function App() {
 
   return (
     <main className="guided-shell">
+      <AnalysisOverlay
+        isVisible={analysisOverlayVisible && previewStatus !== "rendering"}
+        activeStep={analysisVisualStep}
+        progress={analysisVisualProgress}
+      />
       <ProcessingOverlay
         isVisible={previewStatus === "rendering"}
         activeStep={renderProgressStep}

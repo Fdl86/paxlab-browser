@@ -45,7 +45,13 @@ function formatPreview(
 }
 
 function formatPreset(settings: PreviewSettings): string {
-  const base = settings.autoIntensity === "impact" ? "Impact" : settings.autoIntensity === "youtube" ? "Mix YouTube" : settings.autoIntensity === "safe" ? "Propre" : "Équilibré";
+  const base = settings.autoIntensity === "impact"
+    ? "Impact"
+    : settings.autoIntensity === "youtube"
+      ? "Mix YouTube"
+      : settings.autoIntensity === "safe"
+        ? "Nettoyage léger"
+        : "Traitement naturel";
   return settings.antiFatigue ? `${base} + anti-fatigue` : base;
 }
 
@@ -81,7 +87,7 @@ export function SessionStatusPanel({
       {!decodedAudio && (
         <div className="empty-state small-empty-state friendly-empty-state">
           <p>Commence par importer un morceau.</p>
-          <span>Ensuite, choisis simplement Propre, Équilibré ou Impact.</span>
+          <span>Ensuite, choisis simplement Nettoyage léger, Traitement naturel ou Impact.</span>
         </div>
       )}
 
