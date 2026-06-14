@@ -1061,7 +1061,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.22.1 Analysis Dialog
+          PAXLAB Browser Engine - DEV15.23 Waveform Seek
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

@@ -1186,3 +1186,28 @@ body{background:#0a0a0f !important;}
 .guided-render-card .guided-fatigue em{display:none;}
 .loaded-side-column .side-technical-drawer{margin-top:0;}
 @media (max-width:760px){.recommended-preview-note{padding:10px 12px;}.loaded-file-analysis-status{font-size:0.82rem;}}
+
+/* DEV15.23 - Waveform seek and listened progress. */
+.realtime-panel .waveform-canvas.bar-waveform-canvas{
+  cursor:pointer !important;
+  touch-action:none !important;
+  user-select:none !important;
+}
+.realtime-panel .waveform-canvas.bar-waveform-canvas svg,
+.realtime-panel .waveform-canvas.bar-waveform-canvas rect{
+  cursor:pointer !important;
+}
+.realtime-panel .bar-waveform-svg .waveform-bar,
+.realtime-panel .waveform-bar{
+  fill:url(#paxlab-waveform-progress) !important;
+  stroke:rgba(124, 109, 250, 0.24) !important;
+  stroke-width:0.5 !important;
+  vector-effect:non-scaling-stroke !important;
+  filter:none !important;
+}
+.realtime-panel .bar-waveform-canvas:hover .waveform-bar{
+  stroke:rgba(255, 255, 255, 0.22) !important;
+}
+.realtime-panel .bar-waveform-canvas:active .waveform-bar{
+  opacity:1 !important;
+}

@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   analyzeHeadroomSummary,
   formatDuration,
@@ -380,6 +380,56 @@ export function RealtimeMonitorPanel({
     }
   }
 
+  function handleWaveformPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
+
+    if (!activeBuffer || !duration || duration <= 0) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const target = event.currentTarget;
+    const rect = target.getBoundingClientRect();
+
+    function seekFromClientX(clientX: number) {
+      if (rect.width <= 0) {
+        return;
+      }
+
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      onSeek(ratio * duration);
+    }
+
+    seekFromClientX(event.clientX);
+
+    if (target.setPointerCapture) {
+      target.setPointerCapture(event.pointerId);
+    }
+
+    function handleMove(moveEvent: PointerEvent) {
+      moveEvent.preventDefault();
+      seekFromClientX(moveEvent.clientX);
+    }
+
+    function handleEnd() {
+      if (target.hasPointerCapture?.(event.pointerId)) {
+        target.releasePointerCapture(event.pointerId);
+      }
+      target.removeEventListener("pointermove", handleMove);
+      target.removeEventListener("pointerup", handleEnd);
+      target.removeEventListener("pointercancel", handleEnd);
+      target.removeEventListener("lostpointercapture", handleEnd);
+    }
+
+    target.addEventListener("pointermove", handleMove);
+    target.addEventListener("pointerup", handleEnd, { once: true });
+    target.addEventListener("pointercancel", handleEnd, { once: true });
+    target.addEventListener("lostpointercapture", handleEnd, { once: true });
+  }
+
   return (
     <section className="panel realtime-panel">
       <div className="ab-switch-block ab-control-bar">
@@ -500,13 +550,40 @@ export function RealtimeMonitorPanel({
                     : "Pause"}
               </strong>
             </div>
-            <div className="waveform-canvas bar-waveform-canvas">
+            <div
+              className="waveform-canvas bar-waveform-canvas"
+              onPointerDown={handleWaveformPointerDown}
+              title="Clique ou glisse sur la waveform pour naviguer dans le morceau."
+            >
               <svg
                 className="bar-waveform-svg"
                 viewBox="0 0 860 110"
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
+                <defs>
+                  <linearGradient
+                    id="paxlab-waveform-progress"
+                    gradientUnits="userSpaceOnUse"
+                    x1="0"
+                    y1="0"
+                    x2="860"
+                    y2="0"
+                  >
+                    <stop offset="0%" stopColor="var(--gold)" stopOpacity="1" />
+                    <stop
+                      offset={`${progress}%`}
+                      stopColor="var(--gold)"
+                      stopOpacity="1"
+                    />
+                    <stop
+                      offset={`${progress}%`}
+                      stopColor="#353148"
+                      stopOpacity="1"
+                    />
+                    <stop offset="100%" stopColor="#353148" stopOpacity="1" />
+                  </linearGradient>
+                </defs>
                 <line
                   className="waveform-zero"
                   x1="0"

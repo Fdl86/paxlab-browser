@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-22-1-analysis-dialog",
+  "version": "1.0.0-dev15-23-waveform-seek",
   "type": "module",
   "scripts": {
     "dev": "vite",
