@@ -1,17 +1,17 @@
-# PAXLAB Browser Engine - DEV15.23
+# PAXLAB Browser Engine - DEV15.23.1
 
-DEV15.23 ajoute le seek directement dans la waveform et une couleur différente pour la partie déjà écoutée, sur la base stable DEV15.22.1.
+DEV15.23.1 corrige l’alignement entre la partie déjà écoutée et le playhead de la waveform, sur la base stable DEV15.23.
 
 PAXLAB reste une application 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Rendu PAXLAB, export local WAV / FLAC.
 
-## DEV15.23 - Waveform seek et progression d'écoute
+## DEV15.23.1 - Correction alignement waveform
 
 - Clic sur la waveform pour se déplacer dans le morceau.
 - Cliquer-glisser sur la waveform pour scruber plus précisément.
 - Partie déjà écoutée affichée en violet.
 - Partie restante affichée en gris-violet sombre.
-- Curseur pointeur réactivé uniquement sur la waveform interactive.
-- Playhead conservé pour indiquer la position de lecture.
+- Playhead SVG aligné sur la même base de calcul que la couleur écoutée.
+- Curseur pointeur conservé uniquement sur la waveform interactive.
 - Barre de timeline existante conservée en complément.
 
 ## Stabilité conservée
@@ -27,7 +27,7 @@ PAXLAB reste une application 100 % navigateur : aucun serveur audio, aucun uploa
 
 ## Build
 
-Le build DEV15.23 a été vérifié avant livraison :
+Le build DEV15.23.1 a été vérifié avant livraison :
 
 ```bash
 npm run build

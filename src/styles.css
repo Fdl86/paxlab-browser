@@ -1211,3 +1211,32 @@ body{background:#0a0a0f !important;}
 .realtime-panel .bar-waveform-canvas:active .waveform-bar{
   opacity:1 !important;
 }
+
+/* DEV15.23.1 - Align waveform listened state and playhead in the same SVG coordinate space. */
+.realtime-panel .bar-waveform-svg .waveform-bar,
+.realtime-panel .waveform-bar{
+  stroke-width:0.5 !important;
+  vector-effect:non-scaling-stroke !important;
+  filter:none !important;
+}
+.realtime-panel .bar-waveform-svg .waveform-bar-future,
+.realtime-panel .waveform-bar-future{
+  fill:#353148 !important;
+  stroke:rgba(255,255,255,0.08) !important;
+  opacity:1 !important;
+}
+.realtime-panel .bar-waveform-svg .waveform-bar-listened,
+.realtime-panel .waveform-bar-listened{
+  fill:#7c6dfa !important;
+  stroke:rgba(124,109,250,0.30) !important;
+  opacity:1 !important;
+}
+.realtime-panel .bar-waveform-svg .waveform-playhead-line{
+  stroke:rgba(255,255,255,0.88) !important;
+  stroke-width:2 !important;
+  vector-effect:non-scaling-stroke !important;
+  pointer-events:none !important;
+}
+.realtime-panel .waveform-canvas.bar-waveform-canvas > .playhead{
+  display:none !important;
+}

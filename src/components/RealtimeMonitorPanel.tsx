@@ -355,10 +355,14 @@ export function RealtimeMonitorPanel({
     () => (activeBuffer ? analyzeHeadroomSummary(activeBuffer) : null),
     [activeBuffer],
   );
-  const progress =
+  const progressRatio =
     duration > 0
-      ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
+      ? Math.min(1, Math.max(0, currentTime / duration))
       : 0;
+  const progress = progressRatio * 100;
+  const waveformWidth = 860;
+  const waveformHeight = 110;
+  const playheadX = progressRatio * waveformWidth;
   const activeHeadroom = headroomSummary
     ? headroomSummary.finalHeadroomDb
     : meter.headroomDb;
@@ -557,67 +561,93 @@ export function RealtimeMonitorPanel({
             >
               <svg
                 className="bar-waveform-svg"
-                viewBox="0 0 860 110"
+                viewBox={`0 0 ${waveformWidth} ${waveformHeight}`}
                 preserveAspectRatio="none"
                 aria-hidden="true"
               >
                 <defs>
-                  <linearGradient
-                    id="paxlab-waveform-progress"
-                    gradientUnits="userSpaceOnUse"
-                    x1="0"
-                    y1="0"
-                    x2="860"
-                    y2="0"
-                  >
-                    <stop offset="0%" stopColor="var(--gold)" stopOpacity="1" />
-                    <stop
-                      offset={`${progress}%`}
-                      stopColor="var(--gold)"
-                      stopOpacity="1"
+                  <clipPath id="paxlab-waveform-listened-clip">
+                    <rect
+                      x="0"
+                      y="0"
+                      width={playheadX.toFixed(2)}
+                      height={waveformHeight}
                     />
-                    <stop
-                      offset={`${progress}%`}
-                      stopColor="#353148"
-                      stopOpacity="1"
-                    />
-                    <stop offset="100%" stopColor="#353148" stopOpacity="1" />
-                  </linearGradient>
+                  </clipPath>
                 </defs>
                 <line
                   className="waveform-zero"
                   x1="0"
                   y1="55"
-                  x2="860"
+                  x2={waveformWidth}
                   y2="55"
                 />
-                {waveformBins.map((bin, index) => {
-                  const center = 55;
-                  const scale = 50;
-                  const step = 860 / Math.max(1, waveformBins.length);
-                  const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
-                  const amplitude = Math.max(
-                    Math.abs(bin.max),
-                    Math.abs(bin.min),
-                  );
-                  const barHeight = Math.max(6, amplitude * scale * 2);
-                  const x = index * step + Math.max(0, (step - barWidth) / 2);
-                  const y = center - barHeight / 2;
+                <g className="waveform-layer waveform-layer-future">
+                  {waveformBins.map((bin, index) => {
+                    const center = 55;
+                    const scale = 50;
+                    const step = waveformWidth / Math.max(1, waveformBins.length);
+                    const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
+                    const amplitude = Math.max(
+                      Math.abs(bin.max),
+                      Math.abs(bin.min),
+                    );
+                    const barHeight = Math.max(6, amplitude * scale * 2);
+                    const x = index * step + Math.max(0, (step - barWidth) / 2);
+                    const y = center - barHeight / 2;
 
-                  return (
-                    <rect
-                      key={index}
-                      className="waveform-bar"
-                      x={x.toFixed(2)}
-                      y={y.toFixed(2)}
-                      width={barWidth.toFixed(2)}
-                      height={barHeight.toFixed(2)}
-                      rx="1.2"
-                    />
-                  );
-                })}
+                    return (
+                      <rect
+                        key={`future-${index}`}
+                        className="waveform-bar waveform-bar-future"
+                        x={x.toFixed(2)}
+                        y={y.toFixed(2)}
+                        width={barWidth.toFixed(2)}
+                        height={barHeight.toFixed(2)}
+                        rx="1.2"
+                      />
+                    );
+                  })}
+                </g>
+                <g
+                  className="waveform-layer waveform-layer-listened"
+                  clipPath="url(#paxlab-waveform-listened-clip)"
+                >
+                  {waveformBins.map((bin, index) => {
+                    const center = 55;
+                    const scale = 50;
+                    const step = waveformWidth / Math.max(1, waveformBins.length);
+                    const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
+                    const amplitude = Math.max(
+                      Math.abs(bin.max),
+                      Math.abs(bin.min),
+                    );
+                    const barHeight = Math.max(6, amplitude * scale * 2);
+                    const x = index * step + Math.max(0, (step - barWidth) / 2);
+                    const y = center - barHeight / 2;
+
+                    return (
+                      <rect
+                        key={`listened-${index}`}
+                        className="waveform-bar waveform-bar-listened"
+                        x={x.toFixed(2)}
+                        y={y.toFixed(2)}
+                        width={barWidth.toFixed(2)}
+                        height={barHeight.toFixed(2)}
+                        rx="1.2"
+                      />
+                    );
+                  })}
+                </g>
+                <line
+                  className="waveform-playhead-line"
+                  x1={playheadX.toFixed(2)}
+                  y1="0"
+                  x2={playheadX.toFixed(2)}
+                  y2={waveformHeight}
+                />
               </svg>
-              <div className="playhead" />
+              <div className="playhead" aria-hidden="true" />
             </div>
           </div>
 
