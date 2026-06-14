@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   analyzeHeadroomSummary,
   formatDuration,
@@ -391,6 +391,14 @@ export function RealtimeMonitorPanel({
   const activeHeadroom = headroomSummary
     ? headroomSummary.finalHeadroomDb
     : meter.headroomDb;
+  const waveformDragCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      waveformDragCleanupRef.current?.();
+      waveformDragCleanupRef.current = null;
+    };
+  }, []);
 
   function handleFileChange(file: File | undefined) {
     if (!file || !onFileSelected) {
@@ -419,11 +427,15 @@ export function RealtimeMonitorPanel({
     }
 
     event.preventDefault();
+    waveformDragCleanupRef.current?.();
+    waveformDragCleanupRef.current = null;
 
     const target = event.currentTarget;
-    const rect = target.getBoundingClientRect();
+    const pointerId = event.pointerId;
 
     function seekFromClientX(clientX: number) {
+      const rect = target.getBoundingClientRect();
+
       if (rect.width <= 0) {
         return;
       }
@@ -435,28 +447,52 @@ export function RealtimeMonitorPanel({
     seekFromClientX(event.clientX);
 
     if (target.setPointerCapture) {
-      target.setPointerCapture(event.pointerId);
+      try {
+        target.setPointerCapture(pointerId);
+      } catch {
+        // Pointer capture can fail if the pointer has already been released.
+      }
+    }
+
+    function cleanup() {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleEnd);
+      window.removeEventListener("pointercancel", handleEnd);
+
+      if (target.hasPointerCapture?.(pointerId)) {
+        try {
+          target.releasePointerCapture(pointerId);
+        } catch {
+          // The browser may release pointer capture automatically.
+        }
+      }
+
+      if (waveformDragCleanupRef.current === cleanup) {
+        waveformDragCleanupRef.current = null;
+      }
     }
 
     function handleMove(moveEvent: PointerEvent) {
+      if (moveEvent.pointerId !== pointerId) {
+        return;
+      }
+
       moveEvent.preventDefault();
       seekFromClientX(moveEvent.clientX);
     }
 
-    function handleEnd() {
-      if (target.hasPointerCapture?.(event.pointerId)) {
-        target.releasePointerCapture(event.pointerId);
+    function handleEnd(endEvent: PointerEvent) {
+      if (endEvent.pointerId !== pointerId) {
+        return;
       }
-      target.removeEventListener("pointermove", handleMove);
-      target.removeEventListener("pointerup", handleEnd);
-      target.removeEventListener("pointercancel", handleEnd);
-      target.removeEventListener("lostpointercapture", handleEnd);
+
+      cleanup();
     }
 
-    target.addEventListener("pointermove", handleMove);
-    target.addEventListener("pointerup", handleEnd, { once: true });
-    target.addEventListener("pointercancel", handleEnd, { once: true });
-    target.addEventListener("lostpointercapture", handleEnd, { once: true });
+    waveformDragCleanupRef.current = cleanup;
+    window.addEventListener("pointermove", handleMove, { passive: false });
+    window.addEventListener("pointerup", handleEnd);
+    window.addEventListener("pointercancel", handleEnd);
   }
 
   return (

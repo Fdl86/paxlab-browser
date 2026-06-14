@@ -91,7 +91,7 @@ export function UploadPanel({
 
         <span className="drop-zone-icon" aria-hidden="true">↥</span>
         <span className="drop-zone-title">Glisse un fichier audio ici</span>
-        <span className="drop-zone-subtitle">WAV - MP3 - FLAC - AAC - AIFF - jusqu’à 300 MB. Local - Aucun upload.</span>
+        <span className="drop-zone-subtitle">WAV - MP3 - FLAC - AAC - AIFF - jusqu’à 100 MB. Local - Aucun upload.</span>
       </label>
 
       {localWarning && <p className="message message-warning">{localWarning}</p>}

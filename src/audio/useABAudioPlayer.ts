@@ -193,6 +193,7 @@ export function useABAudioPlayer({
   const peakHoldDbRef = useRef(SILENCE_DB);
   const isSwitchingRef = useRef(false);
   const switchUnlockTimerRef = useRef<number | null>(null);
+  const startInFlightRef = useRef(false);
 
   const activeBuffer = getBufferForSource(activeSource, originalBuffer, previewBuffer);
   const duration = activeBuffer?.duration ?? originalBuffer?.duration ?? 0;
@@ -292,13 +293,19 @@ export function useABAudioPlayer({
       }
 
       const safeOffset = Math.min(Math.max(offset, 0), Math.max(sourceBuffer.duration - 0.02, 0));
+      const requestToken = playbackTokenRef.current + 1;
+      playbackTokenRef.current = requestToken;
+
       const audioContext = await ensureAudioContextRunning();
+
+      if (requestToken !== playbackTokenRef.current) {
+        return;
+      }
+
       const sourceNode = audioContext.createBufferSource();
       const gainNode = audioContext.createGain();
       const analyser = audioContext.createAnalyser();
-      const token = playbackTokenRef.current + 1;
-
-      playbackTokenRef.current = token;
+      const token = requestToken;
       sourceNode.buffer = sourceBuffer;
       analyser.fftSize = 2048;
       analyser.smoothingTimeConstant = 0.55;
@@ -351,6 +358,7 @@ export function useABAudioPlayer({
   );
 
   const pause = useCallback(() => {
+    startInFlightRef.current = false;
     const offset = readCurrentOffset();
     stopEverySource(STOP_FADE_SECONDS);
     setCurrentTime(offset);
@@ -361,6 +369,7 @@ export function useABAudioPlayer({
   }, [readCurrentOffset, resetMeter, stopEverySource]);
 
   const stop = useCallback(() => {
+    startInFlightRef.current = false;
     stopEverySource(STOP_FADE_SECONDS);
     setCurrentTime(0);
     currentTimeRef.current = 0;
@@ -375,6 +384,10 @@ export function useABAudioPlayer({
       return;
     }
 
+    if (startInFlightRef.current) {
+      return;
+    }
+
     const sourceBuffer = getBufferForSource(
       activeSourceRef.current,
       originalBufferRef.current,
@@ -386,7 +399,13 @@ export function useABAudioPlayer({
     }
 
     const startAt = currentTimeRef.current >= sourceBuffer.duration - 0.05 ? 0 : currentTimeRef.current;
-    await startSource(activeSourceRef.current, startAt);
+    startInFlightRef.current = true;
+
+    try {
+      await startSource(activeSourceRef.current, startAt);
+    } finally {
+      startInFlightRef.current = false;
+    }
   }, [pause, startSource]);
 
   const seek = useCallback(
@@ -413,7 +432,7 @@ export function useABAudioPlayer({
       isPlayingRef.current = false;
       resetMeter();
 
-      if (wasPlaying) {
+      if (wasPlaying && safeTime < sourceBuffer.duration - 0.05) {
         void startSource(activeSourceRef.current, safeTime);
       }
     },
@@ -564,6 +583,29 @@ export function useABAudioPlayer({
     setActiveSourceState("original");
     activeSourceRef.current = "original";
   }, [originalBuffer, stop]);
+
+  useEffect(() => {
+    const sourceBuffer = getBufferForSource(
+      activeSourceRef.current,
+      originalBufferRef.current,
+      previewBufferRef.current
+    );
+
+    if (!sourceBuffer) {
+      setCurrentTime(0);
+      currentTimeRef.current = 0;
+      return;
+    }
+
+    if (currentTimeRef.current > sourceBuffer.duration) {
+      stopEverySource(STOP_FADE_SECONDS);
+      setCurrentTime(sourceBuffer.duration);
+      currentTimeRef.current = sourceBuffer.duration;
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      resetMeter();
+    }
+  }, [originalBuffer, previewBuffer, resetMeter, stopEverySource]);
 
   useEffect(() => {
     if (!previewBuffer && activeSourceRef.current === "preview") {

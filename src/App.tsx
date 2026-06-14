@@ -169,7 +169,7 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
 }
 
 const AUDIO_ACCEPT = "audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif";
-const MAX_AUDIO_FILE_SIZE_BYTES = 300 * 1024 * 1024;
+const MAX_AUDIO_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
 function isLikelySupportedAudioFile(file: File): boolean {
   const name = file.name.toLowerCase();
@@ -1061,7 +1061,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.23.2 Waveform Seek Fix
+          PAXLAB Browser Engine - DEV15.23.3 Player Stability
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

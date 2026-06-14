@@ -1,10 +1,10 @@
-# PAXLAB Browser Engine - DEV15.23.2
+# PAXLAB Browser Engine - DEV15.23.3
 
-DEV15.23.2 réécrit proprement la waveform interactive afin que le seek, la partie déjà écoutée et le playhead utilisent une seule base de calcul.
+DEV15.23.3 réécrit proprement la waveform interactive afin que le seek, la partie déjà écoutée et le playhead utilisent une seule base de calcul.
 
 PAXLAB reste une application 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Rendu PAXLAB, export local WAV / FLAC.
 
-## DEV15.23.2 - Correction structurelle waveform
+## DEV15.23.3 - Correction structurelle waveform
 
 - Clic sur la waveform pour se déplacer dans le morceau.
 - Cliquer-glisser sur la waveform pour scrub fluide.
@@ -29,7 +29,7 @@ PAXLAB reste une application 100 % navigateur : aucun serveur audio, aucun uploa
 
 ## Build
 
-Le build DEV15.23.2 a été vérifié avant livraison :
+Le build DEV15.23.3 a été vérifié avant livraison :
 
 ```bash
 npm run build
