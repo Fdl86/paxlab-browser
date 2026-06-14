@@ -63,6 +63,13 @@ interface WaveformStatsBin {
   peak: number;
 }
 
+interface WaveformRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const bufferIds = new WeakMap<AudioBuffer, number>();
 const waveformCache = new WeakMap<AudioBuffer, Map<string, WaveformBin[]>>();
 let nextBufferId = 1;
@@ -362,7 +369,25 @@ export function RealtimeMonitorPanel({
   const progress = progressRatio * 100;
   const waveformWidth = 860;
   const waveformHeight = 110;
-  const playheadX = progressRatio * waveformWidth;
+  const waveformCenterY = waveformHeight / 2;
+  const waveformScaleY = 50;
+  const playheadX = Math.min(
+    waveformWidth,
+    Math.max(0, progressRatio * waveformWidth),
+  );
+  const waveformRects = useMemo<WaveformRect[]>(() => {
+    const step = waveformWidth / Math.max(1, waveformBins.length);
+
+    return waveformBins.map((bin, index) => {
+      const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
+      const amplitude = Math.max(Math.abs(bin.max), Math.abs(bin.min));
+      const barHeight = Math.max(6, amplitude * waveformScaleY * 2);
+      const x = index * step + Math.max(0, (step - barWidth) / 2);
+      const y = waveformCenterY - barHeight / 2;
+
+      return { x, y, width: barWidth, height: barHeight };
+    });
+  }, [waveformBins]);
   const activeHeadroom = headroomSummary
     ? headroomSummary.finalHeadroomDb
     : meter.headroomDb;
@@ -384,7 +409,7 @@ export function RealtimeMonitorPanel({
     }
   }
 
-  function handleWaveformPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+  function handleWaveformPointerDown(event: ReactPointerEvent<SVGSVGElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
@@ -533,10 +558,7 @@ export function RealtimeMonitorPanel({
 
       {activeBuffer && (
         <>
-          <div
-            className="monitor-waveform"
-            style={{ "--playhead": `${progress}%` } as CSSProperties}
-          >
+          <div className="monitor-waveform">
             <div className="waveform-label-row">
               <div className="waveform-label-left">
                 <span>
@@ -556,7 +578,6 @@ export function RealtimeMonitorPanel({
             </div>
             <div
               className="waveform-canvas bar-waveform-canvas"
-              onPointerDown={handleWaveformPointerDown}
               title="Clique ou glisse sur la waveform pour naviguer dans le morceau."
             >
               <svg
@@ -564,76 +585,51 @@ export function RealtimeMonitorPanel({
                 viewBox={`0 0 ${waveformWidth} ${waveformHeight}`}
                 preserveAspectRatio="none"
                 aria-hidden="true"
+                onPointerDown={handleWaveformPointerDown}
               >
-                <defs>
-                  <clipPath id="paxlab-waveform-listened-clip">
-                    <rect
-                      x="0"
-                      y="0"
-                      width={playheadX.toFixed(2)}
-                      height={waveformHeight}
-                    />
-                  </clipPath>
-                </defs>
                 <line
                   className="waveform-zero"
                   x1="0"
-                  y1="55"
+                  y1={waveformCenterY}
                   x2={waveformWidth}
-                  y2="55"
+                  y2={waveformCenterY}
                 />
                 <g className="waveform-layer waveform-layer-future">
-                  {waveformBins.map((bin, index) => {
-                    const center = 55;
-                    const scale = 50;
-                    const step = waveformWidth / Math.max(1, waveformBins.length);
-                    const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
-                    const amplitude = Math.max(
-                      Math.abs(bin.max),
-                      Math.abs(bin.min),
-                    );
-                    const barHeight = Math.max(6, amplitude * scale * 2);
-                    const x = index * step + Math.max(0, (step - barWidth) / 2);
-                    const y = center - barHeight / 2;
-
-                    return (
-                      <rect
-                        key={`future-${index}`}
-                        className="waveform-bar waveform-bar-future"
-                        x={x.toFixed(2)}
-                        y={y.toFixed(2)}
-                        width={barWidth.toFixed(2)}
-                        height={barHeight.toFixed(2)}
-                        rx="1.2"
-                      />
-                    );
-                  })}
+                  {waveformRects.map((bar, index) => (
+                    <rect
+                      key={index}
+                      className="waveform-bar waveform-bar-future"
+                      x={bar.x.toFixed(2)}
+                      y={bar.y.toFixed(2)}
+                      width={bar.width.toFixed(2)}
+                      height={bar.height.toFixed(2)}
+                      rx="1.2"
+                    />
+                  ))}
                 </g>
-                <g
-                  className="waveform-layer waveform-layer-listened"
-                  clipPath="url(#paxlab-waveform-listened-clip)"
-                >
-                  {waveformBins.map((bin, index) => {
-                    const center = 55;
-                    const scale = 50;
-                    const step = waveformWidth / Math.max(1, waveformBins.length);
-                    const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
-                    const amplitude = Math.max(
-                      Math.abs(bin.max),
-                      Math.abs(bin.min),
+                <g className="waveform-layer waveform-layer-listened">
+                  {waveformRects.map((bar, index) => {
+                    if (playheadX <= bar.x) {
+                      return null;
+                    }
+
+                    const listenedWidth = Math.min(
+                      bar.width,
+                      Math.max(0, playheadX - bar.x),
                     );
-                    const barHeight = Math.max(6, amplitude * scale * 2);
-                    const x = index * step + Math.max(0, (step - barWidth) / 2);
-                    const y = center - barHeight / 2;
+
+                    if (listenedWidth <= 0) {
+                      return null;
+                    }
 
                     return (
                       <rect
-                        key={`listened-${index}`}
+                        key={index}
                         className="waveform-bar waveform-bar-listened"
-                        x={x.toFixed(2)}
-                        y={y.toFixed(2)}
-                        width={barWidth.toFixed(2)}
-                        height={barHeight.toFixed(2)}
+                        x={bar.x.toFixed(2)}
+                        y={bar.y.toFixed(2)}
+                        width={listenedWidth.toFixed(2)}
+                        height={bar.height.toFixed(2)}
                         rx="1.2"
                       />
                     );
@@ -647,7 +643,6 @@ export function RealtimeMonitorPanel({
                   y2={waveformHeight}
                 />
               </svg>
-              <div className="playhead" aria-hidden="true" />
             </div>
           </div>
 
