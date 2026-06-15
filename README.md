@@ -1,35 +1,29 @@
-# PAXLAB Browser Engine - DEV15.24.1
+# PAXLAB Browser Engine - DEV15.24.2
 
-DEV15.24.1 est une experimentation CSS-only de palette premium champagne / gold, basee sur DEV15.23.6. Elle change uniquement la direction visuelle : fond anthracite neutre, surfaces sobres, accent champagne desature, et retrait des restes violet / cyan visibles.
+DEV15.24.2 consolide la palette champagne / gold appliquee en DEV15.24.1 et corrige les points d audit identifies apres validation visuelle. Cette version garde le moteur audio, les presets, la recommandation automatique, le player et les exports WAV / FLAC inchanges.
 
-## DEV15.24.1 - Champagne palette CSS experiment
+## Corrections DEV15.24.2
 
-Objectif : tester une direction visuelle plus studio audio pro, sans toucher au moteur audio ni aux exports.
+- Verification et correction de l appel de nommage export FLAC.
+- Suppression des derniers restes cyan visibles dans les panneaux techniques et rapports.
+- Renommage maintenance de `processing-modal-violet` en `processing-modal-premium`.
+- Nettoyage de code mort dans `RealtimeMonitorPanel`.
+- Suppression des props inutilisees liees a l ancien bouton export du lecteur.
+- Correction d une duplication de prop `previewRevision` dans le composant de monitoring.
+- Ajout d un rappel de compatibilite FLAC cote navigateur dans l upload.
 
-- Palette anthracite neutre : fond proche #0b0b0e, surfaces #15151a / #1e1e24.
-- Accent unique champagne : #d4af6e.
-- Etats fonctionnels conserves : succes, warning, erreur.
-- Waveform adaptee a la nouvelle palette.
-- Boutons actifs, toggles, stepper, badges et export harmonises.
-- Rendu flat conserve, sans ajout de glow.
+## Validation
 
-## Points conserves
-
-- Application 100 % navigateur.
-- Aucun serveur audio.
-- Aucun upload.
-- Analyse locale.
-- Preview recommandee.
-- A/B Original / Rendu PAXLAB.
-- Waveform seek clic + drag.
-- Export WAV 16-bit, WAV 24-bit et FLAC 24-bit.
-
-## Verification
-
-Le build DEV15.24.1 a ete verifie avant livraison :
+Le build DEV15.24.2 a ete verifie avant livraison :
 
 ```bash
 npm run build
 ```
 
+Resultat : OK.
+
 Le zip livre ne contient ni `node_modules`, ni `dist`.
+
+## Rappels produit
+
+PAXLAB Browser Engine reste une application 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Rendu PAXLAB et export local WAV / FLAC.

@@ -29,13 +29,10 @@ interface RealtimeMonitorPanelProps {
   onSeek: (time: number) => void;
   onSwitchSource: (source: PlaybackSource) => void;
   onFileSelected?: (file: File) => void;
-  onOpenExport?: () => void;
-  canOpenExport?: boolean;
   equalVolume?: boolean;
   onToggleEqualVolume?: () => void;
 }
 
-type WaveformViewMode = "structure" | "level";
 const WAVEFORM_SEEK_THROTTLE_MS = 34;
 
 function formatDb(value: number): string {
@@ -178,7 +175,6 @@ function getReferenceRms(stats: WaveformStatsBin[]): number {
 function buildWaveformBins(
   buffer: AudioBuffer | null,
   referenceBuffer: AudioBuffer | null,
-  mode: WaveformViewMode,
   bins = 420,
 ): WaveformBin[] {
   const activeStats = buildWaveformStats(buffer, bins);
@@ -187,10 +183,7 @@ function buildWaveformBins(
     return [];
   }
 
-  const referenceStats =
-    mode === "level"
-      ? buildWaveformStats(referenceBuffer ?? buffer, bins)
-      : activeStats;
+  const referenceStats = buildWaveformStats(referenceBuffer ?? buffer, bins);
   const referenceRms = getReferenceRms(
     referenceStats.length ? referenceStats : activeStats,
   );
@@ -224,32 +217,6 @@ function buildWaveformBins(
   }
 
   return waveformBins;
-}
-
-function pathFromWaveformBins(
-  waveformBins: WaveformBin[],
-  width = 860,
-  height = 110,
-): string {
-  if (!waveformBins.length) {
-    return "";
-  }
-
-  const center = height / 2;
-  const scale = height * 0.46;
-  const step = width / Math.max(1, waveformBins.length - 1);
-  const top = waveformBins.map(
-    (bin, index) =>
-      `${index === 0 ? "M" : "L"}${(index * step).toFixed(2)},${(center - bin.max * scale).toFixed(2)}`,
-  );
-  const bottom = waveformBins
-    .map(
-      (bin, index) =>
-        `L${((waveformBins.length - 1 - index) * step).toFixed(2)},${(center - bin.min * scale).toFixed(2)}`,
-    )
-    .join(" ");
-
-  return `${top.join(" ")} ${bottom} Z`;
 }
 
 function TransportIcon({ type }: { type: "play" | "pause" | "stop" }) {
@@ -351,7 +318,6 @@ export function RealtimeMonitorPanel({
     const built = buildWaveformBins(
       activeBuffer,
       originalBuffer,
-      "structure",
       bins,
     );
     const cache = existingCache ?? new Map<string, WaveformBin[]>();

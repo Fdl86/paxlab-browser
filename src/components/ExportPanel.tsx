@@ -302,7 +302,7 @@ export function ExportPanel({
     <>
       {exportJob && (
         <div className="guided-processing-overlay export-processing-overlay" role="status" aria-live="polite">
-          <div className="guided-processing-card processing-modal-violet export-processing-card">
+          <div className="guided-processing-card processing-modal-premium export-processing-card">
             <p className="eyebrow">Export local</p>
             <h2>{exportJob.title}</h2>
             <p>{exportJob.detail}</p>

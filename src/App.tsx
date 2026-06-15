@@ -304,7 +304,7 @@ function AnalysisOverlay({
 
   return (
     <div className="guided-processing-overlay analysis-processing-overlay" role="status" aria-live="polite">
-      <div className="guided-processing-card processing-modal-violet analysis-processing-card">
+      <div className="guided-processing-card processing-modal-premium analysis-processing-card">
         <div className="processing-logo-mark" aria-hidden="true">×</div>
         <p className="eyebrow">Analyse locale</p>
         <h2>Analyse du morceau</h2>
@@ -368,7 +368,7 @@ function ProcessingOverlay({
 
   return (
     <div className="guided-processing-overlay" role="status" aria-live="polite">
-      <div className="guided-processing-card processing-modal-violet">
+      <div className="guided-processing-card processing-modal-premium">
         <div className="processing-logo-mark" aria-hidden="true">×</div>
         <p className="eyebrow">Traitement local</p>
         <h2>Préparation de la Preview</h2>
@@ -521,6 +521,7 @@ function SourceLoadedCard({
   }
 
   const sourceBars = buildStaticWaveformBars(decodedAudio.audioBuffer);
+  const isFlacSource = decodedAudio.file.name.toLowerCase().endsWith(".flac");
 
   return (
     <section className="panel guided-source-card loaded-file-stage-card">
@@ -562,6 +563,12 @@ function SourceLoadedCard({
       {decodedAudio.file.sizeBytes >= LARGE_AUDIO_FILE_WARNING_BYTES && (
         <p className="loaded-file-warning">
           Gros fichier : traitement 100 % local, quelques ralentissements restent possibles.
+        </p>
+      )}
+
+      {isFlacSource && (
+        <p className="loaded-file-warning">
+          Source FLAC décodée par le navigateur. En cas d’échec sur un autre poste, utilise WAV ou MP3.
         </p>
       )}
 
@@ -1065,7 +1072,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.24 Champagne Palette
+          PAXLAB Browser Engine - DEV15.24.2 Champagne Cleanup
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1719,8 +1726,6 @@ export default function App() {
                       void player.switchSource(source)
                     }
                     onFileSelected={handleSelectFile}
-                    onOpenExport={handleScrollToExport}
-                    canOpenExport={Boolean(previewResult)}
                     equalVolume={monitorEqualVolume}
                     onToggleEqualVolume={() =>
                       setMonitorEqualVolume((value) => !value)
