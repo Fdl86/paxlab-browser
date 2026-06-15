@@ -1,8 +1,8 @@
-# PAXLAB Browser Engine - DEV15.24
+# PAXLAB Browser Engine - DEV15.24.1
 
-DEV15.24 est une experimentation CSS-only de palette premium champagne / gold, basee sur DEV15.23.6. Elle change uniquement la direction visuelle : fond anthracite neutre, surfaces sobres, accent champagne desature, et retrait des restes violet / cyan visibles.
+DEV15.24.1 est une experimentation CSS-only de palette premium champagne / gold, basee sur DEV15.23.6. Elle change uniquement la direction visuelle : fond anthracite neutre, surfaces sobres, accent champagne desature, et retrait des restes violet / cyan visibles.
 
-## DEV15.24 - Champagne palette CSS experiment
+## DEV15.24.1 - Champagne palette CSS experiment
 
 Objectif : tester une direction visuelle plus studio audio pro, sans toucher au moteur audio ni aux exports.
 
@@ -26,7 +26,7 @@ Objectif : tester une direction visuelle plus studio audio pro, sans toucher au 
 
 ## Verification
 
-Le build DEV15.24 a ete verifie avant livraison :
+Le build DEV15.24.1 a ete verifie avant livraison :
 
 ```bash
 npm run build
