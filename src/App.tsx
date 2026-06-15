@@ -1065,7 +1065,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.23.6 Export Success Fix
+          PAXLAB Browser Engine - DEV15.24 Champagne Palette
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
