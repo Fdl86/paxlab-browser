@@ -808,3 +808,64 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
   .recommended-preview-note{padding:10px 12px;}
   .loaded-file-analysis-status{font-size:0.82rem;}
 }
+
+/* DEV15.25.2 - Control row and lower accordion separators. CSS only. */
+@media (min-width: 900px){
+  .realtime-panel .ab-control-bar{
+    display:grid !important;
+    grid-template-columns:auto auto minmax(0, 1fr) !important;
+    align-items:center !important;
+    gap:22px !important;
+  }
+  .realtime-panel .ab-control-bar .monitor-source-switch{
+    grid-column:1 !important;
+    justify-self:start !important;
+    width:320px !important;
+    min-width:320px !important;
+    max-width:320px !important;
+  }
+  .realtime-panel .monitor-equal-toggle.top-equal-toggle{
+    grid-column:2 !important;
+    justify-self:start !important;
+    width:190px !important;
+    min-width:190px !important;
+  }
+  .realtime-panel .inline-transport-controls{
+    grid-column:3 !important;
+    justify-self:end !important;
+    display:grid !important;
+    grid-auto-flow:column !important;
+    grid-template-columns:repeat(3, 56px) !important;
+    align-items:center !important;
+    justify-content:end !important;
+    gap:12px !important;
+    width:192px !important;
+    min-width:192px !important;
+    max-width:192px !important;
+    flex-wrap:nowrap !important;
+  }
+  .realtime-panel .inline-transport-controls .compact-transport,
+  .realtime-panel .inline-transport-controls .change-track-control{
+    grid-column:auto !important;
+    width:56px !important;
+    min-width:56px !important;
+    max-width:56px !important;
+    height:56px !important;
+    min-height:56px !important;
+  }
+}
+
+.guided-accordions{
+  border:1px solid #2a292d !important;
+  border-radius:12px !important;
+  overflow:hidden !important;
+  background:#2a292d !important;
+}
+.guided-accordions .guided-accordion{
+  border:0 !important;
+  border-radius:0 !important;
+  background:#15151a !important;
+}
+.guided-accordions .guided-accordion:not(:last-child){
+  border-right:1px solid #2a292d !important;
+}
