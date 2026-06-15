@@ -1525,3 +1525,23 @@ button:focus-visible,
 input:focus-visible,
 summary:focus-visible,
 a:focus-visible{outline-color:#d4af6e !important;}
+
+/* DEV15.25 - Exclusive voice / fizz options. */
+.guided-render-card .guided-fatigue.mutually-disabled,
+.compact-side-panel .guided-render-card .guided-fatigue.mutually-disabled,
+.fatigue-toggle.mutually-disabled {
+  opacity: 0.45 !important;
+  filter: grayscale(0.45) !important;
+  cursor: not-allowed !important;
+}
+
+.guided-render-card .guided-fatigue.mutually-disabled input,
+.compact-side-panel .guided-render-card .guided-fatigue.mutually-disabled input,
+.fatigue-toggle.mutually-disabled input {
+  cursor: not-allowed !important;
+}
+
+.guided-vocal-presence.active {
+  border-color: #d4af6e !important;
+  background: rgba(212,175,110,0.12) !important;
+}

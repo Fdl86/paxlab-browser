@@ -52,7 +52,15 @@ function formatPreset(settings: PreviewSettings): string {
       : settings.autoIntensity === "safe"
         ? "Nettoyage léger"
         : "Traitement naturel";
-  return settings.antiFatigue ? `${base} + anti-fatigue` : base;
+  if (settings.antiFatigue) {
+    return `${base} + anti-fatigue`;
+  }
+
+  if (settings.vocalPresence) {
+    return `${base} + présence vocale`;
+  }
+
+  return base;
 }
 
 export function SessionStatusPanel({
@@ -69,7 +77,8 @@ export function SessionStatusPanel({
   const activeSettings = previewResult?.settings ?? previewSettings;
   const plan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics, {
     autoIntensity: activeSettings.autoIntensity,
-    antiFatigue: activeSettings.antiFatigue
+    antiFatigue: activeSettings.antiFatigue,
+    vocalPresence: activeSettings.vocalPresence
   }) : null;
 
   return (

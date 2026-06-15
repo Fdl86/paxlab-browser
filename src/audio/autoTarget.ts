@@ -12,6 +12,7 @@ import type {
 export interface AutoPlanOptions {
   autoIntensity?: AutoIntensityId;
   antiFatigue?: boolean;
+  vocalPresence?: boolean;
   spacePreserve?: boolean;
 }
 
@@ -273,6 +274,7 @@ export function buildSettingsFromAnalysis(
   const base = getSettingsForPreset(presetId);
   const autoIntensity = options.autoIntensity ?? base.autoIntensity ?? "balanced";
   const antiFatigue = options.antiFatigue ?? base.antiFatigue ?? false;
+  const vocalPresence = antiFatigue ? false : options.vocalPresence ?? base.vocalPresence ?? false;
   const spacePreserve = options.spacePreserve ?? base.spacePreserve ?? false;
   const plan = inferAutoMasterPlan(metrics, { autoIntensity, antiFatigue, spacePreserve });
 
@@ -333,6 +335,7 @@ export function buildSettingsFromAnalysis(
     sourceRepair: isYoutubeMix && !antiFatigue ? "normal" : inferSourceRepair(metrics, antiFatigue),
     autoIntensity,
     antiFatigue,
+    vocalPresence,
     spacePreserve
   };
 }

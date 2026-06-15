@@ -190,6 +190,10 @@ function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string
     return `PAXLAB a privilégié un rendu ${result.settings.autoIntensity === "impact" ? "puissant" : "contrôlé"}, avec AI Brightness Smoothing actif et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
 
+  if (result.settings.vocalPresence) {
+    return `PAXLAB a privilégié la présence vocale : chant légèrement plus lisible, haut du spectre maîtrisé et marge peak finale à ${headroom.toFixed(1)} dB.`;
+  }
+
   if (result.settings.autoIntensity === "impact") {
     return `Source compatible avec un lift fort : gain ${formatSigned(gain)}, plage LUFS visée ${formatLufsRange(plan)} et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
@@ -207,6 +211,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
     ? inferAutoMasterPlan(sourceMetrics, {
         autoIntensity: previewResult?.settings.autoIntensity ?? previewSettings.autoIntensity,
         antiFatigue: previewResult?.settings.antiFatigue ?? previewSettings.antiFatigue,
+        vocalPresence: previewResult?.settings.vocalPresence ?? previewSettings.vocalPresence,
         spacePreserve: previewResult?.settings.spacePreserve ?? previewSettings.spacePreserve
       })
     : null;

@@ -35,11 +35,13 @@ export function buildAdvisor(
   const plan = inferAutoMasterPlan(metrics, {
     autoIntensity: currentSettings.autoIntensity,
     antiFatigue: currentSettings.antiFatigue,
+    vocalPresence: currentSettings.vocalPresence,
     spacePreserve: currentSettings.spacePreserve
   });
   const recommended = buildSettingsFromAnalysis(metrics, currentSettings.presetId, {
     autoIntensity: currentSettings.autoIntensity,
     antiFatigue: currentSettings.antiFatigue,
+    vocalPresence: currentSettings.vocalPresence,
     spacePreserve: currentSettings.spacePreserve
   });
 
@@ -60,6 +62,7 @@ export function buildAdvisor(
     recommended.highTreatment = "verySoft";
     recommended.sourceRepair = "strong";
     recommended.antiFatigue = true;
+    recommended.vocalPresence = false;
     recommended.autoIntensity = currentSettings.autoIntensity === "impact" ? "balanced" : currentSettings.autoIntensity;
     recommended.intensity = Math.max(recommended.intensity, 72);
   }
@@ -120,6 +123,7 @@ export function buildAdvisor(
       sourceRepair: "light",
       autoIntensity: currentSettings.autoIntensity,
       antiFatigue: currentSettings.antiFatigue,
+      vocalPresence: currentSettings.vocalPresence,
       spacePreserve: currentSettings.spacePreserve
     });
   }

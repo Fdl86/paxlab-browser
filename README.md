@@ -1,29 +1,31 @@
-# PAXLAB Browser Engine - DEV15.24.2
+# PAXLAB Browser Engine - DEV15.25
 
-DEV15.24.2 consolide la palette champagne / gold appliquee en DEV15.24.1 et corrige les points d audit identifies apres validation visuelle. Cette version garde le moteur audio, les presets, la recommandation automatique, le player et les exports WAV / FLAC inchanges.
+DEV15.25 ajoute l option `Presence vocale` comme option de rendu separee, exclusive avec `AI Brightness Smoothing`. Cette version conserve le moteur audio principal, les presets, le player, la waveform seek et les exports WAV / FLAC valides.
 
-## Corrections DEV15.24.2
+## Modifications DEV15.25
 
-- Verification et correction de l appel de nommage export FLAC.
-- Suppression des derniers restes cyan visibles dans les panneaux techniques et rapports.
-- Renommage maintenance de `processing-modal-violet` en `processing-modal-premium`.
-- Nettoyage de code mort dans `RealtimeMonitorPanel`.
-- Suppression des props inutilisees liees a l ancien bouton export du lecteur.
-- Correction d une duplication de prop `previewRevision` dans le composant de monitoring.
-- Ajout d un rappel de compatibilite FLAC cote navigateur dans l upload.
+- Ajout de l option `Presence vocale` dans le panneau `Rendu`.
+- Option desactivee par defaut : aucun changement sonore si elle n est pas activee.
+- `Presence vocale` et `AI Brightness Smoothing` sont exclusives : quand l une est active, l autre est grisee.
+- Traitement vocal subtil : nettoyage leger du voile, presence douce du chant et articulation controlee.
+- Aucun boost systematique au-dessus de 6 kHz afin d eviter de ramener du fizz IA.
+- Historique, resume et rapports indiquent correctement l option de presence vocale quand elle est active.
+- CSS complete avec l etat grise des options incompatibles.
 
-## Validation
+## Verification
 
-Le build DEV15.24.2 a ete verifie avant livraison :
+Le build DEV15.25 a ete verifie avant livraison :
 
 ```bash
 npm run build
 ```
 
-Resultat : OK.
+Contraintes conservees :
 
-Le zip livre ne contient ni `node_modules`, ni `dist`.
-
-## Rappels produit
-
-PAXLAB Browser Engine reste une application 100 % navigateur : aucun serveur audio, aucun upload, traitement local, comparaison A/B Original / Rendu PAXLAB et export local WAV / FLAC.
+- application 100 % navigateur ;
+- aucun serveur audio ;
+- aucun upload ;
+- traitement local ;
+- export local WAV / FLAC ;
+- zip sans `node_modules` ;
+- zip sans `dist`.

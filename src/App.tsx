@@ -166,6 +166,7 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
     {
       autoIntensity,
       antiFatigue,
+      vocalPresence: false,
       spacePreserve: false,
     },
   );
@@ -242,6 +243,18 @@ function getPreviewMonitorGainDb(
   return clampNumber(before - after, -9, 3);
 }
 
+
+function normalizePresenceOptions(settings: PreviewSettings): PreviewSettings {
+  if (settings.antiFatigue && settings.vocalPresence) {
+    return { ...settings, vocalPresence: false };
+  }
+
+  return {
+    ...settings,
+    vocalPresence: Boolean(settings.vocalPresence),
+  };
+}
+
 function getSettingsSignature(settings: PreviewSettings | null): string {
   if (!settings) {
     return "";
@@ -259,6 +272,18 @@ function areSettingsEqual(
   right: PreviewSettings,
 ): boolean {
   return getSettingsSignature(left) === getSettingsSignature(right);
+}
+
+function vocalOptionLabel(settings: PreviewSettings): string {
+  if (settings.antiFatigue) {
+    return "AI Brightness Smoothing actif";
+  }
+
+  if (settings.vocalPresence) {
+    return "Présence vocale active";
+  }
+
+  return "Option voix / fizz off";
 }
 
 function intensityLabel(value: AutoIntensityId): string {
@@ -632,14 +657,17 @@ function RenderChoiceCard({
   const isRecommendedSelection = Boolean(
     recommendedPlan &&
       settings.autoIntensity === recommendedPlan.autoIntensity &&
-      settings.antiFatigue === recommendedPlan.antiFatigue,
+      settings.antiFatigue === recommendedPlan.antiFatigue &&
+      !settings.vocalPresence,
   );
 
   function rebuild(partial: Partial<PreviewSettings>) {
-    const base = {
+    const base = normalizePresenceOptions({
       ...settings,
       ...partial,
-    };
+      antiFatigue: partial.antiFatigue ? true : partial.vocalPresence ? false : partial.antiFatigue ?? settings.antiFatigue,
+      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue ? false : partial.vocalPresence ?? settings.vocalPresence,
+    });
 
     if (!sourceAnalysis) {
       onSettingsChange(base);
@@ -652,6 +680,7 @@ function RenderChoiceCard({
       {
         autoIntensity: base.autoIntensity,
         antiFatigue: base.antiFatigue,
+        vocalPresence: base.vocalPresence,
         spacePreserve: base.spacePreserve,
       },
     );
@@ -661,6 +690,7 @@ function RenderChoiceCard({
       presetId: base.presetId,
       autoIntensity: base.autoIntensity,
       antiFatigue: base.antiFatigue,
+      vocalPresence: base.vocalPresence,
       spacePreserve: base.spacePreserve,
     });
   }
@@ -734,16 +764,18 @@ function RenderChoiceCard({
         className={[
           "guided-fatigue",
           settings.antiFatigue ? "active" : "",
+          settings.vocalPresence ? "mutually-disabled" : "",
           recommendedPlan?.antiFatigue ? "recommended" : "",
         ]
           .filter(Boolean)
           .join(" ")}
+        title={settings.vocalPresence ? "Présence vocale active : désactive-la pour utiliser le lissage de brillance IA." : undefined}
       >
         <input
           type="checkbox"
-          disabled={!hasAudio || isRendering || analysisStatus === "running"}
+          disabled={!hasAudio || isRendering || analysisStatus === "running" || settings.vocalPresence}
           checked={settings.antiFatigue}
-          onChange={(event) => rebuild({ antiFatigue: event.target.checked })}
+          onChange={(event) => rebuild({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
         />
         <span>
           <strong>AI Brightness Smoothing</strong>
@@ -751,6 +783,29 @@ function RenderChoiceCard({
             Calme les aigus métalliques, le fizz et la fatigue d’écoute.
           </small>
           {recommendedPlan?.antiFatigue && <em>Recommandé</em>}
+        </span>
+      </label>
+
+      <label
+        className={[
+          "guided-fatigue",
+          "guided-vocal-presence",
+          settings.vocalPresence ? "active" : "",
+          settings.antiFatigue ? "mutually-disabled" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        title={settings.antiFatigue ? "AI Brightness Smoothing actif : désactive-le pour utiliser la présence vocale." : undefined}
+      >
+        <input
+          type="checkbox"
+          disabled={!hasAudio || isRendering || analysisStatus === "running" || settings.antiFatigue}
+          checked={settings.vocalPresence}
+          onChange={(event) => rebuild({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
+        />
+        <span>
+          <strong>Présence vocale</strong>
+          <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
         </span>
       </label>
 
@@ -812,7 +867,7 @@ function PreviewReadyCard({
         <p>
           Preview #{revision}
           {renderedAt ? ` · ${renderedAt}` : ""} · {label}
-          {settings.antiFatigue ? " · AI Brightness Smoothing" : ""}
+          {settings.antiFatigue ? " · AI Brightness Smoothing" : settings.vocalPresence ? " · Présence vocale" : ""}
         </p>
       </div>
       <div className="guided-ready-metrics">
@@ -991,9 +1046,7 @@ function CompactPreviewSummary({
       </strong>
       <span>{label}</span>
       <span>
-        {settings.antiFatigue
-          ? "AI Brightness Smoothing actif"
-          : "AI Brightness Smoothing off"}
+        {vocalOptionLabel(settings)}
       </span>
       <span>
         {previewResult.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.
@@ -1042,9 +1095,7 @@ function ResultSideSummary({
       </div>
       <p>
         {renderedAt ? `Version générée à ${renderedAt}. ` : ""}
-        {settings.antiFatigue
-          ? "AI Brightness Smoothing actif."
-          : "AI Brightness Smoothing off."}
+        {vocalOptionLabel(settings)}.
       </p>
       <button
         type="button"
@@ -1072,7 +1123,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.24.2 Champagne Cleanup
+          PAXLAB Browser Engine - DEV15.25 Vocal Presence
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1357,7 +1408,7 @@ export default function App() {
         }
 
         setSourceAnalysis(result);
-        setPreviewSettings({ ...recommended.settings });
+        setPreviewSettings(normalizePresenceOptions({ ...recommended.settings }));
         setAnalysisStatus("ready");
         setAnalysisVisualProgress(100);
 
@@ -1401,9 +1452,9 @@ export default function App() {
       }
 
       renderInFlightRef.current = true;
-      const settingsToRender = settingsOverride
-        ? { ...settingsOverride }
-        : { ...previewSettings };
+      const settingsToRender = normalizePresenceOptions(
+        settingsOverride ? { ...settingsOverride } : { ...previewSettings },
+      );
       const renderToken = renderTokenRef.current + 1;
       renderTokenRef.current = renderToken;
 
@@ -1411,7 +1462,7 @@ export default function App() {
 
       const nextRevision = previewCounter + 1;
 
-      setPreviewSettings(settingsToRender);
+      setPreviewSettings(normalizePresenceOptions(settingsToRender));
       setPreviewStatus("rendering");
       setPreviewErrorMessage(null);
       setPreviewResult(null);
@@ -1452,7 +1503,7 @@ export default function App() {
         };
 
         setPreviewResult(result);
-        setAppliedPreviewSettings({ ...settingsToRender });
+        setAppliedPreviewSettings(normalizePresenceOptions({ ...settingsToRender }));
         setPreviewRevision(nextRevision);
         setPreviewCounter(nextRevision);
         setPreviewRenderedAt(renderedAt);
@@ -1492,8 +1543,8 @@ export default function App() {
   function handleSelectHistory(item: PreviewHistoryItem) {
     player.stop();
     setPreviewResult(item.result);
-    setPreviewSettings({ ...item.settings });
-    setAppliedPreviewSettings({ ...item.settings });
+    setPreviewSettings(normalizePresenceOptions({ ...item.settings }));
+    setAppliedPreviewSettings(normalizePresenceOptions({ ...item.settings }));
     setPreviewRevision(item.id);
     setPreviewRenderedAt(item.renderedAt);
     setPreviewStatus("ready");
@@ -1504,7 +1555,7 @@ export default function App() {
 
   function handleApplyRecommended(settings: PreviewSettings) {
     player.stop();
-    setPreviewSettings({ ...settings });
+    setPreviewSettings(normalizePresenceOptions({ ...settings }));
   }
 
   useEffect(() => {
@@ -1686,7 +1737,7 @@ export default function App() {
                   hasPendingChanges={hasPendingChanges}
                   previewStatus={previewStatus}
                   previewErrorMessage={previewErrorMessage}
-                  onSettingsChange={setPreviewSettings}
+                  onSettingsChange={(settings) => setPreviewSettings(normalizePresenceOptions(settings))}
                   onRenderPreview={() => void handleRenderPreview()}
                 />
 
@@ -1745,7 +1796,7 @@ export default function App() {
                     hasPendingChanges={hasPendingChanges}
                     previewStatus={previewStatus}
                     previewErrorMessage={previewErrorMessage}
-                    onSettingsChange={setPreviewSettings}
+                    onSettingsChange={(settings) => setPreviewSettings(normalizePresenceOptions(settings))}
                     onRenderPreview={() => void handleRenderPreview()}
                   />
                   <div ref={exportPanelRef} className="export-panel-anchor">
@@ -1805,7 +1856,7 @@ export default function App() {
                 sourceAnalysis={sourceAnalysis}
                 previewResult={previewResult}
                 errorMessage={previewErrorMessage}
-                onSettingsChange={setPreviewSettings}
+                onSettingsChange={(settings) => setPreviewSettings(normalizePresenceOptions(settings))}
                 onRenderPreview={() => void handleRenderPreview()}
               />
             </details>

@@ -538,6 +538,26 @@ async function renderPreviewMasterInternal(
   lowMudDip.Q.value = 0.9;
   lowMudDip.gain.value = settings.autoIntensity === "youtube" ? -1.15 : settings.presetId === "power" ? -0.4 : -0.9;
 
+  const vocalPresenceActive = Boolean(settings.vocalPresence && !settings.antiFatigue);
+
+  const vocalMudDip = offlineContext.createBiquadFilter();
+  vocalMudDip.type = "peaking";
+  vocalMudDip.frequency.value = 300;
+  vocalMudDip.Q.value = 0.85;
+  vocalMudDip.gain.value = vocalPresenceActive ? -0.45 : 0;
+
+  const vocalBodyLift = offlineContext.createBiquadFilter();
+  vocalBodyLift.type = "peaking";
+  vocalBodyLift.frequency.value = 1850;
+  vocalBodyLift.Q.value = 0.95;
+  vocalBodyLift.gain.value = vocalPresenceActive ? (settings.autoIntensity === "youtube" ? 0.65 : 0.8) : 0;
+
+  const vocalArticulationLift = offlineContext.createBiquadFilter();
+  vocalArticulationLift.type = "peaking";
+  vocalArticulationLift.frequency.value = 3100;
+  vocalArticulationLift.Q.value = 1.05;
+  vocalArticulationLift.gain.value = vocalPresenceActive ? 0.38 : 0;
+
   const presence = offlineContext.createBiquadFilter();
   presence.type = "peaking";
   presence.frequency.value = 1700;
@@ -581,7 +601,10 @@ async function renderPreviewMasterInternal(
     .connect(highPass)
     .connect(lowShelf)
     .connect(lowMudDip)
+    .connect(vocalMudDip)
     .connect(presence)
+    .connect(vocalBodyLift)
+    .connect(vocalArticulationLift)
     .connect(harshDip)
     .connect(brightnessDip)
     .connect(fizzDip)
@@ -677,6 +700,9 @@ async function renderPreviewMasterInternal(
   }
   if (antiFizzReductionDb > 0.8) {
     appliedMoves.push(settings.antiFatigue ? "AI Brightness Smoothing / brillance IA" : "anti-fizz / contrôle des aigus");
+  }
+  if (vocalPresenceActive) {
+    appliedMoves.push("présence vocale subtile");
   }
   if (Math.abs(profile.lowShelfGain) > 0.2 || profile.subControlFrequency > 30) {
     appliedMoves.push("contrôle sub et bas du spectre");

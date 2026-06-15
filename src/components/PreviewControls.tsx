@@ -72,6 +72,17 @@ function repairHelp(level: SourceRepairLevel): string {
   return "Normal : compromis recommandé pour la majorité des morceaux IA.";
 }
 
+function normalizePresenceOptions(settings: PreviewSettings): PreviewSettings {
+  if (settings.antiFatigue && settings.vocalPresence) {
+    return { ...settings, vocalPresence: false };
+  }
+
+  return {
+    ...settings,
+    vocalPresence: Boolean(settings.vocalPresence),
+  };
+}
+
 function autoIntensityLabel(value: AutoIntensityId): string {
   if (value === "safe") {
     return "Nettoyage léger";
@@ -117,6 +128,7 @@ export function PreviewControls({
     ? inferAutoMasterPlan(sourceAnalysis.metrics, {
         autoIntensity: settings.autoIntensity,
         antiFatigue: settings.antiFatigue,
+        vocalPresence: settings.vocalPresence,
         spacePreserve: settings.spacePreserve
       })
     : null;
@@ -125,10 +137,12 @@ export function PreviewControls({
   const lufsSliderValue = Math.min(settings.targetLufsEstimate, lufsSliderMax);
 
   function rebuildAutoSettings(partial: Partial<PreviewSettings>) {
-    const nextBase = {
+    const nextBase = normalizePresenceOptions({
       ...settings,
-      ...partial
-    };
+      ...partial,
+      antiFatigue: partial.antiFatigue ? true : partial.vocalPresence ? false : partial.antiFatigue ?? settings.antiFatigue,
+      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue ? false : partial.vocalPresence ?? settings.vocalPresence,
+    });
 
     if (!sourceAnalysis) {
       onSettingsChange(nextBase);
@@ -138,6 +152,7 @@ export function PreviewControls({
     const rebuilt = buildSettingsFromAnalysis(sourceAnalysis.metrics, nextBase.presetId, {
       autoIntensity: nextBase.autoIntensity,
       antiFatigue: nextBase.antiFatigue,
+      vocalPresence: nextBase.vocalPresence,
       spacePreserve: nextBase.spacePreserve
     });
 
@@ -162,15 +177,18 @@ export function PreviewControls({
       presetId: nextBase.presetId,
       autoIntensity: nextBase.autoIntensity,
       antiFatigue: nextBase.antiFatigue,
+      vocalPresence: nextBase.vocalPresence,
       spacePreserve: nextBase.spacePreserve
     });
   }
 
   function updateSettings(partial: Partial<PreviewSettings>) {
-    onSettingsChange({
+    onSettingsChange(normalizePresenceOptions({
       ...settings,
-      ...partial
-    });
+      ...partial,
+      antiFatigue: partial.antiFatigue ? true : partial.vocalPresence ? false : partial.antiFatigue ?? settings.antiFatigue,
+      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue ? false : partial.vocalPresence ?? settings.vocalPresence,
+    }));
   }
 
   function handlePresetChange(event: ChangeEvent<HTMLSelectElement>) {
@@ -181,6 +199,7 @@ export function PreviewControls({
       const rebuilt = buildSettingsFromAnalysis(sourceAnalysis.metrics, nextPresetId, {
         autoIntensity: nextPresetSettings.autoIntensity,
         antiFatigue: nextPresetSettings.antiFatigue,
+        vocalPresence: nextPresetSettings.vocalPresence,
         spacePreserve: nextPresetSettings.spacePreserve
       });
       onSettingsChange(rebuilt);
@@ -229,11 +248,12 @@ export function PreviewControls({
             ))}
           </div>
 
-          <label className={settings.antiFatigue ? "fatigue-toggle big-fatigue-toggle active" : "fatigue-toggle big-fatigue-toggle"}>
+          <label className={["fatigue-toggle", "big-fatigue-toggle", settings.antiFatigue ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
             <input
               type="checkbox"
               checked={settings.antiFatigue}
-              onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
+              disabled={settings.vocalPresence}
+              onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
             />
             <span>
               <strong>AI Brightness Smoothing</strong>
@@ -241,9 +261,22 @@ export function PreviewControls({
             </span>
           </label>
 
+          <label className={["fatigue-toggle", "big-fatigue-toggle", "vocal-presence-toggle", settings.vocalPresence ? "active" : "", settings.antiFatigue ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.vocalPresence}
+              disabled={settings.antiFatigue}
+              onChange={(event) => rebuildAutoSettings({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
+            />
+            <span>
+              <strong>Présence vocale</strong>
+              <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
+            </span>
+          </label>
+
           <div className="simple-result-preview">
             <span>Réglage choisi</span>
-            <strong>{selectedSimplePreset.label}{settings.antiFatigue ? " + anti-fatigue" : ""}</strong>
+            <strong>{selectedSimplePreset.label}{settings.antiFatigue ? " + anti-fatigue" : settings.vocalPresence ? " + présence vocale" : ""}</strong>
             <small>
               {autoPlan
                 ? `${autoPlan.profileLabel} · objectif indicatif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)} LUFS`
@@ -272,9 +305,9 @@ export function PreviewControls({
               <small>{previewResult && autoPlan ? `Marge attendue ${autoPlan.targetHeadroomMinDb.toFixed(1)} à ${autoPlan.targetHeadroomMaxDb.toFixed(1)} dB` : "Le peak réel peut rester plus bas selon la source"}</small>
             </div>
             <div>
-              <span>Anti-fatigue</span>
-              <strong>{settings.antiFatigue ? "Activé" : "Off"}</strong>
-              <small>{settings.antiFatigue ? "AI Brightness Smoothing actif" : "Désactivé"}</small>
+              <span>Option voix / fizz</span>
+              <strong>{settings.antiFatigue ? "Anti-fizz" : settings.vocalPresence ? "Voix" : "Off"}</strong>
+              <small>{settings.antiFatigue ? "AI Brightness Smoothing actif" : settings.vocalPresence ? "Présence vocale active" : "Désactivé"}</small>
             </div>
             <div>
               <span>Espace</span>
@@ -305,15 +338,29 @@ export function PreviewControls({
             </p>
           ) : (
             <>
-              <label className={settings.antiFatigue ? "fatigue-toggle active" : "fatigue-toggle"}>
+              <label className={["fatigue-toggle", settings.antiFatigue ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
                 <input
                   type="checkbox"
                   checked={settings.antiFatigue}
-                  onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked })}
+                  disabled={settings.vocalPresence}
+                  onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
                 />
                 <span>
                   <strong>AI Brightness Smoothing</strong>
                   <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
+                </span>
+              </label>
+
+              <label className={["fatigue-toggle", "vocal-presence-toggle", settings.vocalPresence ? "active" : "", settings.antiFatigue ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+                <input
+                  type="checkbox"
+                  checked={settings.vocalPresence}
+                  disabled={settings.antiFatigue}
+                  onChange={(event) => rebuildAutoSettings({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
+                />
+                <span>
+                  <strong>Présence vocale</strong>
+                  <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
                 </span>
               </label>
 

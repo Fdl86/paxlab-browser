@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-24-2-champagne-cleanup",
+  "version": "1.0.0-dev15-25-vocal-presence",
   "type": "module",
   "scripts": {
     "dev": "vite",

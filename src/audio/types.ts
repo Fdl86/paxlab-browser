@@ -116,6 +116,7 @@ export interface PreviewSettings {
   sourceRepair: SourceRepairLevel;
   autoIntensity: AutoIntensityId;
   antiFatigue: boolean;
+  vocalPresence: boolean;
   spacePreserve: boolean;
 }
 

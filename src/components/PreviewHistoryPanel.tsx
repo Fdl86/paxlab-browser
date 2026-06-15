@@ -32,8 +32,12 @@ function formatAuto(settings: PreviewSettings): string {
 }
 
 function formatLabel(settings: PreviewSettings): string {
-  const fatigue = settings.antiFatigue ? " · Anti-fatigue" : "";
-  return `${formatAuto(settings)} · ${describeSourceRepair(settings.sourceRepair)} · ${describeHighTreatment(settings.highTreatment)}${fatigue}`;
+  const option = settings.antiFatigue
+    ? " · Anti-fatigue"
+    : settings.vocalPresence
+      ? " · Présence vocale"
+      : "";
+  return `${formatAuto(settings)} · ${describeSourceRepair(settings.sourceRepair)} · ${describeHighTreatment(settings.highTreatment)}${option}`;
 }
 
 function formatDb(value: number): string {
