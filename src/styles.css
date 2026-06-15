@@ -1230,7 +1230,7 @@ body{background:#0a0a0f !important;}
   fill:#9185ff !important;
 }
 
-/* DEV15.23.4 - Stability fixes and removed native timeline. */
+/* DEV15.23.5 - Stability fixes and removed native timeline. */
 .analysis-large-file-note,
 .loaded-file-warning{
   margin:10px 0 0;
@@ -1259,4 +1259,22 @@ body{background:#0a0a0f !important;}
 }
 .realtime-panel .monitor-time-row{
   margin-top:10px !important;
+}
+
+/* DEV15.23.5 - Export feedback overlay. */
+.export-processing-overlay .export-processing-card{
+  max-width:420px;
+  text-align:center;
+}
+.export-spinner{
+  width:42px;
+  height:42px;
+  margin:18px auto 12px;
+  border:3px solid rgba(255,255,255,0.14);
+  border-top-color:#7c6dfa;
+  border-radius:999px;
+  animation:paxlab-export-spin 0.85s linear infinite;
+}
+@keyframes paxlab-export-spin{
+  to{transform:rotate(360deg);}
 }

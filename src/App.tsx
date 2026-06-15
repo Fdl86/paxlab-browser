@@ -110,6 +110,13 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
     metrics.clippingSamples > 25 || metrics.approxTruePeakDb > -0.45;
   const compact =
     metrics.crestFactorDb < 7.6 || metrics.loudnessRangeEstimate < 4.5;
+  const lowLufsWithLimitedHeadroom =
+    metrics.estimatedLufs <= -16.2 &&
+    metrics.approxTruePeakDb > -8.5 &&
+    metrics.crestFactorDb >= 8.2 &&
+    metrics.loudnessRangeEstimate >= 4.2 &&
+    !brightOrFizz &&
+    !clippedOrHot;
   const quietAndDynamic =
     metrics.estimatedLufs <= -17.5 &&
     metrics.crestFactorDb >= 8.8 &&
@@ -127,11 +134,13 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
   let label = "Mix YouTube";
   let reason = "Sortie vidéo recommandée : niveau stabilisé, peak prudent et aigus IA contrôlés.";
 
-  if (quietAndDynamic) {
+  if (lowLufsWithLimitedHeadroom || quietAndDynamic) {
     autoIntensity = "impact";
     antiFatigue = false;
     label = "Impact";
-    reason = "Source basse et assez dynamique : PAXLAB recommande plus de densité avant validation A/B.";
+    reason = lowLufsWithLimitedHeadroom
+      ? "Niveau perçu bas avec des crêtes déjà présentes : PAXLAB recommande un rendu Power plus dense."
+      : "Source basse et assez dynamique : PAXLAB recommande plus de densité avant validation A/B.";
   } else if (alreadySmooth) {
     autoIntensity = "balanced";
     antiFatigue = false;
@@ -149,9 +158,11 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
     reason = "Source dense ou proche du plafond : rendu YouTube prudent recommandé avant export.";
   }
 
+  const recommendedPresetId = autoIntensity === "youtube" ? "youtube" : autoIntensity === "impact" ? "power" : "auto";
+
   const settings = buildSettingsFromAnalysis(
     metrics,
-    autoIntensity === "youtube" ? "youtube" : "auto",
+    recommendedPresetId,
     {
       autoIntensity,
       antiFatigue,
@@ -299,6 +310,7 @@ function AnalysisOverlay({
         <h2>Analyse du morceau</h2>
         <p>
           PAXLAB mesure le niveau, la brillance et la dynamique pour proposer une Preview adaptée.
+          {isLargeFile && " Fichier volumineux : l'analyse peut prendre un peu plus de temps."}
         </p>
         <div
           className="guided-progress"
@@ -637,25 +649,8 @@ function RenderChoiceCard({
       },
     );
 
-    const isNextYoutubeMix = base.autoIntensity === "youtube";
-    const preservedTargetLufs = isNextYoutubeMix
-      ? Math.min(settings.targetLufsEstimate, -14.4)
-      : settings.targetLufsEstimate;
-    const preservedTargetRms =
-      preservedTargetLufs !== settings.targetLufsEstimate
-        ? preservedTargetLufs + 0.75
-        : settings.targetRmsDb;
-
     onSettingsChange({
       ...rebuilt,
-      sourceRepair: settings.sourceRepair,
-      highTreatment: settings.highTreatment,
-      intensity: settings.intensity,
-      targetRmsDb: preservedTargetRms,
-      targetLufsEstimate: preservedTargetLufs,
-      maxPeakDb: settings.maxPeakDb,
-      stereoWidth: settings.stereoWidth,
-      density: settings.density,
       presetId: base.presetId,
       autoIntensity: base.autoIntensity,
       antiFatigue: base.antiFatigue,
@@ -715,7 +710,7 @@ function RenderChoiceCard({
               onClick={() =>
                 rebuild({
                   autoIntensity: render.id,
-                  presetId: render.id === "youtube" ? "youtube" : "auto",
+                  presetId: render.id === "youtube" ? "youtube" : render.id === "impact" ? "power" : "auto",
                 })
               }
             >
@@ -1070,7 +1065,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.23.4 Bug Fix Audit
+          PAXLAB Browser Engine - DEV15.23.5 Export Feedback
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

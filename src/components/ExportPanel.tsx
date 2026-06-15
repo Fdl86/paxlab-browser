@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { encodeFlacFromAudioBuffer } from "../audio/exportFlac";
 import {
   buildSafeAudioFilename,
@@ -19,6 +19,11 @@ interface ExportPanelProps {
 
 type ExportFormat = "wav" | "flac";
 type ExportChoiceId = "flac24" | "wav24" | "wav16";
+
+interface ExportJobState {
+  title: string;
+  detail: string;
+}
 
 const EXPORT_CHOICES: Array<{
   id: ExportChoiceId;
@@ -103,6 +108,14 @@ function buildDefaultExportFilename(
   return buildSafeAudioFilename(sourceFileName, suffix, extension);
 }
 
+function waitForExportFeedback(): Promise<void> {
+  return new Promise((resolve) => {
+    window.requestAnimationFrame(() => {
+      window.setTimeout(resolve, 90);
+    });
+  });
+}
+
 export function ExportPanel({
   sourceFileName,
   previewBuffer,
@@ -118,7 +131,7 @@ export function ExportPanel({
   const [exportErrorMessage, setExportErrorMessage] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] =
     useState<ExportChoiceId>("flac24");
-  const [isPreparingFlac, setIsPreparingFlac] = useState(false);
+  const [exportJob, setExportJob] = useState<ExportJobState | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const selectedExport =
     EXPORT_CHOICES.find((choice) => choice.id === selectedChoice) ??
@@ -165,44 +178,74 @@ export function ExportPanel({
     onExported?.();
   }
 
-  function prepareExport() {
-    if (!previewBuffer || hasPendingChanges || isRendering) {
+  async function beginExportFeedback(choice: typeof EXPORT_CHOICES[number]) {
+    if (!previewBuffer || hasPendingChanges || isRendering || exportJob) {
       return false;
     }
 
     setExportErrorMessage(null);
+    setLastExportName(null);
     onBeforeExport();
+    setExportJob({
+      title: choice.format === "flac" ? "Encodage FLAC local" : "Préparation WAV locale",
+      detail:
+        choice.format === "flac"
+          ? "Préparation du fichier lossless. Aucun upload."
+          : "Préparation du fichier local. Aucun upload.",
+    });
+    await waitForExportFeedback();
 
     return true;
   }
 
-  function handleWavExport(bitDepth: 16 | 24) {
-    if (!previewBuffer || !prepareExport()) {
+  async function handleWavExport(bitDepth: 16 | 24) {
+    if (!previewBuffer) {
       return;
     }
 
-    const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
-    const fallbackName = buildSafeAudioFilename(
-      sourceFileName,
-      fallbackSuffix,
-      "wav",
-    );
-    const filename = buildCustomExportName(
-      exportFilename,
-      fallbackName,
-      "wav",
-      bitDepth,
-    );
-    const blob = encodeWavFromAudioBuffer(previewBuffer, { bitDepth });
-    downloadBlob(blob, filename);
+    const choice = EXPORT_CHOICES.find(
+      (candidate) => candidate.format === "wav" && candidate.bitDepth === bitDepth,
+    ) ?? selectedExport;
+
+    if (!(await beginExportFeedback(choice))) {
+      return;
+    }
+
+    try {
+      const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
+      const fallbackName = buildSafeAudioFilename(
+        sourceFileName,
+        fallbackSuffix,
+        "wav",
+      );
+      const filename = buildCustomExportName(
+        exportFilename,
+        fallbackName,
+        "wav",
+        bitDepth,
+      );
+      const blob = encodeWavFromAudioBuffer(previewBuffer, { bitDepth });
+      downloadBlob(blob, filename);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Export WAV indisponible.";
+      setExportErrorMessage(message);
+      setLastExportName(null);
+    } finally {
+      setExportJob(null);
+    }
   }
 
   async function handleFlacExport() {
-    if (!previewBuffer || !prepareExport()) {
+    if (!previewBuffer) {
       return;
     }
 
-    setIsPreparingFlac(true);
+    if (!(await beginExportFeedback(EXPORT_CHOICES[0]))) {
+      return;
+    }
 
     try {
       const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-24bit`;
@@ -230,7 +273,7 @@ export function ExportPanel({
       setExportErrorMessage(message);
       setLastExportName(null);
     } finally {
-      setIsPreparingFlac(false);
+      setExportJob(null);
     }
   }
 
@@ -240,117 +283,132 @@ export function ExportPanel({
       return;
     }
 
-    handleWavExport(selectedExport.bitDepth);
+    void handleWavExport(selectedExport.bitDepth);
   }
 
+  const isExporting = Boolean(exportJob);
   const canExport =
     Boolean(previewBuffer) &&
     !hasPendingChanges &&
     !isRendering &&
-    !isPreparingFlac;
-  const buttonLabel =
-    selectedExport.id === "flac24" && isPreparingFlac
-      ? "Encodage FLAC local..."
-      : `Exporter ${selectedExport.title}`;
+    !isExporting;
+  const buttonLabel = isExporting
+    ? exportJob?.title ?? "Préparation export..."
+    : `Exporter ${selectedExport.title}`;
 
   return (
-    <section className="panel export-panel simple-export-panel premium-export-panel">
-      <div className="panel-heading compact-heading compact-export-heading">
-        <div>
-          <h2>
-            {previewBuffer
-              ? `Exporter la Preview sélectionnée #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
-              : "Exporter le rendu"}
-          </h2>
+    <>
+      {exportJob && (
+        <div className="guided-processing-overlay export-processing-overlay" role="status" aria-live="polite">
+          <div className="guided-processing-card processing-modal-violet export-processing-card">
+            <div className="processing-logo-mark" aria-hidden="true">×</div>
+            <p className="eyebrow">Export local</p>
+            <h2>{exportJob.title}</h2>
+            <p>{exportJob.detail}</p>
+            <div className="export-spinner" aria-hidden="true" />
+            <strong>Aucun upload - traitement navigateur</strong>
+          </div>
         </div>
-        {previewBuffer && hasPendingChanges && onRegenerateRequest ? (
-          <button
-            type="button"
-            className="status-pill status-pill-button"
-            onClick={onRegenerateRequest}
-            title="Régénérer la Preview avec les réglages actuels."
-          >
-            À régénérer
-          </button>
-        ) : (
-          <span className={canExport ? "status-pill ready-pill" : "status-pill"}>
-            {canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}
-          </span>
-        )}
-      </div>
-
-      <div
-        className="export-choice-stack export-choice-row"
-        aria-label="Format export"
-      >
-        {EXPORT_CHOICES.map((choice) => (
-          <button
-            key={choice.id}
-            type="button"
-            className={
-              selectedChoice === choice.id
-                ? "export-choice-card active"
-                : "export-choice-card"
-            }
-            aria-pressed={selectedChoice === choice.id}
-            disabled={!previewBuffer || isRendering || isPreparingFlac}
-            onClick={() => setSelectedChoice(choice.id)}
-          >
-            <span className="export-radio" aria-hidden="true" />
-            <span className="export-choice-copy">
-              <strong>{choice.title}</strong>
-            </span>
-          </button>
-        ))}
-      </div>
-
-      <label className="export-filename-field premium-export-filename">
-        <span>Nom du fichier exporté</span>
-        <input
-          type="text"
-          value={exportFilename}
-          disabled={!previewBuffer || isRendering || isPreparingFlac}
-          onChange={(event) => setExportFilename(event.target.value)}
-        />
-      </label>
-
-      <button
-        type="button"
-        className="primary-button export-main-button premium-download-button"
-        disabled={!canExport}
-        onClick={handleSelectedExport}
-        aria-busy={isPreparingFlac}
-      >
-        {buttonLabel}
-        <small>{isPreparingFlac ? "Encodage lossless local en cours" : "Local - Aucun upload - Preview à jour"}</small>
-      </button>
-
-      {!previewBuffer && (
-        <p className="message message-info">
-          Génère d’abord une Preview pour activer l’export.
-        </p>
       )}
 
-      {hasPendingChanges && previewBuffer && (
-        <p className="message message-warning export-action-warning">
-          Réglages modifiés. Régénère la Preview avant export.
-          {onRegenerateRequest && (
-            <button type="button" onClick={onRegenerateRequest}>
-              Ouvrir les réglages
+      <section className="panel export-panel simple-export-panel premium-export-panel">
+        <div className="panel-heading compact-heading compact-export-heading">
+          <div>
+            <h2>
+              {previewBuffer
+                ? `Exporter la Preview sélectionnée #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
+                : "Exporter le rendu"}
+            </h2>
+          </div>
+          {previewBuffer && hasPendingChanges && onRegenerateRequest ? (
+            <button
+              type="button"
+              className="status-pill status-pill-button"
+              onClick={onRegenerateRequest}
+              title="Régénérer la Preview avec les réglages actuels."
+            >
+              À régénérer
             </button>
+          ) : (
+            <span className={canExport ? "status-pill ready-pill" : "status-pill"}>
+              {canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}
+            </span>
           )}
-        </p>
-      )}
+        </div>
 
-      {exportErrorMessage && (
-        <p className="message message-error">{exportErrorMessage}</p>
-      )}
+        <div
+          className="export-choice-stack export-choice-row"
+          aria-label="Format export"
+        >
+          {EXPORT_CHOICES.map((choice) => (
+            <button
+              key={choice.id}
+              type="button"
+              className={
+                selectedChoice === choice.id
+                  ? "export-choice-card active"
+                  : "export-choice-card"
+              }
+              aria-pressed={selectedChoice === choice.id}
+              disabled={!previewBuffer || isRendering || isExporting}
+              onClick={() => setSelectedChoice(choice.id)}
+            >
+              <span className="export-radio" aria-hidden="true" />
+              <span className="export-choice-copy">
+                <strong>{choice.title}</strong>
+              </span>
+            </button>
+          ))}
+        </div>
 
-      {lastExportName && !hasPendingChanges && !exportErrorMessage && (
-        <p className="message message-success">
-          Fichier préparé : {lastExportName}
-        </p>
-      )}
-    </section>
+        <label className="export-filename-field premium-export-filename">
+          <span>Nom du fichier exporté</span>
+          <input
+            type="text"
+            value={exportFilename}
+            disabled={!previewBuffer || isRendering || isExporting}
+            onChange={(event) => setExportFilename(event.target.value)}
+          />
+        </label>
+
+        <button
+          type="button"
+          className="primary-button export-main-button premium-download-button"
+          disabled={!canExport}
+          onClick={handleSelectedExport}
+          aria-busy={isExporting}
+        >
+          {buttonLabel}
+          <small>{isExporting ? "Export local en cours" : "Local - Aucun upload - Preview à jour"}</small>
+        </button>
+
+        {!previewBuffer && (
+          <p className="message message-info">
+            Génère d’abord une Preview pour activer l’export.
+          </p>
+        )}
+
+        {hasPendingChanges && previewBuffer && (
+          <p className="message message-warning export-action-warning">
+            Réglages modifiés. Régénère la Preview avant export.
+            {onRegenerateRequest && (
+              <button type="button" onClick={onRegenerateRequest}>
+                Ouvrir les réglages
+              </button>
+            )}
+          </p>
+        )}
+
+        {exportErrorMessage && (
+          <p className="message message-error">{exportErrorMessage}</p>
+        )}
+
+        {lastExportName && !hasPendingChanges && !exportErrorMessage && (
+          <p className="message message-success">
+            Fichier préparé : {lastExportName}
+          </p>
+        )}
+      </section>
+    </>
   );
 }
