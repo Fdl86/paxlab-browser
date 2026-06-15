@@ -918,3 +918,23 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
     border-top:1px solid #2a292d !important;
   }
 }
+
+/* DEV15.25.2 - Accordion separator and selected state. CSS only. */
+.guided-accordions .guided-accordion summary{
+  border-bottom:1px solid #2a292d !important;
+  transition:background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.guided-accordions .guided-accordion[open] summary{
+  background:rgba(212,175,110,0.16) !important;
+  border-bottom:1px solid rgba(212,175,110,0.38) !important;
+}
+
+.guided-accordions .guided-accordion[open] summary span,
+.guided-accordions .guided-accordion[open] summary small{
+  color:#eadba8 !important;
+}
+
+.guided-accordions .guided-accordion > *:not(summary){
+  border-top:0 !important;
+}
