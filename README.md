@@ -1,20 +1,21 @@
-# PAXLAB Browser Engine - DEV15.25
+# PAXLAB Browser Engine - DEV15.25.1
 
-DEV15.25 ajoute l option `Presence vocale` comme option de rendu separee, exclusive avec `AI Brightness Smoothing`. Cette version conserve le moteur audio principal, les presets, le player, la waveform seek et les exports WAV / FLAC valides.
+DEV15.25.1 consolide uniquement `src/styles.css` a partir de DEV15.25. Le rendu champagne, l option `Presence vocale`, `AI Brightness Smoothing`, le player, la waveform seek et les exports WAV / FLAC sont conserves.
 
-## Modifications DEV15.25
+## Modifications DEV15.25.1
 
-- Ajout de l option `Presence vocale` dans le panneau `Rendu`.
-- Option desactivee par defaut : aucun changement sonore si elle n est pas activee.
-- `Presence vocale` et `AI Brightness Smoothing` sont exclusives : quand l une est active, l autre est grisee.
-- Traitement vocal subtil : nettoyage leger du voile, presence douce du chant et articulation controlee.
-- Aucun boost systematique au-dessus de 6 kHz afin d eviter de ramener du fizz IA.
-- Historique, resume et rapports indiquent correctement l option de presence vocale quand elle est active.
-- CSS complete avec l etat grise des options incompatibles.
+- Optimisation severe de `src/styles.css`.
+- Fusion des blocs `:root` en un seul bloc de tokens.
+- Suppression de nombreux styles historiques inutilises.
+- Retrait de blocs UI obsoletes non appeles par le code React actuel.
+- Conservation de la DA champagne existante.
+- Aucune modification du moteur audio.
+- Aucune modification des exports WAV / FLAC.
+- Aucune modification des presets ni de la recommandation automatique.
 
 ## Verification
 
-Le build DEV15.25 a ete verifie avant livraison :
+Le build DEV15.25.1 a ete verifie avant livraison :
 
 ```bash
 npm run build
