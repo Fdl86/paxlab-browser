@@ -938,3 +938,16 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
 .guided-accordions .guided-accordion > *:not(summary){
   border-top:0 !important;
 }
+
+/* DEV15.25.2 - Fix double underline on closed accordion headers. CSS only. */
+.guided-accordions .guided-accordion summary{
+  border-bottom:0 !important;
+}
+
+.guided-accordions .guided-accordion[open] summary{
+  border-bottom:1px solid rgba(212,175,110,0.38) !important;
+}
+
+.guided-accordions .guided-accordion > *:not(summary){
+  border-top:0 !important;
+}
