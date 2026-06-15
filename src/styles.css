@@ -453,7 +453,7 @@ button,input,select,label{font-family:inherit;}
 .guided-stepper,.compact-preview-status{display:none !important;}
 .standalone-message{margin-bottom:18px;padding:10px 12px;margin:14px 32px !important;}
 .guided-config-grid,.loaded-layout-grid,.guided-result-grid{display:grid !important;grid-template-columns:minmax(0, 1fr) 420px !important;gap:26px !important;padding:40px 44px 32px !important;align-items:start !important;}
-.guided-result-grid{display:grid;grid-template-columns:minmax(0, 1fr) 608px !important;min-height:auto !important;gap:0 !important;align-items:start !important;padding-top:32px !important;}
+.guided-result-grid{display:grid;grid-template-columns:minmax(0, 1fr) 420px !important;min-height:auto !important;gap:26px !important;align-items:start !important;padding-top:32px !important;}
 .loaded-main-column,.loaded-side-column,.guided-result-side{display:grid !important;gap:18px !important;}
 .loaded-file-stage-card,.guided-source-card.loaded-file-stage-card{padding:30px 32px !important;border-radius:12px !important;background:#15151a !important;}
 .loaded-file-header{display:grid !important;grid-template-columns:auto minmax(0, 1fr) auto !important;gap:20px !important;align-items:center !important;margin-bottom:26px !important;}
