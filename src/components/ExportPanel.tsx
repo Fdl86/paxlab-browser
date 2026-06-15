@@ -94,6 +94,15 @@ function buildCustomExportName(
   return sanitized;
 }
 
+function buildDefaultExportFilename(
+  sourceFileName: string | null,
+  previewRevision: number,
+  extension: ExportFormat,
+): string {
+  const suffix = `paxlab-preview-${previewRevision || 1}-24bit`;
+  return buildSafeAudioFilename(sourceFileName, suffix, extension);
+}
+
 export function ExportPanel({
   sourceFileName,
   previewBuffer,
@@ -114,19 +123,18 @@ export function ExportPanel({
   const selectedExport =
     EXPORT_CHOICES.find((choice) => choice.id === selectedChoice) ??
     EXPORT_CHOICES[0];
-  const suggestedFilename = useMemo(() => {
-    const suffix = `paxlab-preview-${previewRevision || 1}-24bit`;
-    return buildSafeAudioFilename(
-      sourceFileName,
-      suffix,
-      selectedExport.format,
-    );
-  }, [previewRevision, selectedExport.format, sourceFileName]);
-  const [exportFilename, setExportFilename] = useState(suggestedFilename);
+  const [exportFilename, setExportFilename] = useState(() =>
+    buildDefaultExportFilename(sourceFileName, previewRevision, "flac"),
+  );
 
   useEffect(() => {
-    setExportFilename(suggestedFilename);
-  }, [suggestedFilename]);
+    setExportFilename(
+      buildDefaultExportFilename(sourceFileName, previewRevision, selectedExport.format),
+    );
+    // Intentionally reset only when the Preview changes. Changing FLAC/WAV keeps the typed name;
+    // the final extension is normalized at download time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewRevision, sourceFileName]);
 
   useEffect(() => {
     return () => {
@@ -242,7 +250,7 @@ export function ExportPanel({
     !isPreparingFlac;
   const buttonLabel =
     selectedExport.id === "flac24" && isPreparingFlac
-      ? "Préparation FLAC..."
+      ? "Encodage FLAC local..."
       : `Exporter ${selectedExport.title}`;
 
   return (
@@ -251,7 +259,7 @@ export function ExportPanel({
         <div>
           <h2>
             {previewBuffer
-              ? `Exporter le rendu #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
+              ? `Exporter la Preview sélectionnée #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
               : "Exporter le rendu"}
           </h2>
         </div>
@@ -311,9 +319,10 @@ export function ExportPanel({
         className="primary-button export-main-button premium-download-button"
         disabled={!canExport}
         onClick={handleSelectedExport}
+        aria-busy={isPreparingFlac}
       >
         {buttonLabel}
-        <small>Local - Aucun upload - Preview à jour</small>
+        <small>{isPreparingFlac ? "Encodage lossless local en cours" : "Local - Aucun upload - Preview à jour"}</small>
       </button>
 
       {!previewBuffer && (

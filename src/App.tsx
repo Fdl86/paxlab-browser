@@ -170,6 +170,7 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
 
 const AUDIO_ACCEPT = "audio/*,.wav,.mp3,.flac,.ogg,.m4a,.aac,.aiff,.aif";
 const MAX_AUDIO_FILE_SIZE_BYTES = 100 * 1024 * 1024;
+const LARGE_AUDIO_FILE_WARNING_BYTES = 50 * 1024 * 1024;
 
 function isLikelySupportedAudioFile(file: File): boolean {
   const name = file.name.toLowerCase();
@@ -273,10 +274,12 @@ function AnalysisOverlay({
   isVisible,
   activeStep,
   progress,
+  isLargeFile,
 }: {
   isVisible: boolean;
   activeStep: number;
   progress: number;
+  isLargeFile: boolean;
 }) {
   if (!isVisible) {
     return null;
@@ -543,6 +546,12 @@ function SourceLoadedCard({
               ? "Analyse locale indisponible - vérifie le fichier ou recharge-le."
               : "Analyse locale automatique après chargement."}
       </p>
+
+      {decodedAudio.file.sizeBytes >= LARGE_AUDIO_FILE_WARNING_BYTES && (
+        <p className="loaded-file-warning">
+          Gros fichier : traitement 100 % local, quelques ralentissements restent possibles.
+        </p>
+      )}
 
       <div className="loaded-source-waveform" aria-hidden="true">
         {sourceBars.map((bar, index) => (
@@ -1061,7 +1070,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.23.3 Player Stability
+          PAXLAB Browser Engine - DEV15.23.4 Bug Fix Audit
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1515,13 +1524,17 @@ export default function App() {
     renderTokenRef.current += 1;
 
     if (validationMessage) {
-      setSelectedFile(file);
+      setSelectedFile(null);
       setDecodedAudio(null);
       setDecodeStatus("error");
       setDecodeErrorMessage(validationMessage);
+      setAnalysisStatus("idle");
+      setSourceAnalysis(null);
+      setAnalysisErrorMessage(null);
       setPreviewStatus("idle");
       setPreviewResult(null);
       setAnalysisOverlayVisible(false);
+      setExportedRevision(null);
       return;
     }
 
@@ -1572,8 +1585,15 @@ export default function App() {
         return;
       }
 
-      if (key === "r" && decodedAudio && previewStatus !== "rendering") {
+      if (
+        key === "r" &&
+        decodedAudio &&
+        sourceAnalysis &&
+        analysisStatus === "ready" &&
+        previewStatus !== "rendering"
+      ) {
         event.preventDefault();
+        handleScrollToRender();
         void handleRenderPreview();
         return;
       }
@@ -1586,7 +1606,7 @@ export default function App() {
 
     window.addEventListener("keydown", handleKeyboard);
     return () => window.removeEventListener("keydown", handleKeyboard);
-  }, [decodedAudio, handleRenderPreview, player, previewResult, previewStatus]);
+  }, [analysisStatus, decodedAudio, handleRenderPreview, player, previewResult, previewStatus, sourceAnalysis]);
 
   const workflowStep: 1 | 2 | 3 | 4 = !decodedAudio
     ? 1
@@ -1606,6 +1626,7 @@ export default function App() {
         isVisible={analysisOverlayVisible && previewStatus !== "rendering"}
         activeStep={analysisVisualStep}
         progress={analysisVisualProgress}
+        isLargeFile={Boolean(selectedFile && selectedFile.size >= LARGE_AUDIO_FILE_WARNING_BYTES)}
       />
       <ProcessingOverlay
         isVisible={previewStatus === "rendering"}

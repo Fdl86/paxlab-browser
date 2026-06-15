@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-23-3-player-stability",
+  "version": "1.0.0-dev15-23-4-bug-audit-fixes",
   "type": "module",
   "scripts": {
     "dev": "vite",

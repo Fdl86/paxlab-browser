@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import {
   analyzeHeadroomSummary,
   formatDuration,
@@ -36,6 +36,7 @@ interface RealtimeMonitorPanelProps {
 }
 
 type WaveformViewMode = "structure" | "level";
+const WAVEFORM_SEEK_THROTTLE_MS = 34;
 
 function formatDb(value: number): string {
   if (!Number.isFinite(value) || value <= -89) {
@@ -366,7 +367,6 @@ export function RealtimeMonitorPanel({
     duration > 0
       ? Math.min(1, Math.max(0, currentTime / duration))
       : 0;
-  const progress = progressRatio * 100;
   const waveformWidth = 860;
   const waveformHeight = 110;
   const waveformCenterY = waveformHeight / 2;
@@ -432,19 +432,27 @@ export function RealtimeMonitorPanel({
 
     const target = event.currentTarget;
     const pointerId = event.pointerId;
+    let lastSeekAt = 0;
 
-    function seekFromClientX(clientX: number) {
+    function seekFromClientX(clientX: number, force = false) {
+      const now = performance.now();
+
+      if (isPlaying && !force && now - lastSeekAt < WAVEFORM_SEEK_THROTTLE_MS) {
+        return;
+      }
+
       const rect = target.getBoundingClientRect();
 
       if (rect.width <= 0) {
         return;
       }
 
+      lastSeekAt = now;
       const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
       onSeek(ratio * duration);
     }
 
-    seekFromClientX(event.clientX);
+    seekFromClientX(event.clientX, true);
 
     if (target.setPointerCapture) {
       try {
@@ -486,6 +494,7 @@ export function RealtimeMonitorPanel({
         return;
       }
 
+      seekFromClientX(endEvent.clientX, true);
       cleanup();
     }
 
@@ -686,19 +695,6 @@ export function RealtimeMonitorPanel({
             <span>{formatDuration(currentTime)}</span>
             <span>{formatDuration(duration)}</span>
           </div>
-
-          <input
-            className="timeline monitor-timeline"
-            type="range"
-            min="0"
-            max={Math.max(duration, 0)}
-            step="0.01"
-            value={Math.min(currentTime, duration || 0)}
-            disabled={!activeBuffer || duration <= 0}
-            onChange={(event) => onSeek(Number(event.target.value))}
-            style={{ "--progress": `${progress}%` } as CSSProperties}
-            aria-label="Position de lecture"
-          />
 
           <div className="compact-meter-row">
             <div className="compact-meter-pill">

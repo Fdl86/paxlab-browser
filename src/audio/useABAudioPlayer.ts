@@ -29,6 +29,7 @@ const SWITCH_FADE_SECONDS = 0.014;
 const SWITCH_LOCK_SECONDS = 0.04;
 const STOP_FADE_SECONDS = 0.018;
 const START_FADE_SECONDS = 0.008;
+const END_EPSILON_SECONDS = 0.05;
 
 const initialMeter: RealtimeMeterState = {
   instantPeakDb: SILENCE_DB,
@@ -59,6 +60,14 @@ function getBufferForSource(
   previewBuffer: AudioBuffer | null
 ): AudioBuffer | null {
   return source === "original" ? originalBuffer : previewBuffer;
+}
+
+function clampPlaybackTime(value: number, duration: number): number {
+  return Math.min(Math.max(value, 0), Math.max(duration, 0));
+}
+
+function isAtOrPastEnd(value: number, duration: number): boolean {
+  return duration > 0 && value >= duration - END_EPSILON_SECONDS;
 }
 
 function linearToDb(value: number): number {
@@ -292,7 +301,16 @@ export function useABAudioPlayer({
         stopEverySource();
       }
 
-      const safeOffset = Math.min(Math.max(offset, 0), Math.max(sourceBuffer.duration - 0.02, 0));
+      const requestedOffset = clampPlaybackTime(offset, sourceBuffer.duration);
+      if (isAtOrPastEnd(requestedOffset, sourceBuffer.duration)) {
+        setCurrentTime(sourceBuffer.duration);
+        currentTimeRef.current = sourceBuffer.duration;
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        return;
+      }
+
+      const safeOffset = Math.min(requestedOffset, Math.max(sourceBuffer.duration - 0.02, 0));
       const requestToken = playbackTokenRef.current + 1;
       playbackTokenRef.current = requestToken;
 
@@ -398,7 +416,7 @@ export function useABAudioPlayer({
       return;
     }
 
-    const startAt = currentTimeRef.current >= sourceBuffer.duration - 0.05 ? 0 : currentTimeRef.current;
+    const startAt = isAtOrPastEnd(currentTimeRef.current, sourceBuffer.duration) ? 0 : currentTimeRef.current;
     startInFlightRef.current = true;
 
     try {
@@ -422,7 +440,7 @@ export function useABAudioPlayer({
         return;
       }
 
-      const safeTime = Math.min(Math.max(nextTime, 0), sourceBuffer.duration);
+      const safeTime = clampPlaybackTime(nextTime, sourceBuffer.duration);
       const wasPlaying = isPlayingRef.current;
 
       stopEverySource(STOP_FADE_SECONDS);
@@ -432,7 +450,7 @@ export function useABAudioPlayer({
       isPlayingRef.current = false;
       resetMeter();
 
-      if (wasPlaying && safeTime < sourceBuffer.duration - 0.05) {
+      if (wasPlaying && !isAtOrPastEnd(safeTime, sourceBuffer.duration)) {
         void startSource(activeSourceRef.current, safeTime);
       }
     },
@@ -465,26 +483,28 @@ export function useABAudioPlayer({
         window.clearTimeout(switchUnlockTimerRef.current);
       }
 
-      const offset = Math.min(readCurrentOffset(), Math.max(nextBuffer.duration - 0.02, 0));
+      const rawOffset = readCurrentOffset();
+      const offset = clampPlaybackTime(rawOffset, nextBuffer.duration);
+      const shouldStopAtEnd = isAtOrPastEnd(offset, nextBuffer.duration);
       const wasPlaying = isPlayingRef.current;
 
-      if (wasPlaying) {
+      if (wasPlaying && !shouldStopAtEnd) {
         fadeOutExistingVoices(SWITCH_FADE_SECONDS);
       } else {
-        stopEverySource();
+        stopEverySource(wasPlaying ? SWITCH_FADE_SECONDS : 0);
       }
 
       setActiveSourceState(nextSource);
       activeSourceRef.current = nextSource;
       setCurrentTime(offset);
       currentTimeRef.current = offset;
-      if (!wasPlaying) {
+      if (!wasPlaying || shouldStopAtEnd) {
         setIsPlaying(false);
         isPlayingRef.current = false;
       }
       resetIntegratedMeterOnly();
 
-      if (wasPlaying) {
+      if (wasPlaying && !shouldStopAtEnd) {
         await startSource(nextSource, offset, false);
       } else {
         resetMeter();
