@@ -144,6 +144,8 @@ export function ExportPanel({
     setExportFilename(
       buildDefaultExportFilename(sourceFileName, previewRevision, selectedExport.format),
     );
+    setLastExportName(null);
+    setExportErrorMessage(null);
     // Intentionally reset only when the Preview changes. Changing FLAC/WAV keeps the typed name;
     // the final extension is normalized at download time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -301,7 +303,6 @@ export function ExportPanel({
       {exportJob && (
         <div className="guided-processing-overlay export-processing-overlay" role="status" aria-live="polite">
           <div className="guided-processing-card processing-modal-violet export-processing-card">
-            <div className="processing-logo-mark" aria-hidden="true">×</div>
             <p className="eyebrow">Export local</p>
             <h2>{exportJob.title}</h2>
             <p>{exportJob.detail}</p>

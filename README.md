@@ -1,8 +1,8 @@
-# PAXLAB Browser Engine - DEV15.23.5
+# PAXLAB Browser Engine - DEV15.23.6
 
-DEV15.23.5 est une consolidation orientee export et rendu Impact. Elle part de DEV15.23.4, conserve la base player stable et ajoute un feedback visible pendant l export local. Le moteur audio, l export WAV, l export FLAC, la waveform interactive et la recommandation automatique restent compatibles avec la base precedente.
+DEV15.23.6 est une hotfix de l export local basee sur DEV15.23.5. Elle corrige le message de succes obsolète apres regeneration d une Preview et simplifie la modale d export pour ne garder qu un indicateur de chargement.
 
-## DEV15.23.5 - Export feedback and Impact profile
+## DEV15.23.6 - Export success state fix
 
 - Ajout d une modale d export local pendant la preparation FLAC / WAV.
 - Arret du player avant le debut effectif de l encodage export.
@@ -24,7 +24,7 @@ DEV15.23.5 est une consolidation orientee export et rendu Impact. Elle part de D
 
 ## Validation
 
-Le build DEV15.23.5 a ete verifie avant livraison :
+Le build DEV15.23.6 a ete verifie avant livraison :
 
 ```bash
 npm run build

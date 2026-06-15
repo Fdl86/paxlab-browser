@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-23-5-export-impact",
+  "version": "1.0.0-dev15-23-6-export-success-fix",
   "type": "module",
   "scripts": {
     "dev": "vite",
