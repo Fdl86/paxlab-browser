@@ -117,6 +117,7 @@ export interface PreviewSettings {
   autoIntensity: AutoIntensityId;
   antiFatigue: boolean;
   vocalPresence: boolean;
+  stereoSpace: boolean;
   spacePreserve: boolean;
 }
 

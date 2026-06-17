@@ -32,12 +32,22 @@ function formatAuto(settings: PreviewSettings): string {
 }
 
 function formatLabel(settings: PreviewSettings): string {
-  const option = settings.antiFatigue
-    ? " · Anti-fatigue"
-    : settings.vocalPresence
-      ? " · Présence vocale"
-      : "";
-  return `${formatAuto(settings)} · ${describeSourceRepair(settings.sourceRepair)} · ${describeHighTreatment(settings.highTreatment)}${option}`;
+  const options: string[] = [];
+
+  if (settings.antiFatigue) {
+    options.push("Anti-fatigue");
+  }
+
+  if (settings.vocalPresence) {
+    options.push("Présence vocale");
+  }
+
+  if (settings.stereoSpace) {
+    options.push("Espace stéréo");
+  }
+
+  const optionLabel = options.length ? ` · ${options.join(" · ")}` : "";
+  return `${formatAuto(settings)} · ${describeSourceRepair(settings.sourceRepair)} · ${describeHighTreatment(settings.highTreatment)}${optionLabel}`;
 }
 
 function formatDb(value: number): string {

@@ -1,22 +1,23 @@
-# PAXLAB Browser Engine - DEV15.25.3
+# PAXLAB Browser Engine - DEV15.26
 
-DEV15.25.3 est une hotfix CSS de DEV15.25.2. Elle conserve la DA champagne, l option `Presence vocale`, `AI Brightness Smoothing`, le player, la waveform seek et les exports WAV / FLAC.
+DEV15.26 ajoute l option `Espace stereo` a la base stable DEV15.25.3. La version conserve la DA champagne, `Presence vocale`, `AI Brightness Smoothing`, le player, la waveform seek et les exports WAV / FLAC.
 
-## Modifications DEV15.25.3
+## Modifications DEV15.26
 
-- Correction de la ligne de controles du player : `Original / Rendu PAXLAB`, `Volume egal`, puis les boutons transport restent alignes horizontalement sur desktop.
-- Homogeneisation de la largeur de colonne droite avant et apres generation de Preview.
-- Correction des separateurs visibles entre `Historique des previews`, `Reglages experts` et `Details techniques`.
-- Ajout de l etat visuel champagne sur l accordion selectionne.
-- Correction de la double barre horizontale sous `Historique des previews`.
-- Reconstruction des accordéons en pile verticale pleine largeur pour supprimer le bug `grid-column: 1 / -1`.
-- Hotfix CSS uniquement, sans modification du moteur audio.
-- Aucune modification des exports WAV / FLAC.
-- Aucune modification des presets ni de la recommandation automatique.
+- Ajout de l option `Espace stereo`, OFF par defaut.
+- Traitement Mid / Side leger avec protection des graves : le Side est elargi uniquement au-dessus d environ 220 Hz.
+- Option disponible dans le parcours principal et dans les reglages avances.
+- Affichage de l option dans la Preview prete, l historique, le resume et le rapport de traitement.
+- Ajout d une ligne `espace stereo M/S securise` dans la chaine appliquee quand l option est active.
+- Aucun re-brightening ajoute.
+- Aucune modification des cibles LUFS des presets.
+- Moteur audio conserve hors ajout cible de l espace stereo.
+- Exports WAV / FLAC inchanges.
+- Player et waveform inchanges.
 
 ## Verification
 
-Le build DEV15.25.3 doit etre verifie avant livraison :
+Le build DEV15.26 doit etre verifie avant livraison :
 
 ```bash
 npm run build

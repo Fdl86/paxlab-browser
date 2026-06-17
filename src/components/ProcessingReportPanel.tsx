@@ -41,6 +41,10 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
               <strong>{result.settings.antiFatigue ? "AI Brightness Smoothing" : result.settings.vocalPresence ? "Présence vocale" : result.report.brightnessLabel}</strong>
             </div>
             <div className="report-card">
+              <span>Espace stéréo</span>
+              <strong>{result.settings.stereoSpace ? "Actif" : "Off"}</strong>
+            </div>
+            <div className="report-card">
               <span>Clics réparés</span>
               <strong>{result.report.cleanup.clicksRepaired}</strong>
             </div>

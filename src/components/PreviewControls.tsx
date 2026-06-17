@@ -107,6 +107,24 @@ function formatPreviewReady(revision: number, renderedAt: string | null): string
   return `Preview #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
 }
 
+function formatActiveOptions(settings: PreviewSettings): string {
+  const options: string[] = [];
+
+  if (settings.antiFatigue) {
+    options.push("anti-fatigue");
+  }
+
+  if (settings.vocalPresence) {
+    options.push("présence vocale");
+  }
+
+  if (settings.stereoSpace) {
+    options.push("espace stéréo");
+  }
+
+  return options.length ? ` + ${options.join(" + ")}` : "";
+}
+
 export function PreviewControls({
   settings,
   previewStatus,
@@ -129,6 +147,7 @@ export function PreviewControls({
         autoIntensity: settings.autoIntensity,
         antiFatigue: settings.antiFatigue,
         vocalPresence: settings.vocalPresence,
+        stereoSpace: settings.stereoSpace,
         spacePreserve: settings.spacePreserve
       })
     : null;
@@ -153,6 +172,7 @@ export function PreviewControls({
       autoIntensity: nextBase.autoIntensity,
       antiFatigue: nextBase.antiFatigue,
       vocalPresence: nextBase.vocalPresence,
+      stereoSpace: nextBase.stereoSpace,
       spacePreserve: nextBase.spacePreserve
     });
 
@@ -178,6 +198,7 @@ export function PreviewControls({
       autoIntensity: nextBase.autoIntensity,
       antiFatigue: nextBase.antiFatigue,
       vocalPresence: nextBase.vocalPresence,
+      stereoSpace: nextBase.stereoSpace,
       spacePreserve: nextBase.spacePreserve
     });
   }
@@ -200,6 +221,7 @@ export function PreviewControls({
         autoIntensity: nextPresetSettings.autoIntensity,
         antiFatigue: nextPresetSettings.antiFatigue,
         vocalPresence: nextPresetSettings.vocalPresence,
+        stereoSpace: nextPresetSettings.stereoSpace,
         spacePreserve: nextPresetSettings.spacePreserve
       });
       onSettingsChange(rebuilt);
@@ -274,9 +296,21 @@ export function PreviewControls({
             </span>
           </label>
 
+          <label className={["fatigue-toggle", "big-fatigue-toggle", "stereo-space-toggle", settings.stereoSpace ? "active" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.stereoSpace}
+              onChange={(event) => rebuildAutoSettings({ stereoSpace: event.target.checked })}
+            />
+            <span>
+              <strong>Espace stéréo</strong>
+              <small>Élargit légèrement l’image stéréo sans toucher aux graves.</small>
+            </span>
+          </label>
+
           <div className="simple-result-preview">
             <span>Réglage choisi</span>
-            <strong>{selectedSimplePreset.label}{settings.antiFatigue ? " + anti-fatigue" : settings.vocalPresence ? " + présence vocale" : ""}</strong>
+            <strong>{selectedSimplePreset.label}{formatActiveOptions(settings)}</strong>
             <small>
               {autoPlan
                 ? `${autoPlan.profileLabel} · objectif indicatif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)} LUFS`
@@ -311,8 +345,8 @@ export function PreviewControls({
             </div>
             <div>
               <span>Espace</span>
-              <strong>{settings.spacePreserve ? "Préservé" : "Standard"}</strong>
-              <small>{settings.spacePreserve ? "Limiteur plus doux" : "Rendu validé"}</small>
+              <strong>{settings.stereoSpace ? "Stéréo" : settings.spacePreserve ? "Préservé" : "Standard"}</strong>
+              <small>{settings.stereoSpace ? "Élargissement M/S actif" : settings.spacePreserve ? "Limiteur plus doux" : "Rendu validé"}</small>
             </div>
           </div>
 
@@ -332,9 +366,21 @@ export function PreviewControls({
             </div>
           </div>
 
+          <label className={["fatigue-toggle", "stereo-space-toggle", settings.stereoSpace ? "active" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.stereoSpace}
+              onChange={(event) => rebuildAutoSettings({ stereoSpace: event.target.checked })}
+            />
+            <span>
+              <strong>Espace stéréo</strong>
+              <small>Élargit légèrement l’image stéréo par Mid/Side protégé, sans élargir les graves.</small>
+            </span>
+          </label>
+
           {isYoutubeMix ? (
             <p className="message message-info">
-              Mix YouTube verrouille automatiquement la sécurité peak autour de 2.2 dB et garde le niveau sous -14.4 LUFS max. Réglages utiles : nettoyage source, niveau YouTube et brillance.
+              Mix YouTube verrouille automatiquement la sécurité peak autour de 2.2 dB et garde le niveau sous -14.4 LUFS max. Réglages utiles : nettoyage source, niveau YouTube, brillance et espace stéréo.
             </p>
           ) : (
             <>

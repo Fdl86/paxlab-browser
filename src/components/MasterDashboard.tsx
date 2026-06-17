@@ -194,6 +194,10 @@ function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string
     return `PAXLAB a privilégié la présence vocale : chant légèrement plus lisible, haut du spectre maîtrisé et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
 
+  if (result.settings.stereoSpace) {
+    return `PAXLAB a ajouté un espace stéréo M/S léger : image plus large, graves protégés au centre et marge peak finale à ${headroom.toFixed(1)} dB.`;
+  }
+
   if (result.settings.autoIntensity === "impact") {
     return `Source compatible avec un lift fort : gain ${formatSigned(gain)}, plage LUFS visée ${formatLufsRange(plan)} et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
@@ -212,6 +216,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
         autoIntensity: previewResult?.settings.autoIntensity ?? previewSettings.autoIntensity,
         antiFatigue: previewResult?.settings.antiFatigue ?? previewSettings.antiFatigue,
         vocalPresence: previewResult?.settings.vocalPresence ?? previewSettings.vocalPresence,
+        stereoSpace: previewResult?.settings.stereoSpace ?? previewSettings.stereoSpace,
         spacePreserve: previewResult?.settings.spacePreserve ?? previewSettings.spacePreserve
       })
     : null;
@@ -296,6 +301,10 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
         <div>
           <span>Aigus</span>
           <strong>{previewResult.afterMetrics.fizzRatio < previewResult.beforeMetrics.fizzRatio ? "Adoucis" : "Stables"}</strong>
+        </div>
+        <div>
+          <span>Espace</span>
+          <strong>{previewResult.settings.stereoSpace ? "Élargi" : "Standard"}</strong>
         </div>
       </div>
 

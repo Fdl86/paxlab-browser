@@ -19,6 +19,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       autoIntensity: "balanced",
       antiFatigue: false,
       vocalPresence: false,
+      stereoSpace: false,
       spacePreserve: false
     }
   },
@@ -40,6 +41,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       autoIntensity: "safe",
       antiFatigue: true,
       vocalPresence: false,
+      stereoSpace: false,
       spacePreserve: false
     }
   },
@@ -61,6 +63,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       autoIntensity: "balanced",
       antiFatigue: false,
       vocalPresence: false,
+      stereoSpace: false,
       spacePreserve: false
     }
   },
@@ -82,6 +85,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       autoIntensity: "impact",
       antiFatigue: false,
       vocalPresence: false,
+      stereoSpace: false,
       spacePreserve: false
     }
   },
@@ -104,6 +108,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       autoIntensity: "youtube",
       antiFatigue: false,
       vocalPresence: false,
+      stereoSpace: false,
       spacePreserve: false
     }
   },
@@ -125,6 +130,7 @@ export const PREVIEW_PRESETS: PreviewPreset[] = [
       autoIntensity: "balanced",
       antiFatigue: false,
       vocalPresence: false,
+      stereoSpace: false,
       spacePreserve: false
     }
   }

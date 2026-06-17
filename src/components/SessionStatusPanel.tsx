@@ -52,15 +52,21 @@ function formatPreset(settings: PreviewSettings): string {
       : settings.autoIntensity === "safe"
         ? "Nettoyage léger"
         : "Traitement naturel";
+  const options: string[] = [];
+
   if (settings.antiFatigue) {
-    return `${base} + anti-fatigue`;
+    options.push("anti-fatigue");
   }
 
   if (settings.vocalPresence) {
-    return `${base} + présence vocale`;
+    options.push("présence vocale");
   }
 
-  return base;
+  if (settings.stereoSpace) {
+    options.push("espace stéréo");
+  }
+
+  return options.length ? `${base} + ${options.join(" + ")}` : base;
 }
 
 export function SessionStatusPanel({
@@ -78,7 +84,9 @@ export function SessionStatusPanel({
   const plan = sourceAnalysis ? inferAutoMasterPlan(sourceAnalysis.metrics, {
     autoIntensity: activeSettings.autoIntensity,
     antiFatigue: activeSettings.antiFatigue,
-    vocalPresence: activeSettings.vocalPresence
+    vocalPresence: activeSettings.vocalPresence,
+    stereoSpace: activeSettings.stereoSpace,
+    spacePreserve: activeSettings.spacePreserve
   }) : null;
 
   return (

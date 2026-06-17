@@ -36,12 +36,14 @@ export function buildAdvisor(
     autoIntensity: currentSettings.autoIntensity,
     antiFatigue: currentSettings.antiFatigue,
     vocalPresence: currentSettings.vocalPresence,
+    stereoSpace: currentSettings.stereoSpace,
     spacePreserve: currentSettings.spacePreserve
   });
   const recommended = buildSettingsFromAnalysis(metrics, currentSettings.presetId, {
     autoIntensity: currentSettings.autoIntensity,
     antiFatigue: currentSettings.antiFatigue,
     vocalPresence: currentSettings.vocalPresence,
+    stereoSpace: currentSettings.stereoSpace,
     spacePreserve: currentSettings.spacePreserve
   });
 
@@ -124,6 +126,7 @@ export function buildAdvisor(
       autoIntensity: currentSettings.autoIntensity,
       antiFatigue: currentSettings.antiFatigue,
       vocalPresence: currentSettings.vocalPresence,
+      stereoSpace: currentSettings.stereoSpace,
       spacePreserve: currentSettings.spacePreserve
     });
   }

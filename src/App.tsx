@@ -167,6 +167,7 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
       autoIntensity,
       antiFatigue,
       vocalPresence: false,
+      stereoSpace: false,
       spacePreserve: false,
     },
   );
@@ -252,6 +253,7 @@ function normalizePresenceOptions(settings: PreviewSettings): PreviewSettings {
   return {
     ...settings,
     vocalPresence: Boolean(settings.vocalPresence),
+    stereoSpace: Boolean(settings.stereoSpace),
   };
 }
 
@@ -284,6 +286,24 @@ function vocalOptionLabel(settings: PreviewSettings): string {
   }
 
   return "Option voix / fizz off";
+}
+
+function activeOptionLabel(settings: PreviewSettings): string {
+  const options: string[] = [];
+
+  if (settings.antiFatigue) {
+    options.push("AI Brightness Smoothing");
+  }
+
+  if (settings.vocalPresence) {
+    options.push("Présence vocale");
+  }
+
+  if (settings.stereoSpace) {
+    options.push("Espace stéréo");
+  }
+
+  return options.length ? options.join(" · ") : "Options off";
 }
 
 function intensityLabel(value: AutoIntensityId): string {
@@ -658,7 +678,8 @@ function RenderChoiceCard({
     recommendedPlan &&
       settings.autoIntensity === recommendedPlan.autoIntensity &&
       settings.antiFatigue === recommendedPlan.antiFatigue &&
-      !settings.vocalPresence,
+      !settings.vocalPresence &&
+      !settings.stereoSpace,
   );
 
   function rebuild(partial: Partial<PreviewSettings>) {
@@ -681,6 +702,7 @@ function RenderChoiceCard({
         autoIntensity: base.autoIntensity,
         antiFatigue: base.antiFatigue,
         vocalPresence: base.vocalPresence,
+        stereoSpace: base.stereoSpace,
         spacePreserve: base.spacePreserve,
       },
     );
@@ -691,6 +713,7 @@ function RenderChoiceCard({
       autoIntensity: base.autoIntensity,
       antiFatigue: base.antiFatigue,
       vocalPresence: base.vocalPresence,
+      stereoSpace: base.stereoSpace,
       spacePreserve: base.spacePreserve,
     });
   }
@@ -809,6 +832,27 @@ function RenderChoiceCard({
         </span>
       </label>
 
+      <label
+        className={[
+          "guided-fatigue",
+          "guided-stereo-space",
+          settings.stereoSpace ? "active" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <input
+          type="checkbox"
+          disabled={!hasAudio || isRendering || analysisStatus === "running"}
+          checked={settings.stereoSpace}
+          onChange={(event) => rebuild({ stereoSpace: event.target.checked })}
+        />
+        <span>
+          <strong>Espace stéréo</strong>
+          <small>Élargit légèrement l’image stéréo sans toucher aux graves.</small>
+        </span>
+      </label>
+
       <button
         type="button"
         className="primary-button guided-main-cta"
@@ -867,7 +911,7 @@ function PreviewReadyCard({
         <p>
           Preview #{revision}
           {renderedAt ? ` · ${renderedAt}` : ""} · {label}
-          {settings.antiFatigue ? " · AI Brightness Smoothing" : settings.vocalPresence ? " · Présence vocale" : ""}
+          {settings.antiFatigue ? " · AI Brightness Smoothing" : settings.vocalPresence ? " · Présence vocale" : ""}{settings.stereoSpace ? " · Espace stéréo" : ""}
         </p>
       </div>
       <div className="guided-ready-metrics">
@@ -1046,7 +1090,7 @@ function CompactPreviewSummary({
       </strong>
       <span>{label}</span>
       <span>
-        {vocalOptionLabel(settings)}
+        {activeOptionLabel(settings)}
       </span>
       <span>
         {previewResult.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.
@@ -1095,7 +1139,7 @@ function ResultSideSummary({
       </div>
       <p>
         {renderedAt ? `Version générée à ${renderedAt}. ` : ""}
-        {vocalOptionLabel(settings)}.
+        {activeOptionLabel(settings)}.
       </p>
       <button
         type="button"
@@ -1123,7 +1167,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.25.3
+          PAXLAB Browser Engine - DEV15.26
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

@@ -225,6 +225,45 @@ function applyStereoWidth(source: AudioBuffer, widthPercent: number): AudioBuffe
   return output;
 }
 
+function applyStereoSpace(source: AudioBuffer, enabled: boolean): AudioBuffer {
+  if (!enabled || source.numberOfChannels < 2) {
+    return source;
+  }
+
+  const output = createEmptyLike(source);
+  const leftIn = source.getChannelData(0);
+  const rightIn = source.getChannelData(1);
+  const leftOut = output.getChannelData(0);
+  const rightOut = output.getChannelData(1);
+  const sideLift = 0.14;
+  const highPassFrequency = 220;
+  const rc = 1 / (2 * Math.PI * highPassFrequency);
+  const dt = 1 / source.sampleRate;
+  const alpha = rc / (rc + dt);
+  let previousSide = 0;
+  let previousHighSide = 0;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const left = leftIn[index];
+    const right = rightIn[index];
+    const mid = (left + right) * 0.5;
+    const side = (left - right) * 0.5;
+    const highSide = alpha * (previousHighSide + side - previousSide);
+    const wideSide = side + highSide * sideLift;
+
+    leftOut[index] = clamp(mid + wideSide, -1, 1);
+    rightOut[index] = clamp(mid - wideSide, -1, 1);
+    previousSide = side;
+    previousHighSide = highSide;
+  }
+
+  for (let channel = 2; channel < source.numberOfChannels; channel += 1) {
+    output.copyToChannel(source.getChannelData(channel), channel);
+  }
+
+  return output;
+}
+
 function applyGentleDensity(source: AudioBuffer, density: number): AudioBuffer {
   const blend = clamp(density / 100, 0, 1) * 0.16;
 
@@ -620,7 +659,8 @@ async function renderPreviewMasterInternal(
   const renderedBuffer = await offlineContext.startRendering();
   notifyProgress(onProgress, 4, 64, "Optimisation dynamique");
   await waitForProgressFrame(240);
-  const stereoBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
+  const stereoWidthBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
+  const stereoBuffer = applyStereoSpace(stereoWidthBuffer, settings.stereoSpace);
   const isYoutubeMix = settings.autoIntensity === "youtube";
   const effectiveDensity = settings.spacePreserve || isYoutubeMix ? Math.round(settings.density * (isYoutubeMix ? 0.72 : 0.54)) : settings.density;
   const effectiveMaxPeakDb = isYoutubeMix ? Math.min(settings.maxPeakDb, -1.8) : settings.spacePreserve ? Math.min(settings.maxPeakDb, -2.0) : settings.maxPeakDb;
@@ -710,6 +750,9 @@ async function renderPreviewMasterInternal(
   if (settings.stereoWidth !== 100) {
     appliedMoves.push("EQ M/S simplifiée et largeur stéréo");
   }
+  if (settings.stereoSpace) {
+    appliedMoves.push("espace stéréo M/S sécurisé");
+  }
   if (settings.density > 0) {
     appliedMoves.push("densité harmonique douce");
   }
@@ -772,7 +815,7 @@ async function renderPreviewMasterInternal(
       antiFizzActive: antiFizzReductionDb > 0.8,
       antiFizzReductionDb,
       subControlActive: profile.subControlFrequency > 30,
-      stereoControlActive: settings.stereoWidth !== 100,
+      stereoControlActive: settings.stereoWidth !== 100 || settings.stereoSpace,
       densityActive: effectiveDensity > 0,
       compressionActive: true
     },
