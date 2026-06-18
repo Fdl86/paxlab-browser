@@ -1,34 +1,33 @@
-# PAXLAB Browser Engine - DEV15.26
+# PAXLAB Browser Engine - DEV15.26.1
 
-DEV15.26 ajoute l option `Espace stereo` a la base stable DEV15.25.3. La version conserve la DA champagne, `Presence vocale`, `AI Brightness Smoothing`, le player, la waveform seek et les exports WAV / FLAC.
+DEV15.26.1 ajoute le reporting visuel de l option `Espace stereo` sur la base stable DEV15.26. Le DSP Mid / Side, les cibles LUFS, le player et les exports WAV / FLAC restent inchanges.
 
-## Modifications DEV15.26
+## Modifications DEV15.26.1
 
-- Ajout de l option `Espace stereo`, OFF par defaut.
-- Traitement Mid / Side leger avec protection des graves : le Side est elargi uniquement au-dessus d environ 220 Hz.
-- Option disponible dans le parcours principal et dans les reglages avances.
-- Affichage de l option dans la Preview prete, l historique, le resume et le rapport de traitement.
-- Ajout d une ligne `espace stereo M/S securise` dans la chaine appliquee quand l option est active.
+- Ajout d une mesure `Espace stereo` avant / apres dans le rapport de Preview.
+- Ajout d une ligne `Espace stereo` dans le panneau Avant / Apres.
+- Ajout du delta d espace stereo dans le rapport de traitement local.
+- Ajout du delta dans l historique des previews quand l option est active.
+- Calcul local du ratio Side / Mid avant et apres rendu.
+- Reporting des variations globales, graves et haut du spectre pour verifier que les graves restent proteges.
+- CSS minimal pour integrer la nouvelle tuile sans casser la grille existante.
+
+## Points conserves
+
+- Traitement audio DEV15.26 conserve.
+- Option `Espace stereo` toujours OFF par defaut.
 - Aucun re-brightening ajoute.
-- Aucune modification des cibles LUFS des presets.
-- Moteur audio conserve hors ajout cible de l espace stereo.
-- Exports WAV / FLAC inchanges.
-- Player et waveform inchanges.
+- Aucune modification des cibles LUFS.
+- Export WAV 16 / 24-bit et FLAC 24-bit inchanges.
+- Player A/B et waveform inchanges.
+- Application toujours 100 % navigateur, locale, sans upload.
 
 ## Verification
 
-Le build DEV15.26 doit etre verifie avant livraison :
+Le build DEV15.26.1 doit etre verifie avant livraison :
 
 ```bash
 npm run build
 ```
 
-Contraintes conservees :
-
-- application 100 % navigateur ;
-- aucun serveur audio ;
-- aucun upload ;
-- traitement local ;
-- export local WAV / FLAC ;
-- zip sans `node_modules` ;
-- zip sans `dist`.
+Le zip livre ne doit contenir ni `node_modules`, ni `dist`.

@@ -129,7 +129,7 @@ function fizzObjective(result: PreviewRenderResult): ObjectiveItem {
   return {
     label: "Brillance IA",
     target: result.settings.antiFatigue ? "Réduction prioritaire" : "Contrôle doux",
-    result: `${formatPercent(before)} → ${formatPercent(after)}`,
+    result: `${formatPercent(before)} -> ${formatPercent(after)}`,
     status: softened ? "Adouci" : "Stable",
     tone: softened ? "success" : "neutral",
     marker: clampPercent(100 - Math.max(0, reduction) * 100),
@@ -166,7 +166,7 @@ function dynamicsObjective(result: PreviewRenderResult): ObjectiveItem {
   return {
     label: "Dynamique",
     target,
-    result: `${before.toFixed(1)} → ${after.toFixed(1)} dB`,
+    result: `${before.toFixed(1)} -> ${after.toFixed(1)} dB`,
     status: tooDense ? "Dense" : preserved ? "Préservée" : controlled ? "Contrôlée" : "Cohérente",
     tone: tooDense ? "warning" : "success",
     marker: dynamicsMarker(result, after),
@@ -175,6 +175,41 @@ function dynamicsObjective(result: PreviewRenderResult): ObjectiveItem {
       : isYoutubeMix
         ? "Respiration conservée pour le Mix YouTube."
         : "Dynamique cohérente pour la Preview."
+  };
+}
+
+
+function formatStereoPercent(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "Stable";
+  }
+
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
+function formatStereoRatio(value: number): string {
+  return value.toFixed(3);
+}
+
+function stereoObjective(result: PreviewRenderResult): ObjectiveItem {
+  const summary = result.report.stereoImage;
+  const active = result.settings.stereoSpace;
+  const change = summary.changePercent;
+  const expanded = active && change >= 4;
+  const lowStable = Math.abs(summary.lowChangePercent) <= 8;
+
+  return {
+    label: "Espace stéréo",
+    target: active ? "Ouvrir sans bouger le grave" : "Aucune ouverture forcée",
+    result: active ? formatStereoPercent(change) : "Standard",
+    status: active ? (expanded ? "Élargi" : "Discret") : "Off",
+    tone: active ? (expanded && lowStable ? "success" : "neutral") : "neutral",
+    marker: active ? rangeMarker(change, 0, 18) : 50,
+    note: active
+      ? lowStable
+        ? `Image ${formatStereoRatio(summary.beforeRatio)} -> ${formatStereoRatio(summary.afterRatio)}, graves protégés.`
+        : `Image ${formatStereoRatio(summary.beforeRatio)} -> ${formatStereoRatio(summary.afterRatio)}, grave à contrôler.`
+      : "Option non activée, image stéréo conservée."
   };
 }
 
@@ -270,10 +305,11 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
     peakMarginObjective(previewResult, plan),
     peakObjective(previewResult, plan),
     fizzObjective(previewResult),
-    dynamicsObjective(previewResult)
+    dynamicsObjective(previewResult),
+    stereoObjective(previewResult)
   ];
   const successfulItems = objectiveItems.filter((item) => item.tone === "success").length;
-  const globalStatus = successfulItems >= 4 ? "Objectifs validés" : successfulItems >= 3 ? "Rendu contrôlé" : "À vérifier";
+  const globalStatus = successfulItems >= 5 ? "Objectifs validés" : successfulItems >= 4 ? "Rendu contrôlé" : "À vérifier";
 
   return (
     <section className="panel dashboard-panel visual-report-panel">
@@ -304,7 +340,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
         </div>
         <div>
           <span>Espace</span>
-          <strong>{previewResult.settings.stereoSpace ? "Élargi" : "Standard"}</strong>
+          <strong>{previewResult.settings.stereoSpace ? formatStereoPercent(previewResult.report.stereoImage.changePercent) : "Standard"}</strong>
         </div>
       </div>
 

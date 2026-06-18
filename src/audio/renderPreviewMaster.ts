@@ -38,6 +38,65 @@ const YOUTUBE_PEAK_TRIGGER_DB = -3.4;
 const YOUTUBE_PEAK_CEILING_DB = -1.5;
 const YOUTUBE_PEAK_POLISH_THRESHOLD_DB = -15.0;
 
+
+interface StereoImageMeasurement {
+  ratio: number;
+  lowRatio: number;
+  highRatio: number;
+}
+
+function analyzeStereoImage(source: AudioBuffer): StereoImageMeasurement {
+  if (source.numberOfChannels < 2) {
+    return { ratio: 0, lowRatio: 0, highRatio: 0 };
+  }
+
+  const left = source.getChannelData(0);
+  const right = source.getChannelData(1);
+  const stride = Math.max(1, Math.floor(source.sampleRate / 12000));
+  const highPassFrequency = 220;
+  const rc = 1 / (2 * Math.PI * highPassFrequency);
+  const dt = stride / source.sampleRate;
+  const alpha = rc / (rc + dt);
+  let previousSide = 0;
+  let previousHighSide = 0;
+  let midSquare = 0;
+  let sideSquare = 0;
+  let lowSideSquare = 0;
+  let highSideSquare = 0;
+  let samples = 0;
+
+  for (let index = 0; index < source.length; index += stride) {
+    const mid = (left[index] + right[index]) * 0.5;
+    const side = (left[index] - right[index]) * 0.5;
+    const highSide = alpha * (previousHighSide + side - previousSide);
+    const lowSide = side - highSide;
+
+    midSquare += mid * mid;
+    sideSquare += side * side;
+    lowSideSquare += lowSide * lowSide;
+    highSideSquare += highSide * highSide;
+    previousSide = side;
+    previousHighSide = highSide;
+    samples += 1;
+  }
+
+  const safeMid = Math.max(midSquare / Math.max(1, samples), 1e-12);
+
+  return {
+    ratio: Math.sqrt((sideSquare / Math.max(1, samples)) / safeMid),
+    lowRatio: Math.sqrt((lowSideSquare / Math.max(1, samples)) / safeMid),
+    highRatio: Math.sqrt((highSideSquare / Math.max(1, samples)) / safeMid)
+  };
+}
+
+function stereoChangePercent(before: number, after: number): number {
+  if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 1e-9) {
+    return 0;
+  }
+
+  return ((after - before) / before) * 100;
+}
+
 interface ProcessingProfile {
   highShelfGain: number;
   harshDipGain: number;
@@ -543,6 +602,7 @@ async function renderPreviewMasterInternal(
   notifyProgress(onProgress, 0, 8, "Chargement local");
   await waitForProgressFrame(220);
   const beforeMetrics = analyzeAdvancedAudioBuffer(inputBuffer);
+  const beforeStereoImage = analyzeStereoImage(inputBuffer);
   notifyProgress(onProgress, 1, 22, "Analyse du morceau");
   await waitForProgressFrame(240);
   const profile = getProcessingProfile(settings);
@@ -720,6 +780,14 @@ async function renderPreviewMasterInternal(
   };
   const finalBuffer = finalPeakLimiter.buffer;
   const afterMetrics = analyzeAdvancedAudioBuffer(finalBuffer);
+  const afterStereoImage = analyzeStereoImage(finalBuffer);
+  const stereoImage = {
+    beforeRatio: beforeStereoImage.ratio,
+    afterRatio: afterStereoImage.ratio,
+    changePercent: stereoChangePercent(beforeStereoImage.ratio, afterStereoImage.ratio),
+    lowChangePercent: stereoChangePercent(beforeStereoImage.lowRatio, afterStereoImage.lowRatio),
+    highChangePercent: stereoChangePercent(beforeStereoImage.highRatio, afterStereoImage.highRatio)
+  };
 
   const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
   const achievedHeadroomDb = Math.max(0, -afterMetrics.approxTruePeakDb);
@@ -834,6 +902,7 @@ async function renderPreviewMasterInternal(
       limiterActive: limiter.active || finalPeakLimiter.active,
       limiterReductionDb: Math.max(limiter.reductionDb, finalPeakLimiter.reductionDb)
     },
+    stereoImage,
     performance: {
       renderTimeMs
     }

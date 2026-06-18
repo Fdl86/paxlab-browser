@@ -11,6 +11,18 @@ function formatRatio(value: number): string {
   return `${(value * 100).toFixed(1)} %`;
 }
 
+function formatStereoRatio(value: number): string {
+  return value.toFixed(3);
+}
+
+function formatStereoPercent(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "Stable";
+  }
+
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
 function brightnessRelativeChange(before: number, after: number): number {
   if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
     return 0;
@@ -51,6 +63,10 @@ function normalizePeak(value: number): number {
 
 function normalizePercent(value: number): number {
   return clampPercent(value * 2600);
+}
+
+function normalizeStereoRatio(value: number): number {
+  return clampPercent(value * 160);
 }
 
 function normalizeCrest(value: number, isYoutubeMix = false, isImpact = false): number {
@@ -121,6 +137,24 @@ function dynamicsListeningLabel(before: number, after: number): string {
   return "Dynamique contrôlée";
 }
 
+function stereoListeningLabel(result: PreviewRenderResult): string {
+  const summary = result.report.stereoImage;
+
+  if (!result.settings.stereoSpace) {
+    return "Image conservée";
+  }
+
+  if (summary.changePercent >= 4 && Math.abs(summary.lowChangePercent) <= 8) {
+    return "Image élargie, graves protégés";
+  }
+
+  if (summary.changePercent >= 2) {
+    return "Ouverture légère";
+  }
+
+  return "Effet discret";
+}
+
 function bassListeningLabel(result: PreviewRenderResult): string {
   const before = result.beforeMetrics.subRatio + result.beforeMetrics.lowRatio;
   const after = result.afterMetrics.subRatio + result.afterMetrics.lowRatio;
@@ -143,7 +177,9 @@ function buildListeningSummary(result: PreviewRenderResult): string {
   const dynamics = dynamicsListeningLabel(result.beforeMetrics.crestFactorDb, result.afterMetrics.crestFactorDb);
   const bass = bassListeningLabel(result);
 
-  return `${loudness}, ${brightness.toLowerCase()}, ${bass.toLowerCase()}, ${dynamics.toLowerCase()}.`;
+  const stereo = result.settings.stereoSpace ? `, ${stereoListeningLabel(result).toLowerCase()}` : "";
+
+  return `${loudness}, ${brightness.toLowerCase()}, ${bass.toLowerCase()}, ${dynamics.toLowerCase()}${stereo}.`;
 }
 
 function ComparisonRow({
@@ -273,6 +309,15 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               listening={dynamicsListeningLabel(result.beforeMetrics.crestFactorDb, result.afterMetrics.crestFactorDb)}
               originalScore={normalizeCrest(result.beforeMetrics.crestFactorDb, isYoutubeMix, isImpact)}
               previewScore={normalizeCrest(result.afterMetrics.crestFactorDb, isYoutubeMix, isImpact)}
+            />
+            <ComparisonRow
+              label="Espace stéréo"
+              original={formatStereoRatio(result.report.stereoImage.beforeRatio)}
+              preview={formatStereoRatio(result.report.stereoImage.afterRatio)}
+              delta={result.settings.stereoSpace ? formatStereoPercent(result.report.stereoImage.changePercent) : "Option off"}
+              listening={stereoListeningLabel(result)}
+              originalScore={normalizeStereoRatio(result.report.stereoImage.beforeRatio)}
+              previewScore={normalizeStereoRatio(result.report.stereoImage.afterRatio)}
             />
           </div>
 

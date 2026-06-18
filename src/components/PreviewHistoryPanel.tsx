@@ -58,6 +58,14 @@ function formatLufs(value: number): string {
   return `${value.toFixed(1)} LUFS`;
 }
 
+function formatStereoPercent(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "ES stable";
+  }
+
+  return `ES ${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
 export function PreviewHistoryPanel({
   items,
   activeRevision,
@@ -105,6 +113,7 @@ export function PreviewHistoryPanel({
                   <span>TP {formatDb(item.result.afterMetrics.approxTruePeakDb)}</span>
                   <span>HR {headroom.toFixed(1)} dB</span>
                   <span>{gain >= 0 ? "+" : ""}{gain.toFixed(1)} dB</span>
+                  {item.settings.stereoSpace && <span>{formatStereoPercent(item.result.report.stereoImage.changePercent)}</span>}
                 </div>
               </button>
             );

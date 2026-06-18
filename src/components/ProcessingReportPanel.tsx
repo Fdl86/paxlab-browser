@@ -4,6 +4,18 @@ interface ProcessingReportPanelProps {
   result: PreviewRenderResult | null;
 }
 
+function formatStereoPercent(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "Stable";
+  }
+
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
+function formatStereoRatio(value: number): string {
+  return value.toFixed(3);
+}
+
 export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
   return (
     <section className="panel processing-panel">
@@ -42,7 +54,8 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
             </div>
             <div className="report-card">
               <span>Espace stéréo</span>
-              <strong>{result.settings.stereoSpace ? "Actif" : "Off"}</strong>
+              <strong>{result.settings.stereoSpace ? formatStereoPercent(result.report.stereoImage.changePercent) : "Off"}</strong>
+              <small>{formatStereoRatio(result.report.stereoImage.beforeRatio)} -&gt; {formatStereoRatio(result.report.stereoImage.afterRatio)}</small>
             </div>
             <div className="report-card">
               <span>Clics réparés</span>

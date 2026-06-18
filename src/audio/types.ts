@@ -153,6 +153,14 @@ export interface HeadroomSummary {
   activeWindows: number;
 }
 
+export interface StereoImageSummary {
+  beforeRatio: number;
+  afterRatio: number;
+  changePercent: number;
+  lowChangePercent: number;
+  highChangePercent: number;
+}
+
 export interface ProcessingReport {
   profileLabel: string;
   brightnessLabel: string;
@@ -190,6 +198,7 @@ export interface ProcessingReport {
     limiterActive: boolean;
     limiterReductionDb: number;
   };
+  stereoImage: StereoImageSummary;
   performance: {
     renderTimeMs: number;
   };

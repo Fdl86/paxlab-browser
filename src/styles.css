@@ -991,3 +991,10 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
     align-items:start !important;
   }
 }
+
+/* DEV15.26.1 - Stereo reporting tile detail. */
+.report-card small{display:block;margin-top:6px;color:rgba(240,238,233,0.62);font-size:0.78rem;font-weight:700;line-height:1.25;}
+@media (min-width: 920px){
+  .visual-summary-strip{grid-template-columns:repeat(5, minmax(0, 1fr)) !important;}
+  .preview-change-grid{grid-template-columns:repeat(5, minmax(0, 1fr)) !important;}
+}

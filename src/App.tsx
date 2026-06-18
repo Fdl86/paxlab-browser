@@ -969,6 +969,33 @@ function listeningBrightnessLabel(deltaPercent: number): string {
   return "Brillance stable";
 }
 
+
+function stereoSpaceValue(result: PreviewRenderResult): string {
+  const value = result.report.stereoImage.changePercent;
+
+  if (!result.settings.stereoSpace) {
+    return "Standard";
+  }
+
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "Stable";
+  }
+
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
+function stereoSpaceLabel(result: PreviewRenderResult): string {
+  if (!result.settings.stereoSpace) {
+    return "Option non activée";
+  }
+
+  if (Math.abs(result.report.stereoImage.lowChangePercent) <= 8) {
+    return "Image élargie, graves protégés";
+  }
+
+  return "Image élargie, grave à contrôler";
+}
+
 function listeningDynamicsLabel(delta: number): string {
   if (delta >= -0.5) {
     return "Respiration préservée";
@@ -1033,6 +1060,11 @@ function PreviewChangeSummary({
           <span>Respiration</span>
           <strong>{dynamicsDelta >= -0.5 ? "Préservée" : "Contrôlée"}</strong>
           <small>{listeningDynamicsLabel(dynamicsDelta)}</small>
+        </article>
+        <article>
+          <span>Espace stéréo</span>
+          <strong>{stereoSpaceValue(previewResult)}</strong>
+          <small>{stereoSpaceLabel(previewResult)}</small>
         </article>
       </div>
     </section>
@@ -1167,7 +1199,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.26
+          PAXLAB Browser Engine - DEV15.26.1
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
