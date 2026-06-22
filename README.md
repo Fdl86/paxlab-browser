@@ -1,31 +1,19 @@
-# PAXLAB Browser Engine - DEV15.28.2
+# PAXLAB Browser Engine - DEV15.28.3
 
-DEV15.28.2 corrige les alignements restants de la sidebar premium et consolide les cartes de rendu, les options avancees et les cartes export. La logique audio reste celle de DEV15.27.1 : moteur DSP, cibles LUFS, player A/B, exports WAV / FLAC, Basses punchy, Espace stereo et securites restent inchanges.
+DEV15.28.3 consolide la refonte premium DEV15.28.2 avec un polish UI cible : topbar simplifiee, metriques de lecture plus propres au demarrage et nettoyage CSS prudent. La logique audio reste celle de DEV15.27.1 : moteur DSP, cibles LUFS, player A/B, exports WAV / FLAC, Basses punchy, Espace stereo et securites restent inchanges.
 
 ## Objectif
 
-Rendre l interface plus proche d un vrai dashboard audio premium : plus lisible, plus dense, plus propre, avec une hierarchie visuelle plus forte et un workflow toujours simple.
+Figer une base UI premium stable, lisible et plus propre techniquement, sans toucher au son ni au workflow valide.
 
-## Modifications DEV15.28.2
+## Modifications DEV15.28.3
 
-- Nouveau traitement visuel global dark premium avec accent champagne.
-- Topbar retravaillee : marque PAXLAB, badges Local, Aucun upload, Reglages experts et aide.
-- Layout principal plus proche de la maquette : grand panneau A/B a gauche, configuration et export a droite.
-- Lecteur A/B renforce : source Original / Rendu PAXLAB, bouton Volume egal, transports alignes, waveform plus premium.
-- Tuiles de monitoring plus lisibles : Peak lecture, Niveau local, Marge peak.
-- Bloc `Ce que PAXLAB a change` harmonise avec 5 tuiles stables.
-- Panneau `Rendu` retravaille : recommandation plus visible, presets en liste verticale, options sous forme de switches premium.
-- Panneau export retravaille : formats plus lisibles, nom de fichier, CTA export plus coherent.
-- Accordions bas de page : affichage horizontal quand tout est ferme, empilement propre quand un accordéon est ouvert, sans retour du bug grid-column.
-- Titre de l onglet navigateur passe en `PAXLAB Browser Engine - DEV15.28.2`.
-
-
-### Correctifs et optimisation CSS DEV15.28.2
-
-- Alignement corrige des options de la colonne droite : icone, libelle et switch sont verrouilles sur une grille unique.
-- Nettoyage du bloc visuel DEV15.28 : suppression du deuxieme `:root`, retrait de la couche premium concurrente et remplacement par une couche compacte.
-- Reduction du fichier `src/styles.css` par rapport a DEV15.28 tout en conservant le rendu premium.
-- Aucun changement DSP, player, export ou preset.
+- Topbar simplifiee : seuls les badges `Local` et `Aucun upload` restent visibles.
+- Suppression des elements topbar parasites : `Reglages experts`, aide `?` et pseudo-elements CSS heredites.
+- Metriques de lecture au repos : remplacement de `-inf` par `--`.
+- Sous-textes au repos plus propres : `En attente de lecture`.
+- Nettoyage CSS prudent sur la zone topbar : retrait des anciennes regles concurrentes et classes mortes evidentes.
+- Titre de l onglet navigateur passe en `PAXLAB Browser Engine - DEV15.28.3`.
 
 ## Points conserves
 

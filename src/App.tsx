@@ -1152,8 +1152,6 @@ function CompactStudioTopbar() {
         <div className="compact-trust-badges" aria-label="Garanties PAXLAB">
           <span>Local</span>
           <span>Aucun upload</span>
-          <span>Réglages experts</span>
-          <span className="help-badge">?</span>
         </div>
       </div>
     </header>
@@ -1270,7 +1268,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.28.2
+          PAXLAB Browser Engine - DEV15.28.3
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

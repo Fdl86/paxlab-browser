@@ -176,7 +176,6 @@ select{border:1px solid var(--line);border-radius:13px;padding:11px 12px;color:v
     rgba(17, 19, 27, 0.92);}
 .simple-export-panel .export-main-button{border:0;background:linear-gradient(135deg, #d4af6e, #d4af6e);color:#fff;}
 
-
 .guided-details-grid > .panel{box-shadow:none;}
 .compact-studio-topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:62px;margin:18px 0 12px;padding:12px 16px;border:1px solid rgba(255,255,255,0.08);border-radius:18px;background:linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
     rgba(12, 14, 20, 0.88);box-shadow:0 18px 70px rgba(0,0,0,0.22);}
@@ -329,7 +328,6 @@ select{border:1px solid var(--line);border-radius:13px;padding:11px 12px;color:v
 .export-action-warning button{border:1px solid rgba(212,175,110,0.28);border-radius:999px;padding:6px 10px;color:#f0eee9;background:rgba(212,175,110,0.10);font:inherit;font-size:0.72rem;font-weight:850;cursor:pointer;}
 .export-action-warning button:hover,.export-action-warning button:focus-visible{border-color:rgba(212,175,110,0.52);background:rgba(212,175,110,0.16);outline:none;}
 
-
 .panel{border:1px solid var(--line);background:linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)),
     var(--panel);box-shadow:0 22px 70px rgba(0, 0, 0, 0.28);backdrop-filter:blur(14px);border-radius:24px;padding:18px;}
 .eyebrow,.selected-file-label,.report-card span,.advisor-summary span,.segmented-control-block > span,.history-item small,.control-room-summary span,.waveform-label-left > span,.compact-meter-pill span,.export-filename-field span,.listening-summary-card span,.before-after-label span{color:#d4af6e;letter-spacing:0.11em;}
@@ -365,7 +363,6 @@ button,input,select,label{font-family:inherit;}
 
 .compact-brand-block strong::before{display:inline-block;width:18px;height:18px;margin-right:10px;border-radius:6px;background:#d4af6e;vertical-align:-4px;content:"PAXLAB";color:#ffffff;font-size:1rem;font-weight:850;letter-spacing:0.01em;}
 .compact-brand-block span::before{content:"Browser Engine";color:#aaa296;font-size:0.78rem;font-weight:650;line-height:1.1;}
-.compact-trust-badges::after{content:"Réglages experts";color:#aaa296;font-size:0.85rem;font-weight:650;white-space:nowrap;}
 .guided-landing-hero,.guided-landing-grid,.guided-config-grid,.compact-preview-status,.guided-stepper{margin-left:0 !important;margin-right:0 !important;}
 .guided-landing-hero .version,.guided-trust-row{display:none !important;}
 .guided-landing-hero h1::before{content:"MASTERING IA - LOCAL - NAVIGATEUR";display:block;margin-bottom:14px;color:#d4af6e;font-size:0.75rem;font-weight:850;letter-spacing:0.14em;}
@@ -417,8 +414,6 @@ button,input,select,label{font-family:inherit;}
 .primary-button:hover:not(:disabled),.export-main-button:hover:not(:disabled){background:#c69d5b !important;}
 .compact-brand-block strong,.compact-brand-block span{position:static !important;display:inline-flex !important;align-items:center !important;width:auto !important;min-width:0 !important;margin:0 !important;padding:0 !important;color:inherit !important;font-size:inherit !important;line-height:1 !important;white-space:nowrap !important;overflow:visible !important;letter-spacing:0 !important;}
 .compact-brand-block strong::before,.compact-brand-block span::before{content:none !important;}
-.compact-trust-badges span:nth-child(3)::before{color:#aaa296;font-size:0.85rem;font-weight:650;content:none !important;}
-.compact-trust-badges::after,.compact-topbar-actions::before{color:#aaa296 !important;font-size:0.84rem !important;font-weight:700 !important;}
 .guided-landing-hero{display:grid;justify-items:start;text-align:left;padding:28px 40px 16px !important;}
 .guided-landing-hero h1{margin-bottom:10px;color:#ffffff;letter-spacing:-0.045em;max-width:510px !important;font-size:clamp(2.35rem, 4vw, 3.15rem) !important;line-height:1.08 !important;}
 .guided-landing-grid{display:grid;justify-content:center;margin:18px auto 0;grid-template-columns:minmax(0, 1.05fr) minmax(380px, 0.95fr) !important;gap:18px !important;padding:18px 40px 40px !important;align-items:stretch !important;}
@@ -448,8 +443,6 @@ button,input,select,label{font-family:inherit;}
 .compact-topbar-actions{display:flex;align-items:center;justify-content:flex-end;min-width:0;gap:14px !important;}
 .compact-trust-badges{flex-wrap:wrap;justify-content:flex-end;display:flex;align-items:center;gap:8px !important;}
 .compact-trust-badges span{display:inline-flex;align-items:center;justify-content:center;letter-spacing:0;text-transform:none;border-color:#2a292d !important;min-height:34px !important;padding:0 16px !important;border:1px solid #2a292d !important;border-radius:999px !important;background:#1e1e24 !important;color:#c9c1b5 !important;font-size:0.8rem !important;font-weight:750 !important;}
-.compact-trust-badges span:nth-child(3){min-width:auto !important;color:#c9c1b5 !important;font-size:0.8rem !important;display:none !important;}
-.compact-topbar-actions::before{order:2;font-size:0.85rem;font-weight:650;white-space:nowrap;content:"?" !important;display:inline-grid !important;place-items:center !important;width:34px !important;height:34px !important;border:1px solid #2a292d !important;border-radius:999px !important;color:#c9c1b5 !important;background:transparent !important;}
 .guided-stepper,.compact-preview-status{display:none !important;}
 .standalone-message{margin-bottom:18px;padding:10px 12px;margin:14px 32px !important;}
 .guided-config-grid,.loaded-layout-grid,.guided-result-grid{display:grid !important;grid-template-columns:minmax(0, 1fr) 420px !important;gap:26px !important;padding:40px 44px 32px !important;align-items:start !important;}
@@ -518,12 +511,6 @@ button,input,select,label{font-family:inherit;}
 .export-filename-field input{width:100%;font-weight:750;outline:none;min-height:38px;padding:0 12px !important;color:#aaa296 !important;font-size:0.92rem !important;height:40px !important;border:1px solid #2a292d !important;border-radius:7px !important;background:#1e1e24 !important;}
 .premium-download-button.export-main-button{box-shadow:0 18px 58px rgba(212,175,110,0.18);color:#ffffff !important;min-height:54px !important;margin-top:16px !important;border-radius:7px !important;background:#d4af6e !important;}
 .premium-download-button.export-main-button small{display:block;font-size:0.72rem;margin-top:3px;color:rgba(255, 255, 255, 0.72) !important;}
-
-
-
-
-
-
 
 .guided-footer-note{margin-top:18px;min-height:32px;border-top:1px solid #2a292d;font-size:0.78rem;display:block !important;text-align:center !important;margin:22px 0 0 !important;padding:12px 44px !important;color:#6b6862 !important;background:#15151a !important;}
 .guided-processing-overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;background:rgba(10, 10, 15, 0.82) !important;backdrop-filter:blur(6px) !important;}
@@ -594,7 +581,6 @@ button,input,select,label{font-family:inherit;}
 .preview-change-grid small{display:block !important;margin-top:4px !important;color:#d4af6e !important;font-size:0.68rem !important;line-height:1.25 !important;}
 .processing-modal-premium > strong,.processing-modal-premium > strong::first-letter{color:#ffffff !important;}
 .processing-modal-premium .guided-progress span{box-shadow:none !important;background:#d4af6e !important;}
-.compact-topbar-actions::after{order:3;align-items:center;justify-content:center;font-size:0.94rem !important;font-weight:850 !important;min-height:40px !important;padding:0 18px !important;border-radius:7px !important;background:#d4af6e !important;color:#ffffff !important;box-shadow:none !important;content:none !important;display:none !important;}
 .guided-result-side.compact-side-panel,.compact-side-panel{display:flex !important;flex-direction:column !important;padding:0 !important;border-left:1px solid #2a292d !important;align-items:stretch !important;gap:18px !important;}
 .guided-result-side.compact-side-panel > .guided-render-card,.guided-result-side.compact-side-panel > .export-panel-anchor,.compact-side-panel > .guided-render-card,.compact-side-panel > .export-panel-anchor{width:100% !important;max-width:none !important;min-width:0 !important;margin:0 !important;padding:0 !important;box-sizing:border-box !important;}
 .guided-result-side.compact-side-panel > .export-panel-anchor > .export-panel,.compact-side-panel > .export-panel-anchor > .export-panel,.guided-result-side .export-panel-anchor .premium-export-panel,.compact-side-panel .export-panel-anchor .premium-export-panel{width:100% !important;max-width:none !important;min-width:0 !important;margin:0 !important;box-sizing:border-box !important;padding:20px !important;border:1px solid #2a292d !important;border-radius:12px !important;background:#15151a !important;}
@@ -654,7 +640,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
 .message-warning{color:#f2dca0 !important;background:rgba(224,184,92,0.12) !important;}
 .message-error{color:#f0b6b6 !important;background:rgba(224,133,133,0.12) !important;}
 .version,.eyebrow,.guided-landing-hero .eyebrow,.guided-landing-hero .version,.guided-config-grid .eyebrow,.guided-result-grid .eyebrow,.processing-modal-premium .eyebrow,.guided-processing-card .eyebrow,.selected-file-label,.waveform-label-row > span,.listening-summary-card span,.compact-preview-status span,.simple-status-list span,.simple-result-preview span,.history-mini-metrics span,.ux-footer-note{color:#d4af6e !important;}
-.guided-landing-hero p,.guided-processing-card p,.processing-modal-premium > p:not(.eyebrow),.recommended-preview-note span,.loaded-file-analysis-status.ready,.loaded-file-analysis-status.running,.export-filename-field input,.compact-trust-badges span,.compact-topbar-actions::before,.compact-topbar-actions::after,.guided-footer-note,.ux-footer-note{color:#c9c1b5 !important;}
+.guided-landing-hero p,.guided-processing-card p,.processing-modal-premium > p:not(.eyebrow),.recommended-preview-note span,.loaded-file-analysis-status.ready,.loaded-file-analysis-status.running,.export-filename-field input,.compact-trust-badges span,.guided-footer-note,.ux-footer-note{color:#c9c1b5 !important;}
 .monitor-source-button.active,.realtime-panel .ab-control-bar .monitor-source-button.active,.guided-render-option.active,.export-choice-card.active,.guided-fatigue.active,.recommended-preview-note,.guided-render-option.recommended:not(.active),.guided-render-card .guided-fatigue.recommended{border-color:#d4af6e !important;background:rgba(212,175,110,0.12) !important;}
 .monitor-source-button.active,.realtime-panel .ab-control-bar .monitor-source-button.active,.primary-button,.export-main-button,.premium-download-button.export-main-button,.realtime-panel .primary-transport,.compact-studio-topbar .export-main-button,.drop-zone-icon,.guided-step.active b,.detailed-processing-steps .done b{background:#d4af6e !important;border-color:#d4af6e !important;color:#17120a !important;box-shadow:none !important;}
 .primary-button:hover:not(:disabled),.export-main-button:hover:not(:disabled),.premium-download-button.export-main-button:hover:not(:disabled),.realtime-panel .primary-transport:hover:not(:disabled){background:#c69d5b !important;border-color:#c69d5b !important;color:#17120a !important;}
@@ -730,7 +716,6 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
   .simple-status-list{grid-template-columns:1fr;}
   
   .guided-landing-grid,.guided-config-grid,.guided-result-grid{grid-template-columns:1fr !important;}
-  .compact-topbar-actions::before,.compact-topbar-actions::after,.compact-trust-badges::after{display:none;}
   .guided-config-grid,.loaded-layout-grid,.guided-result-grid{grid-template-columns:1fr !important;padding:24px !important;}
   .guided-result-side,.compact-side-panel{min-height:auto;max-height:none;border-left:0;border-top:1px solid #2a292d;position:static !important;}
   
@@ -795,7 +780,6 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
   .compact-meter-row,.compact-summary-grid,.export-choice-row{grid-template-columns:1fr !important;}
   .guided-shell{padding-top:10px;width:calc(100% - 2px) !important;margin:1px !important;}
   .compact-studio-topbar.compact-studio-topbar-minimal{height:auto !important;min-height:70px !important;align-items:flex-start !important;padding:14px !important;}
-  .compact-topbar-actions::after,.compact-topbar-actions::before{display:none !important;}
   .loaded-file-header,.realtime-panel .ab-control-bar,.loaded-file-metadata,.compact-meter-row,.export-choice-row{grid-template-columns:1fr !important;}
   .loaded-file-change,.realtime-panel .inline-transport-controls{justify-self:start !important;}
   .realtime-panel .ab-control-bar .monitor-source-switch,.monitor-equal-toggle.top-equal-toggle{min-width:0 !important;width:100% !important;}
@@ -895,24 +879,11 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
   }
 }
 
-
-
-
-
-
-
 @media (max-width: 1120px){
   
 }
 
 /* DEV15.25.2 - Accordion separator and selected state. CSS only. */
-
-
-
-
-
-
-
 
 /* DEV15.25.2 - Fix double underline on closed accordion headers. CSS only. */
 
@@ -1025,16 +996,6 @@ body{
   box-shadow:none !important;
 }
 .compact-brand-block{gap:12px !important;}
-.compact-logo-mark{
-  width:34px !important;
-  height:34px !important;
-  border:1px solid rgba(255,255,255,0.16) !important;
-  border-radius:8px !important;
-  background:linear-gradient(135deg,#f2cc82,#d4af6e) !important;
-  box-shadow:0 12px 30px rgba(212,175,110,0.14) !important;
-}
-.compact-brand-text strong{color:#ffffff !important;font-size:1.24rem !important;letter-spacing:0.06em !important;}
-.compact-brand-text span{color:#d4af6e !important;font-size:0.74rem !important;letter-spacing:0.18em !important;}
 .compact-trust-badges{display:flex !important;align-items:center !important;gap:10px !important;}
 .compact-trust-badges span{
   min-height:34px !important;
@@ -1048,7 +1009,6 @@ body{
   background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.035)) !important;
   font-weight:850 !important;
 }
-.compact-trust-badges .help-badge{width:38px !important;min-width:38px !important;padding:0 !important;font-size:1rem !important;}
 .guided-result-grid,.guided-config-grid,.loaded-layout-grid{
   display:grid !important;
   grid-template-columns:minmax(0,1fr) 430px !important;

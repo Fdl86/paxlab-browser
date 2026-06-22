@@ -35,17 +35,21 @@ interface RealtimeMonitorPanelProps {
 
 const WAVEFORM_SEEK_THROTTLE_MS = 34;
 
+function isSilentReading(value: number): boolean {
+  return !Number.isFinite(value) || value <= -89;
+}
+
 function formatDb(value: number): string {
-  if (!Number.isFinite(value) || value <= -89) {
-    return "-inf";
+  if (isSilentReading(value)) {
+    return "--";
   }
 
   return value.toFixed(1);
 }
 
 function formatLufs(value: number): string {
-  if (!Number.isFinite(value) || value <= -89) {
-    return "-inf";
+  if (isSilentReading(value)) {
+    return "--";
   }
 
   return value.toFixed(1);
@@ -357,6 +361,8 @@ export function RealtimeMonitorPanel({
   const activeHeadroom = headroomSummary
     ? headroomSummary.finalHeadroomDb
     : meter.headroomDb;
+  const peakReadingIdle = isSilentReading(meter.peakHoldDb);
+  const localLevelIdle = isSilentReading(meter.integratedLufsEstimate);
   const waveformDragCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -666,12 +672,12 @@ export function RealtimeMonitorPanel({
             <div className="compact-meter-pill">
               <span>Peak lecture</span>
               <strong>{formatDb(meter.peakHoldDb)}</strong>
-              <small>lecture courante</small>
+              <small>{peakReadingIdle ? "En attente de lecture" : "lecture courante"}</small>
             </div>
             <div className="compact-meter-pill">
               <span>Niveau local</span>
               <strong>{formatLufs(meter.integratedLufsEstimate)}</strong>
-              <small>court terme, pas LUFS intégré</small>
+              <small>{localLevelIdle ? "En attente de lecture" : "court terme, pas LUFS intégré"}</small>
             </div>
             <div className="compact-meter-pill">
               <span>Marge peak</span>
