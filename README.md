@@ -1,8 +1,12 @@
-# PAXLAB Browser Engine - DEV15.27
+# PAXLAB Browser Engine - DEV15.27.1
 
-DEV15.27 ajoute l option `Basses punchy` sur la base stable DEV15.26.1. La fonction renforce le kick et le grave utile de facon controlee, sans changer les cibles LUFS, le player, ni les exports WAV / FLAC.
+DEV15.27.1 ajoute l option `Basses punchy` sur la base stable DEV15.26.1. La fonction renforce le kick et le grave utile de facon controlee, sans changer les cibles LUFS, le player, ni les exports WAV / FLAC.
 
-## Modifications DEV15.27
+## Modifications DEV15.27.1
+
+- Hotfix securite stereo : `applyStereoWidth()` adapte maintenant le surplus de largeur si la source est deja tres large, sans modifier les cibles LUFS ni le DSP `Basses punchy`.
+- Le choix produit reste conserve : `Basses punchy` est compatible avec `AI Brightness Smoothing`, mais reste exclusif avec `Presence vocale`.
+
 
 - Ajout du switch `Basses punchy`, OFF par defaut.
 - Renfort controle de la zone grave utile autour du kick, avec bas-medium surveille.
@@ -26,7 +30,7 @@ DEV15.27 ajoute l option `Basses punchy` sur la base stable DEV15.26.1. La fonct
 
 ## Verification
 
-Le build DEV15.27 doit etre verifie avant livraison :
+Le build DEV15.27.1 doit etre verifie avant livraison :
 
 ```bash
 npm run build

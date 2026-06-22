@@ -336,7 +336,7 @@ function cleanupInputBuffer(inputBuffer: AudioBuffer, settings: PreviewSettings)
   };
 }
 
-function applyStereoWidth(source: AudioBuffer, widthPercent: number): AudioBuffer {
+function applyStereoWidth(source: AudioBuffer, widthPercent: number, sourceStereoRatio?: number): AudioBuffer {
   if (source.numberOfChannels < 2) {
     return source;
   }
@@ -346,7 +346,15 @@ function applyStereoWidth(source: AudioBuffer, widthPercent: number): AudioBuffe
   const rightIn = source.getChannelData(1);
   const leftOut = output.getChannelData(0);
   const rightOut = output.getChannelData(1);
-  const width = clamp(widthPercent / 100, 0.7, 1.18);
+  const baseWidth = clamp(widthPercent / 100, 0.7, 1.18);
+  const safetyFactor = sourceStereoRatio === undefined
+    ? 1
+    : sourceStereoRatio > 0.6
+      ? 0.7
+      : sourceStereoRatio > 0.45
+        ? 0.85
+        : 1;
+  const width = baseWidth > 1 ? 1 + (baseWidth - 1) * safetyFactor : baseWidth;
 
   for (let index = 0; index < source.length; index += 1) {
     const mid = (leftIn[index] + rightIn[index]) * 0.5;
@@ -820,7 +828,7 @@ async function renderPreviewMasterInternal(
   const renderedBuffer = await offlineContext.startRendering();
   notifyProgress(onProgress, 4, 64, "Optimisation dynamique");
   await waitForProgressFrame(240);
-  const stereoWidthBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth);
+  const stereoWidthBuffer = applyStereoWidth(renderedBuffer, settings.stereoWidth, beforeStereoImage.ratio);
   const stereoBuffer = applyStereoSpace(stereoWidthBuffer, settings.stereoSpace);
   const isYoutubeMix = settings.autoIntensity === "youtube";
   const effectiveDensity = settings.spacePreserve || isYoutubeMix ? Math.round(settings.density * (isYoutubeMix ? 0.72 : 0.54)) : settings.density;
