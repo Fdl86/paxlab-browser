@@ -73,13 +73,15 @@ function repairHelp(level: SourceRepairLevel): string {
 }
 
 function normalizePresenceOptions(settings: PreviewSettings): PreviewSettings {
-  if (settings.antiFatigue && settings.vocalPresence) {
-    return { ...settings, vocalPresence: false };
-  }
+  const antiFatigue = Boolean(settings.antiFatigue);
+  const bassPunch = Boolean(settings.bassPunch);
+  const vocalPresence = antiFatigue || bassPunch ? false : Boolean(settings.vocalPresence);
 
   return {
     ...settings,
-    vocalPresence: Boolean(settings.vocalPresence),
+    antiFatigue,
+    vocalPresence,
+    bassPunch,
   };
 }
 
@@ -122,6 +124,10 @@ function formatActiveOptions(settings: PreviewSettings): string {
     options.push("espace stéréo");
   }
 
+  if (settings.bassPunch) {
+    options.push("basses punchy");
+  }
+
   return options.length ? ` + ${options.join(" + ")}` : "";
 }
 
@@ -148,6 +154,7 @@ export function PreviewControls({
         antiFatigue: settings.antiFatigue,
         vocalPresence: settings.vocalPresence,
         stereoSpace: settings.stereoSpace,
+        bassPunch: settings.bassPunch,
         spacePreserve: settings.spacePreserve
       })
     : null;
@@ -160,7 +167,8 @@ export function PreviewControls({
       ...settings,
       ...partial,
       antiFatigue: partial.antiFatigue ? true : partial.vocalPresence ? false : partial.antiFatigue ?? settings.antiFatigue,
-      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue ? false : partial.vocalPresence ?? settings.vocalPresence,
+      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue || partial.bassPunch ? false : partial.vocalPresence ?? settings.vocalPresence,
+      bassPunch: partial.bassPunch ? true : partial.vocalPresence ? false : partial.bassPunch ?? settings.bassPunch,
     });
 
     if (!sourceAnalysis) {
@@ -173,6 +181,7 @@ export function PreviewControls({
       antiFatigue: nextBase.antiFatigue,
       vocalPresence: nextBase.vocalPresence,
       stereoSpace: nextBase.stereoSpace,
+      bassPunch: nextBase.bassPunch,
       spacePreserve: nextBase.spacePreserve
     });
 
@@ -199,6 +208,7 @@ export function PreviewControls({
       antiFatigue: nextBase.antiFatigue,
       vocalPresence: nextBase.vocalPresence,
       stereoSpace: nextBase.stereoSpace,
+      bassPunch: nextBase.bassPunch,
       spacePreserve: nextBase.spacePreserve
     });
   }
@@ -208,7 +218,8 @@ export function PreviewControls({
       ...settings,
       ...partial,
       antiFatigue: partial.antiFatigue ? true : partial.vocalPresence ? false : partial.antiFatigue ?? settings.antiFatigue,
-      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue ? false : partial.vocalPresence ?? settings.vocalPresence,
+      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue || partial.bassPunch ? false : partial.vocalPresence ?? settings.vocalPresence,
+      bassPunch: partial.bassPunch ? true : partial.vocalPresence ? false : partial.bassPunch ?? settings.bassPunch,
     }));
   }
 
@@ -222,6 +233,7 @@ export function PreviewControls({
         antiFatigue: nextPresetSettings.antiFatigue,
         vocalPresence: nextPresetSettings.vocalPresence,
         stereoSpace: nextPresetSettings.stereoSpace,
+        bassPunch: nextPresetSettings.bassPunch,
         spacePreserve: nextPresetSettings.spacePreserve
       });
       onSettingsChange(rebuilt);
@@ -308,6 +320,19 @@ export function PreviewControls({
             </span>
           </label>
 
+          <label className={["fatigue-toggle", "big-fatigue-toggle", "bass-punch-toggle", settings.bassPunch ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.bassPunch}
+              disabled={settings.vocalPresence}
+              onChange={(event) => rebuildAutoSettings({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
+            />
+            <span>
+              <strong>Basses punchy</strong>
+              <small>Renforce le kick et le grave utile sans gonfler le mix.</small>
+            </span>
+          </label>
+
           <div className="simple-result-preview">
             <span>Réglage choisi</span>
             <strong>{selectedSimplePreset.label}{formatActiveOptions(settings)}</strong>
@@ -344,9 +369,9 @@ export function PreviewControls({
               <small>{settings.antiFatigue ? "AI Brightness Smoothing actif" : settings.vocalPresence ? "Présence vocale active" : "Désactivé"}</small>
             </div>
             <div>
-              <span>Espace</span>
-              <strong>{settings.stereoSpace ? "Stéréo" : settings.spacePreserve ? "Préservé" : "Standard"}</strong>
-              <small>{settings.stereoSpace ? "Élargissement M/S actif" : settings.spacePreserve ? "Limiteur plus doux" : "Rendu validé"}</small>
+              <span>Options</span>
+              <strong>{settings.bassPunch ? "Basses" : settings.stereoSpace ? "Stéréo" : settings.spacePreserve ? "Préservé" : "Standard"}</strong>
+              <small>{settings.bassPunch ? "Basses punchy actif" : settings.stereoSpace ? "Élargissement M/S actif" : settings.spacePreserve ? "Limiteur plus doux" : "Rendu validé"}</small>
             </div>
           </div>
 
@@ -375,6 +400,19 @@ export function PreviewControls({
             <span>
               <strong>Espace stéréo</strong>
               <small>Élargit légèrement l’image stéréo par Mid/Side protégé, sans élargir les graves.</small>
+            </span>
+          </label>
+
+          <label className={["fatigue-toggle", "bass-punch-toggle", settings.bassPunch ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.bassPunch}
+              disabled={settings.vocalPresence}
+              onChange={(event) => rebuildAutoSettings({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
+            />
+            <span>
+              <strong>Basses punchy</strong>
+              <small>Kick renforcé, grave utile contrôlé, sans boost sub excessif.</small>
             </span>
           </label>
 

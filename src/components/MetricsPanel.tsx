@@ -23,6 +23,22 @@ function formatStereoPercent(value: number): string {
   return `${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
 }
 
+function formatBassPunchPercent(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "Stable";
+  }
+
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
+function formatBassPunchRatio(value: number): string {
+  return `${(value * 100).toFixed(1)} %`;
+}
+
+function normalizeBassPunchRatio(value: number): number {
+  return clampPercent(value * 380);
+}
+
 function brightnessRelativeChange(before: number, after: number): number {
   if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
     return 0;
@@ -156,6 +172,10 @@ function stereoListeningLabel(result: PreviewRenderResult): string {
 }
 
 function bassListeningLabel(result: PreviewRenderResult): string {
+  if (result.settings.bassPunch && result.report.bassPunch.active) {
+    return result.report.bassPunch.safeMode ? "basses renforcées avec dose réduite" : "kick renforcé et bas contrôlé";
+  }
+
   const before = result.beforeMetrics.subRatio + result.beforeMetrics.lowRatio;
   const after = result.afterMetrics.subRatio + result.afterMetrics.lowRatio;
   const delta = after - before;
@@ -310,6 +330,17 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               originalScore={normalizeCrest(result.beforeMetrics.crestFactorDb, isYoutubeMix, isImpact)}
               previewScore={normalizeCrest(result.afterMetrics.crestFactorDb, isYoutubeMix, isImpact)}
             />
+            {result.settings.bassPunch && (
+              <ComparisonRow
+                label="Basses punchy"
+                original={formatBassPunchRatio(result.report.bassPunch.beforeRatio)}
+                preview={formatBassPunchRatio(result.report.bassPunch.afterRatio)}
+                delta={formatBassPunchPercent(result.report.bassPunch.changePercent)}
+                listening={result.report.bassPunch.safeMode ? "Dose réduite, grave déjà dense" : "Kick renforcé, bas contrôlé"}
+                originalScore={normalizeBassPunchRatio(result.report.bassPunch.beforeRatio)}
+                previewScore={normalizeBassPunchRatio(result.report.bassPunch.afterRatio)}
+              />
+            )}
             <ComparisonRow
               label="Espace stéréo"
               original={formatStereoRatio(result.report.stereoImage.beforeRatio)}

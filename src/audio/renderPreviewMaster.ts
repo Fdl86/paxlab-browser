@@ -45,6 +45,84 @@ interface StereoImageMeasurement {
   highRatio: number;
 }
 
+interface BassPunchMeasurement {
+  ratio: number;
+}
+
+interface BassPunchProfile {
+  amount: number;
+  intensityLabel: string;
+  safeMode: boolean;
+}
+
+function analyzeBassPunch(source: AudioBuffer): BassPunchMeasurement {
+  const stride = Math.max(1, Math.floor(source.sampleRate / 12000));
+  const highPassFrequency = 65;
+  const lowPassFrequency = 135;
+  const highPassRc = 1 / (2 * Math.PI * highPassFrequency);
+  const lowPassRc = 1 / (2 * Math.PI * lowPassFrequency);
+  const dt = stride / source.sampleRate;
+  const highPassAlpha = highPassRc / (highPassRc + dt);
+  const lowPassAlpha = dt / (lowPassRc + dt);
+  let previousMono = 0;
+  let previousHigh = 0;
+  let band = 0;
+  let fullSquare = 0;
+  let bandSquare = 0;
+  let samples = 0;
+
+  for (let index = 0; index < source.length; index += stride) {
+    let mono = 0;
+
+    for (let channel = 0; channel < source.numberOfChannels; channel += 1) {
+      mono += source.getChannelData(channel)[index] ?? 0;
+    }
+
+    mono /= Math.max(1, source.numberOfChannels);
+
+    const high = highPassAlpha * (previousHigh + mono - previousMono);
+    band += lowPassAlpha * (high - band);
+    fullSquare += mono * mono;
+    bandSquare += band * band;
+    previousMono = mono;
+    previousHigh = high;
+    samples += 1;
+  }
+
+  const safeFull = Math.max(fullSquare / Math.max(1, samples), 1e-12);
+
+  return {
+    ratio: Math.sqrt((bandSquare / Math.max(1, samples)) / safeFull)
+  };
+}
+
+function getBassPunchProfile(settings: PreviewSettings, metrics: AdvancedAudioMetrics): BassPunchProfile {
+  if (!settings.bassPunch || settings.vocalPresence) {
+    return { amount: 0, intensityLabel: "off", safeMode: false };
+  }
+
+  const presetFactor =
+    settings.autoIntensity === "safe"
+      ? 0.42
+      : settings.autoIntensity === "balanced"
+        ? 0.62
+        : settings.autoIntensity === "youtube"
+          ? 0.82
+          : settings.autoIntensity === "impact"
+            ? 0.52
+            : 0.6;
+  const alreadyDense = metrics.lowRatio > 0.3 || metrics.subRatio > 0.1;
+  const somewhatDense = metrics.lowRatio > 0.22 || metrics.subRatio > 0.075;
+  const safetyFactor = alreadyDense ? 0.55 : somewhatDense ? 0.75 : 1;
+  const amount = clamp(presetFactor * safetyFactor, 0, 0.9);
+
+  return {
+    amount,
+    intensityLabel: amount < 0.48 ? "réduite" : amount < 0.7 ? "légère" : "standard",
+    safeMode: safetyFactor < 1
+  };
+}
+
 function analyzeStereoImage(source: AudioBuffer): StereoImageMeasurement {
   if (source.numberOfChannels < 2) {
     return { ratio: 0, lowRatio: 0, highRatio: 0 };
@@ -603,9 +681,12 @@ async function renderPreviewMasterInternal(
   await waitForProgressFrame(220);
   const beforeMetrics = analyzeAdvancedAudioBuffer(inputBuffer);
   const beforeStereoImage = analyzeStereoImage(inputBuffer);
+  const beforeBassPunch = analyzeBassPunch(inputBuffer);
   notifyProgress(onProgress, 1, 22, "Analyse du morceau");
   await waitForProgressFrame(240);
   const profile = getProcessingProfile(settings);
+  const bassPunchProfile = getBassPunchProfile(settings, beforeMetrics);
+  const bassPunchActive = bassPunchProfile.amount > 0;
   const preset = getPresetById(settings.presetId);
   notifyProgress(onProgress, 2, 34, "Cible automatique");
   await waitForProgressFrame(240);
@@ -630,6 +711,23 @@ async function renderPreviewMasterInternal(
   lowShelf.type = "lowshelf";
   lowShelf.frequency.value = 115;
   lowShelf.gain.value = profile.lowShelfGain;
+
+  const bassPunchWeight = offlineContext.createBiquadFilter();
+  bassPunchWeight.type = "lowshelf";
+  bassPunchWeight.frequency.value = 72;
+  bassPunchWeight.gain.value = bassPunchActive ? 0.32 * bassPunchProfile.amount : 0;
+
+  const bassPunchKick = offlineContext.createBiquadFilter();
+  bassPunchKick.type = "peaking";
+  bassPunchKick.frequency.value = 92;
+  bassPunchKick.Q.value = 0.9;
+  bassPunchKick.gain.value = bassPunchActive ? 1.15 * bassPunchProfile.amount : 0;
+
+  const bassPunchMudDip = offlineContext.createBiquadFilter();
+  bassPunchMudDip.type = "peaking";
+  bassPunchMudDip.frequency.value = 240;
+  bassPunchMudDip.Q.value = 0.85;
+  bassPunchMudDip.gain.value = bassPunchActive ? -0.7 * bassPunchProfile.amount : 0;
 
   const lowMudDip = offlineContext.createBiquadFilter();
   lowMudDip.type = "peaking";
@@ -699,7 +797,10 @@ async function renderPreviewMasterInternal(
   source
     .connect(highPass)
     .connect(lowShelf)
+    .connect(bassPunchWeight)
+    .connect(bassPunchKick)
     .connect(lowMudDip)
+    .connect(bassPunchMudDip)
     .connect(vocalMudDip)
     .connect(presence)
     .connect(vocalBodyLift)
@@ -781,12 +882,21 @@ async function renderPreviewMasterInternal(
   const finalBuffer = finalPeakLimiter.buffer;
   const afterMetrics = analyzeAdvancedAudioBuffer(finalBuffer);
   const afterStereoImage = analyzeStereoImage(finalBuffer);
+  const afterBassPunch = analyzeBassPunch(finalBuffer);
   const stereoImage = {
     beforeRatio: beforeStereoImage.ratio,
     afterRatio: afterStereoImage.ratio,
     changePercent: stereoChangePercent(beforeStereoImage.ratio, afterStereoImage.ratio),
     lowChangePercent: stereoChangePercent(beforeStereoImage.lowRatio, afterStereoImage.lowRatio),
     highChangePercent: stereoChangePercent(beforeStereoImage.highRatio, afterStereoImage.highRatio)
+  };
+  const bassPunch = {
+    active: bassPunchActive,
+    beforeRatio: beforeBassPunch.ratio,
+    afterRatio: afterBassPunch.ratio,
+    changePercent: stereoChangePercent(beforeBassPunch.ratio, afterBassPunch.ratio),
+    intensityLabel: bassPunchProfile.intensityLabel,
+    safeMode: bassPunchProfile.safeMode
   };
 
   const gainAppliedDb = afterMetrics.estimatedLufs - beforeMetrics.estimatedLufs;
@@ -811,6 +921,9 @@ async function renderPreviewMasterInternal(
   }
   if (vocalPresenceActive) {
     appliedMoves.push("présence vocale subtile");
+  }
+  if (bassPunchActive) {
+    appliedMoves.push(bassPunchProfile.safeMode ? "Basses punchy : dose réduite, grave déjà dense" : "Basses punchy : kick renforcé, bas contrôlé");
   }
   if (Math.abs(profile.lowShelfGain) > 0.2 || profile.subControlFrequency > 30) {
     appliedMoves.push("contrôle sub et bas du spectre");
@@ -903,6 +1016,7 @@ async function renderPreviewMasterInternal(
       limiterReductionDb: Math.max(limiter.reductionDb, finalPeakLimiter.reductionDb)
     },
     stereoImage,
+    bassPunch,
     performance: {
       renderTimeMs
     }

@@ -66,6 +66,10 @@ function formatPreset(settings: PreviewSettings): string {
     options.push("espace stéréo");
   }
 
+  if (settings.bassPunch) {
+    options.push("basses punchy");
+  }
+
   return options.length ? `${base} + ${options.join(" + ")}` : base;
 }
 
@@ -86,6 +90,7 @@ export function SessionStatusPanel({
     antiFatigue: activeSettings.antiFatigue,
     vocalPresence: activeSettings.vocalPresence,
     stereoSpace: activeSettings.stereoSpace,
+    bassPunch: activeSettings.bassPunch,
     spacePreserve: activeSettings.spacePreserve
   }) : null;
 

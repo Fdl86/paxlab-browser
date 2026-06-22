@@ -14,6 +14,7 @@ export interface AutoPlanOptions {
   antiFatigue?: boolean;
   vocalPresence?: boolean;
   stereoSpace?: boolean;
+  bassPunch?: boolean;
   spacePreserve?: boolean;
 }
 
@@ -275,7 +276,8 @@ export function buildSettingsFromAnalysis(
   const base = getSettingsForPreset(presetId);
   const autoIntensity = options.autoIntensity ?? base.autoIntensity ?? "balanced";
   const antiFatigue = options.antiFatigue ?? base.antiFatigue ?? false;
-  const vocalPresence = antiFatigue ? false : options.vocalPresence ?? base.vocalPresence ?? false;
+  const bassPunch = options.bassPunch ?? base.bassPunch ?? false;
+  const vocalPresence = antiFatigue || bassPunch ? false : options.vocalPresence ?? base.vocalPresence ?? false;
   const stereoSpace = options.stereoSpace ?? base.stereoSpace ?? false;
   const spacePreserve = options.spacePreserve ?? base.spacePreserve ?? false;
   const plan = inferAutoMasterPlan(metrics, { autoIntensity, antiFatigue, spacePreserve });
@@ -339,6 +341,7 @@ export function buildSettingsFromAnalysis(
     antiFatigue,
     vocalPresence,
     stereoSpace,
+    bassPunch,
     spacePreserve
   };
 }

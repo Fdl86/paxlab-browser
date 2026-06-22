@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-26-1-stereo-reporting",
+  "version": "1.0.0-dev15-27-bass-punch",
   "type": "module",
   "scripts": {
     "dev": "vite",

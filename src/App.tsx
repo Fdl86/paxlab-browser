@@ -168,6 +168,7 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
       antiFatigue,
       vocalPresence: false,
       stereoSpace: false,
+      bassPunch: false,
       spacePreserve: false,
     },
   );
@@ -246,14 +247,16 @@ function getPreviewMonitorGainDb(
 
 
 function normalizePresenceOptions(settings: PreviewSettings): PreviewSettings {
-  if (settings.antiFatigue && settings.vocalPresence) {
-    return { ...settings, vocalPresence: false };
-  }
+  const antiFatigue = Boolean(settings.antiFatigue);
+  const bassPunch = Boolean(settings.bassPunch);
+  const vocalPresence = antiFatigue || bassPunch ? false : Boolean(settings.vocalPresence);
 
   return {
     ...settings,
-    vocalPresence: Boolean(settings.vocalPresence),
+    antiFatigue,
+    vocalPresence,
     stereoSpace: Boolean(settings.stereoSpace),
+    bassPunch,
   };
 }
 
@@ -301,6 +304,10 @@ function activeOptionLabel(settings: PreviewSettings): string {
 
   if (settings.stereoSpace) {
     options.push("Espace stéréo");
+  }
+
+  if (settings.bassPunch) {
+    options.push("Basses punchy");
   }
 
   return options.length ? options.join(" · ") : "Options off";
@@ -679,7 +686,8 @@ function RenderChoiceCard({
       settings.autoIntensity === recommendedPlan.autoIntensity &&
       settings.antiFatigue === recommendedPlan.antiFatigue &&
       !settings.vocalPresence &&
-      !settings.stereoSpace,
+      !settings.stereoSpace &&
+      !settings.bassPunch,
   );
 
   function rebuild(partial: Partial<PreviewSettings>) {
@@ -687,7 +695,8 @@ function RenderChoiceCard({
       ...settings,
       ...partial,
       antiFatigue: partial.antiFatigue ? true : partial.vocalPresence ? false : partial.antiFatigue ?? settings.antiFatigue,
-      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue ? false : partial.vocalPresence ?? settings.vocalPresence,
+      vocalPresence: partial.vocalPresence ? true : partial.antiFatigue || partial.bassPunch ? false : partial.vocalPresence ?? settings.vocalPresence,
+      bassPunch: partial.bassPunch ? true : partial.vocalPresence ? false : partial.bassPunch ?? settings.bassPunch,
     });
 
     if (!sourceAnalysis) {
@@ -703,6 +712,7 @@ function RenderChoiceCard({
         antiFatigue: base.antiFatigue,
         vocalPresence: base.vocalPresence,
         stereoSpace: base.stereoSpace,
+        bassPunch: base.bassPunch,
         spacePreserve: base.spacePreserve,
       },
     );
@@ -714,6 +724,7 @@ function RenderChoiceCard({
       antiFatigue: base.antiFatigue,
       vocalPresence: base.vocalPresence,
       stereoSpace: base.stereoSpace,
+      bassPunch: base.bassPunch,
       spacePreserve: base.spacePreserve,
     });
   }
@@ -853,6 +864,29 @@ function RenderChoiceCard({
         </span>
       </label>
 
+      <label
+        className={[
+          "guided-fatigue",
+          "guided-bass-punch",
+          settings.bassPunch ? "active" : "",
+          settings.vocalPresence ? "mutually-disabled" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        title={settings.vocalPresence ? "Présence vocale active : désactive-la pour utiliser Basses punchy." : undefined}
+      >
+        <input
+          type="checkbox"
+          disabled={!hasAudio || isRendering || analysisStatus === "running" || settings.vocalPresence}
+          checked={settings.bassPunch}
+          onChange={(event) => rebuild({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
+        />
+        <span>
+          <strong>Basses punchy</strong>
+          <small>Renforce le kick et le grave utile sans gonfler le mix.</small>
+        </span>
+      </label>
+
       <button
         type="button"
         className="primary-button guided-main-cta"
@@ -911,7 +945,7 @@ function PreviewReadyCard({
         <p>
           Preview #{revision}
           {renderedAt ? ` · ${renderedAt}` : ""} · {label}
-          {settings.antiFatigue ? " · AI Brightness Smoothing" : settings.vocalPresence ? " · Présence vocale" : ""}{settings.stereoSpace ? " · Espace stéréo" : ""}
+          {settings.antiFatigue ? " · AI Brightness Smoothing" : settings.vocalPresence ? " · Présence vocale" : ""}{settings.stereoSpace ? " · Espace stéréo" : ""}{settings.bassPunch ? " · Basses punchy" : ""}
         </p>
       </div>
       <div className="guided-ready-metrics">
@@ -996,6 +1030,32 @@ function stereoSpaceLabel(result: PreviewRenderResult): string {
   return "Image élargie, grave à contrôler";
 }
 
+function bassPunchValue(result: PreviewRenderResult): string {
+  const value = result.report.bassPunch.changePercent;
+
+  if (!result.settings.bassPunch || !result.report.bassPunch.active) {
+    return "Off";
+  }
+
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "Stable";
+  }
+
+  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
+function bassPunchLabel(result: PreviewRenderResult): string {
+  if (!result.settings.bassPunch || !result.report.bassPunch.active) {
+    return "Option non activée";
+  }
+
+  if (result.report.bassPunch.safeMode) {
+    return "Dose réduite, grave déjà dense";
+  }
+
+  return "Kick renforcé, bas contrôlé";
+}
+
 function listeningDynamicsLabel(delta: number): string {
   if (delta >= -0.5) {
     return "Respiration préservée";
@@ -1057,9 +1117,19 @@ function PreviewChangeSummary({
           <small>Sécurité export OK</small>
         </article>
         <article>
-          <span>Respiration</span>
-          <strong>{dynamicsDelta >= -0.5 ? "Préservée" : "Contrôlée"}</strong>
-          <small>{listeningDynamicsLabel(dynamicsDelta)}</small>
+          {previewResult.settings.bassPunch ? (
+            <>
+              <span>Basses punchy</span>
+              <strong>{bassPunchValue(previewResult)}</strong>
+              <small>{bassPunchLabel(previewResult)}</small>
+            </>
+          ) : (
+            <>
+              <span>Respiration</span>
+              <strong>{dynamicsDelta >= -0.5 ? "Préservée" : "Contrôlée"}</strong>
+              <small>{listeningDynamicsLabel(dynamicsDelta)}</small>
+            </>
+          )}
         </article>
         <article>
           <span>Espace stéréo</span>
@@ -1199,7 +1269,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.26.1
+          PAXLAB Browser Engine - DEV15.27
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

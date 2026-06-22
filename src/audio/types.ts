@@ -118,6 +118,7 @@ export interface PreviewSettings {
   antiFatigue: boolean;
   vocalPresence: boolean;
   stereoSpace: boolean;
+  bassPunch: boolean;
   spacePreserve: boolean;
 }
 
@@ -161,6 +162,15 @@ export interface StereoImageSummary {
   highChangePercent: number;
 }
 
+export interface BassPunchSummary {
+  active: boolean;
+  beforeRatio: number;
+  afterRatio: number;
+  changePercent: number;
+  intensityLabel: string;
+  safeMode: boolean;
+}
+
 export interface ProcessingReport {
   profileLabel: string;
   brightnessLabel: string;
@@ -199,6 +209,7 @@ export interface ProcessingReport {
     limiterReductionDb: number;
   };
   stereoImage: StereoImageSummary;
+  bassPunch: BassPunchSummary;
   performance: {
     renderTimeMs: number;
   };

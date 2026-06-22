@@ -46,6 +46,10 @@ function formatLabel(settings: PreviewSettings): string {
     options.push("Espace stéréo");
   }
 
+  if (settings.bassPunch) {
+    options.push("Basses punchy");
+  }
+
   const optionLabel = options.length ? ` · ${options.join(" · ")}` : "";
   return `${formatAuto(settings)} · ${describeSourceRepair(settings.sourceRepair)} · ${describeHighTreatment(settings.highTreatment)}${optionLabel}`;
 }
@@ -64,6 +68,14 @@ function formatStereoPercent(value: number): string {
   }
 
   return `ES ${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
+}
+
+function formatBassPunchPercent(value: number): string {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.5) {
+    return "BP stable";
+  }
+
+  return `BP ${value >= 0 ? "+" : ""}${value.toFixed(1)} %`;
 }
 
 export function PreviewHistoryPanel({
@@ -114,6 +126,7 @@ export function PreviewHistoryPanel({
                   <span>HR {headroom.toFixed(1)} dB</span>
                   <span>{gain >= 0 ? "+" : ""}{gain.toFixed(1)} dB</span>
                   {item.settings.stereoSpace && <span>{formatStereoPercent(item.result.report.stereoImage.changePercent)}</span>}
+                  {item.settings.bassPunch && <span>{formatBassPunchPercent(item.result.report.bassPunch.changePercent)}</span>}
                 </div>
               </button>
             );

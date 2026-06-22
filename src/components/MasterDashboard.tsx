@@ -213,6 +213,26 @@ function stereoObjective(result: PreviewRenderResult): ObjectiveItem {
   };
 }
 
+function bassPunchObjective(result: PreviewRenderResult): ObjectiveItem {
+  const summary = result.report.bassPunch;
+  const active = result.settings.bassPunch && summary.active;
+  const change = summary.changePercent;
+
+  return {
+    label: "Basses punchy",
+    target: active ? "Kick plus présent, bas propre" : "Aucun renfort forcé",
+    result: active ? formatStereoPercent(change) : "Off",
+    status: active ? (summary.safeMode ? "Réduit" : "Appliqué") : "Off",
+    tone: active ? "success" : "neutral",
+    marker: active ? rangeMarker(change, 0, 18) : 50,
+    note: active
+      ? summary.safeMode
+        ? "Grave utile renforcé avec dose réduite car la source est déjà dense."
+        : "Kick renforcé et bas-médium contrôlé, sans boost sub excessif."
+      : "Option non activée, grave conservé."
+  };
+}
+
 function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string {
   const gain = result.report.loudness.gainAppliedDb;
   const headroom = result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb;
@@ -227,6 +247,10 @@ function decisionCopy(result: PreviewRenderResult, plan: AutoMasterPlan): string
 
   if (result.settings.vocalPresence) {
     return `PAXLAB a privilégié la présence vocale : chant légèrement plus lisible, haut du spectre maîtrisé et marge peak finale à ${headroom.toFixed(1)} dB.`;
+  }
+
+  if (result.settings.bassPunch) {
+    return `PAXLAB a ajouté Basses punchy : kick plus présent, grave utile renforcé, bas-médium contrôlé et marge peak finale à ${headroom.toFixed(1)} dB.`;
   }
 
   if (result.settings.stereoSpace) {
@@ -252,6 +276,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
         antiFatigue: previewResult?.settings.antiFatigue ?? previewSettings.antiFatigue,
         vocalPresence: previewResult?.settings.vocalPresence ?? previewSettings.vocalPresence,
         stereoSpace: previewResult?.settings.stereoSpace ?? previewSettings.stereoSpace,
+        bassPunch: previewResult?.settings.bassPunch ?? previewSettings.bassPunch,
         spacePreserve: previewResult?.settings.spacePreserve ?? previewSettings.spacePreserve
       })
     : null;
@@ -306,6 +331,7 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
     peakObjective(previewResult, plan),
     fizzObjective(previewResult),
     dynamicsObjective(previewResult),
+    ...(previewResult.settings.bassPunch ? [bassPunchObjective(previewResult)] : []),
     stereoObjective(previewResult)
   ];
   const successfulItems = objectiveItems.filter((item) => item.tone === "success").length;
@@ -339,8 +365,8 @@ export function MasterDashboard({ sourceAnalysis, previewResult, previewSettings
           <strong>{previewResult.afterMetrics.fizzRatio < previewResult.beforeMetrics.fizzRatio ? "Adoucis" : "Stables"}</strong>
         </div>
         <div>
-          <span>Espace</span>
-          <strong>{previewResult.settings.stereoSpace ? formatStereoPercent(previewResult.report.stereoImage.changePercent) : "Standard"}</strong>
+          <span>{previewResult.settings.bassPunch ? "Basses" : "Espace"}</span>
+          <strong>{previewResult.settings.bassPunch ? formatStereoPercent(previewResult.report.bassPunch.changePercent) : previewResult.settings.stereoSpace ? formatStereoPercent(previewResult.report.stereoImage.changePercent) : "Standard"}</strong>
         </div>
       </div>
 
