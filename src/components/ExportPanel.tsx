@@ -357,13 +357,14 @@ export function ExportPanel({
               <span className="export-radio" aria-hidden="true" />
               <span className="export-choice-copy">
                 <strong>{choice.title}</strong>
+                <small>{choice.help}</small>
               </span>
             </button>
           ))}
         </div>
 
         <label className="export-filename-field premium-export-filename">
-          <span>Nom du fichier exporté</span>
+          <span>Nom du fichier</span>
           <input
             type="text"
             value={exportFilename}

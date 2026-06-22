@@ -1,39 +1,41 @@
-# PAXLAB Browser Engine - DEV15.27.1
+# PAXLAB Browser Engine - DEV15.28
 
-DEV15.27.1 ajoute l option `Basses punchy` sur la base stable DEV15.26.1. La fonction renforce le kick et le grave utile de facon controlee, sans changer les cibles LUFS, le player, ni les exports WAV / FLAC.
+DEV15.28 est une refonte UI premium basee sur la maquette validee. La logique audio reste celle de DEV15.27.1 : moteur DSP, cibles LUFS, player A/B, exports WAV / FLAC, Basses punchy, Espace stereo et securites restent inchanges.
 
-## Modifications DEV15.27.1
+## Objectif
 
-- Hotfix securite stereo : `applyStereoWidth()` adapte maintenant le surplus de largeur si la source est deja tres large, sans modifier les cibles LUFS ni le DSP `Basses punchy`.
-- Le choix produit reste conserve : `Basses punchy` est compatible avec `AI Brightness Smoothing`, mais reste exclusif avec `Presence vocale`.
+Rendre l interface plus proche d un vrai dashboard audio premium : plus lisible, plus dense, plus propre, avec une hierarchie visuelle plus forte et un workflow toujours simple.
 
+## Modifications DEV15.28
 
-- Ajout du switch `Basses punchy`, OFF par defaut.
-- Renfort controle de la zone grave utile autour du kick, avec bas-medium surveille.
-- Intensite adaptee au preset : tres legere en Nettoyage leger, moderee en Traitement naturel, standard en Mix YouTube, reduite en Impact.
-- Incompatibilite automatique avec `Presence vocale` pour eviter un equilibre voix + bas trop pousse.
-- Compatibilite conservee avec `AI Brightness Smoothing` et `Espace stereo`.
-- Ajout de la tuile `Basses punchy` dans `Ce que PAXLAB a change` quand l option est active.
-- Ajout de la mesure avant / apres dans le panneau Avant / Apres.
-- Ajout des donnees correspondantes dans `Details techniques` et dans l historique des previews.
-- Aucune modification volontaire du niveau LUFS cible.
+- Nouveau traitement visuel global dark premium avec accent champagne.
+- Topbar retravaillee : marque PAXLAB, badges Local, Aucun upload, Reglages experts et aide.
+- Layout principal plus proche de la maquette : grand panneau A/B a gauche, configuration et export a droite.
+- Lecteur A/B renforce : source Original / Rendu PAXLAB, bouton Volume egal, transports alignes, waveform plus premium.
+- Tuiles de monitoring plus lisibles : Peak lecture, Niveau local, Marge peak.
+- Bloc `Ce que PAXLAB a change` harmonise avec 5 tuiles stables.
+- Panneau `Rendu` retravaille : recommandation plus visible, presets en liste verticale, options sous forme de switches premium.
+- Panneau export retravaille : formats plus lisibles, nom de fichier, CTA export plus coherent.
+- Accordions bas de page : affichage horizontal quand tout est ferme, empilement propre quand un accordéon est ouvert, sans retour du bug grid-column.
+- Titre de l onglet navigateur passe en `PAXLAB Browser Engine - DEV15.28`.
 
 ## Points conserves
 
-- Traitement naturel conserve sa logique douce et peut rester plus prudent en LUFS.
+- Aucun changement DSP volontaire.
+- Aucun changement des cibles LUFS.
+- Aucun changement du player A/B.
+- Aucun changement des exports WAV 16 / 24-bit et FLAC 24-bit.
+- `Traitement naturel` conserve sa logique douce.
 - `Mix YouTube` conserve sa cible YouTube validee.
-- `Espace stereo` conserve les graves proteges au centre.
-- Aucun re-brightening ajoute.
-- Export WAV 16 / 24-bit et FLAC 24-bit inchanges.
-- Player A/B et waveform inchanges.
+- `Impact`, `Espace stereo`, `Presence vocale`, `AI Brightness Smoothing` et `Basses punchy` conservent leur comportement.
 - Application toujours 100 % navigateur, locale, sans upload.
 
 ## Verification
 
-Le build DEV15.27.1 doit etre verifie avant livraison :
+Build verifie avant livraison :
 
 ```bash
 npm run build
 ```
 
-Le zip livre ne doit contenir ni `node_modules`, ni `dist`.
+Le zip livre ne contient ni `node_modules`, ni `dist`.
