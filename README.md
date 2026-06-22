@@ -1,19 +1,19 @@
-# PAXLAB Browser Engine - DEV15.28.3
+# PAXLAB Browser Engine - DEV15.28.4
 
-DEV15.28.3 consolide la refonte premium DEV15.28.2 avec un polish UI cible : topbar simplifiee, metriques de lecture plus propres au demarrage et nettoyage CSS prudent. La logique audio reste celle de DEV15.27.1 : moteur DSP, cibles LUFS, player A/B, exports WAV / FLAC, Basses punchy, Espace stereo et securites restent inchanges.
+DEV15.28.4 consolide la base premium DEV15.28.3 avec un polish de respiration UI et une securite responsive. Le moteur audio, les presets, les cibles LUFS, le player A/B, les exports WAV / FLAC, Basses punchy et Espace stereo restent inchanges.
 
 ## Objectif
 
-Figer une base UI premium stable, lisible et plus propre techniquement, sans toucher au son ni au workflow valide.
+Donner plus d air a la topbar et a la grille principale sans modifier le workflow valide, tout en continuant le nettoyage CSS prudent.
 
-## Modifications DEV15.28.3
+## Modifications DEV15.28.4
 
-- Topbar simplifiee : seuls les badges `Local` et `Aucun upload` restent visibles.
-- Suppression des elements topbar parasites : `Reglages experts`, aide `?` et pseudo-elements CSS heredites.
-- Metriques de lecture au repos : remplacement de `-inf` par `--`.
-- Sous-textes au repos plus propres : `En attente de lecture`.
-- Nettoyage CSS prudent sur la zone topbar : retrait des anciennes regles concurrentes et classes mortes evidentes.
-- Titre de l onglet navigateur passe en `PAXLAB Browser Engine - DEV15.28.3`.
+- Espacement horizontal augmente dans la topbar.
+- Logo, titre, badges `Local` et `Aucun upload` moins colles aux bordures.
+- Grille principale legerement mieux alignee avec la topbar.
+- Securites responsive ajoutees pour largeurs intermediaires, laptop et mobile.
+- Nettoyage CSS prudent sur quelques anciennes regles topbar supersedees.
+- Titre de l onglet navigateur passe en `PAXLAB Browser Engine - DEV15.28.4`.
 
 ## Points conserves
 
@@ -21,9 +21,8 @@ Figer une base UI premium stable, lisible et plus propre techniquement, sans tou
 - Aucun changement des cibles LUFS.
 - Aucun changement du player A/B.
 - Aucun changement des exports WAV 16 / 24-bit et FLAC 24-bit.
-- `Traitement naturel` conserve sa logique douce.
-- `Mix YouTube` conserve sa cible YouTube validee.
-- `Impact`, `Espace stereo`, `Presence vocale`, `AI Brightness Smoothing` et `Basses punchy` conservent leur comportement.
+- Aucun changement de comportement des presets.
+- `AI Brightness Smoothing`, `Presence vocale`, `Espace stereo` et `Basses punchy` conservent leur logique.
 - Application toujours 100 % navigateur, locale, sans upload.
 
 ## Verification

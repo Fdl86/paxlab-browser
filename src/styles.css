@@ -177,8 +177,6 @@ select{border:1px solid var(--line);border-radius:13px;padding:11px 12px;color:v
 .simple-export-panel .export-main-button{border:0;background:linear-gradient(135deg, #d4af6e, #d4af6e);color:#fff;}
 
 .guided-details-grid > .panel{box-shadow:none;}
-.compact-studio-topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:62px;margin:18px 0 12px;padding:12px 16px;border:1px solid rgba(255,255,255,0.08);border-radius:18px;background:linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
-    rgba(12, 14, 20, 0.88);box-shadow:0 18px 70px rgba(0,0,0,0.22);}
 .compact-preview-status.pending{border-color:rgba(255, 211, 122, 0.28);background:rgba(34, 26, 15, 0.82);}
 .compact-side-summary h2{margin:2px 0 10px;font-size:1.15rem;}
 .secondary-action-button{width:100%;margin-top:12px;border:1px solid rgba(255,255,255,0.09);border-radius:13px;padding:10px 12px;color:#fff1c9;background:rgba(255,255,255,0.045);font-weight:900;cursor:pointer;}
@@ -217,8 +215,6 @@ select{border:1px solid var(--line);border-radius:13px;padding:11px 12px;color:v
 .advisor-actions.single-action{grid-template-columns:1fr;}
 .advisor-actions.single-action .primary-button{display:grid;gap:3px;text-align:left;}
 .advisor-actions.single-action .primary-button small{color:rgba(22, 19, 10, 0.72);font-size:0.74rem;font-weight:850;line-height:1.35;}
-.compact-studio-topbar-minimal{min-height:54px;padding:10px 15px;}
-.compact-studio-topbar-minimal .compact-brand-block{gap:0;}
 .monitor-source-switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;max-width:420px;margin:0 auto 16px;padding:5px;border-radius:18px;background:rgba(0, 0, 0, 0.26);border:1px solid rgba(255, 255, 255, 0.07);position:relative;}
 .change-track-control{position:relative;cursor:pointer;white-space:nowrap;}
 .change-track-control input{display:none;}
@@ -433,9 +429,7 @@ button,input,select,label{font-family:inherit;}
 .guided-result-side .guided-render-card{padding:12px;order:3 !important;padding-top:26px !important;}
 .guided-render-options,.guided-result-side .guided-render-options{grid-template-columns:repeat(2, minmax(0, 1fr)) !important;margin-top:12px;gap:10px !important;}
 .guided-render-option,.guided-result-side .guided-render-option{border-radius:8px !important;background:#1e1e24 !important;min-height:72px !important;padding:12px !important;}
-.guided-shell{padding-top:24px;padding:0 !important;min-height:calc(100vh - 16px) !important;border-color:#2a292d !important;width:min(1440px, calc(100% - 28px)) !important;margin:10px auto !important;border:1px solid #2a292d !important;border-radius:10px !important;background:#0b0b0e !important;box-shadow:none !important;overflow:hidden !important;}
 
-.compact-studio-topbar.compact-studio-topbar-minimal{box-shadow:0 24px 90px rgba(0, 0, 0, 0.34);border-color:var(--line);margin:0 !important;display:flex;align-items:center;justify-content:space-between;border:0 !important;border-radius:0 !important;gap:24px !important;height:70px !important;min-height:70px !important;padding:0 22px !important;border-bottom:1px solid #2a292d !important;background:#15151a !important;}
 .compact-brand-block{flex-direction:row !important;gap:12px !important;display:grid !important;grid-template-columns:36px auto !important;grid-template-rows:auto auto !important;align-items:center !important;column-gap:12px !important;min-width:240px !important;max-width:320px !important;}
 .compact-brand-block::before{content:"";flex:0 0 auto;grid-row:1 / 3 !important;width:34px !important;height:34px !important;border-radius:8px !important;background:#d4af6e !important;box-shadow:inset 0 0 0 10px rgba(255, 255, 255, 0.92) !important;}
 .compact-brand-block strong{font-weight:850 !important;color:#ffffff !important;font-size:1.22rem !important;line-height:1 !important;letter-spacing:0.01em !important;}
@@ -704,7 +698,6 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
   .inline-transport-controls .change-track-control{grid-column:1 / -1;width:100%;}
 }
 @media (max-width: 860px){
-  .compact-studio-topbar.compact-studio-topbar-minimal{height:auto !important;min-height:54px !important;align-items:flex-start !important;flex-wrap:wrap !important;padding:12px 16px !important;}
   .compact-brand-block{min-width:0 !important;}
   .guided-stepper{max-width:none !important;margin:18px 18px !important;}
   .realtime-panel,.guided-ab-stage .realtime-panel{padding:22px !important;}
@@ -778,8 +771,6 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{o
   .realtime-panel .ab-control-bar .monitor-source-button{height:56px !important;min-height:56px !important;font-size:1rem;}
   .realtime-panel .monitor-waveform{min-height:320px !important;}
   .compact-meter-row,.compact-summary-grid,.export-choice-row{grid-template-columns:1fr !important;}
-  .guided-shell{padding-top:10px;width:calc(100% - 2px) !important;margin:1px !important;}
-  .compact-studio-topbar.compact-studio-topbar-minimal{height:auto !important;min-height:70px !important;align-items:flex-start !important;padding:14px !important;}
   .loaded-file-header,.realtime-panel .ab-control-bar,.loaded-file-metadata,.compact-meter-row,.export-choice-row{grid-template-columns:1fr !important;}
   .loaded-file-change,.realtime-panel .inline-transport-controls{justify-self:start !important;}
   .realtime-panel .ab-control-bar .monitor-source-switch,.monitor-equal-toggle.top-equal-toggle{min-width:0 !important;width:100% !important;}
@@ -981,16 +972,18 @@ body{
     linear-gradient(180deg,#080b0f 0%,#0b0d11 48%,#07090c 100%) !important;
 }
 .guided-shell{
-  width:min(calc(100% - 32px),1680px) !important;
+  width:min(calc(100% - 48px),1680px) !important;
   margin:0 auto !important;
-  padding:18px 0 34px !important;
+  padding:22px 20px 38px !important;
+  box-sizing:border-box !important;
   background:transparent !important;
 }
 .guided-shell::before{display:none !important;}
 .compact-studio-topbar.compact-studio-topbar-minimal{
-  min-height:58px !important;
-  margin:0 0 16px !important;
-  padding:0 0 16px !important;
+  min-height:60px !important;
+  margin:0 0 18px !important;
+  padding:0 10px 18px !important;
+  box-sizing:border-box !important;
   border-bottom:1px solid rgba(232,216,180,0.10) !important;
   background:transparent !important;
   box-shadow:none !important;
@@ -1008,6 +1001,7 @@ body{
   color:#f0eee9 !important;
   background:linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.035)) !important;
   font-weight:850 !important;
+  white-space:nowrap !important;
 }
 .guided-result-grid,.guided-config-grid,.loaded-layout-grid{
   display:grid !important;
@@ -1435,6 +1429,8 @@ body{
   .preview-change-grid article{padding:16px 14px !important;}
 }
 @media (max-width:1120px){
+  .guided-shell{width:calc(100% - 36px) !important;padding:18px 16px 32px !important;}
+  .compact-studio-topbar.compact-studio-topbar-minimal{padding:0 4px 16px !important;}
   .guided-result-grid,.guided-config-grid,.loaded-layout-grid{grid-template-columns:1fr !important;}
   .guided-result-side.compact-side-panel{position:static !important;border-top:0 !important;}
   .realtime-panel .ab-control-bar{grid-template-columns:1fr !important;}
@@ -1442,11 +1438,14 @@ body{
   .preview-change-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
 }
 @media (max-width:760px){
-  .guided-shell{width:calc(100% - 18px) !important;padding-top:10px !important;}
-  .compact-studio-topbar.compact-studio-topbar-minimal{height:auto !important;min-height:0 !important;}
-  .compact-trust-badges{justify-content:flex-start !important;flex-wrap:wrap !important;}
+  .guided-shell{width:calc(100% - 22px) !important;margin:0 auto !important;padding:12px 10px 26px !important;}
+  .compact-studio-topbar.compact-studio-topbar-minimal{height:auto !important;min-height:0 !important;gap:14px !important;padding:0 2px 14px !important;}
+  .compact-trust-badges{width:100% !important;justify-content:flex-start !important;flex-wrap:wrap !important;}
   .realtime-panel{padding:18px !important;}
   .realtime-panel .ab-control-bar .monitor-source-switch{height:56px !important;}
   .compact-meter-row,.preview-change-grid,.export-choice-row{grid-template-columns:1fr !important;}
 }
-
+@media (max-width:520px){
+  .compact-studio-topbar.compact-studio-topbar-minimal{display:grid !important;grid-template-columns:1fr !important;}
+  .compact-trust-badges span{min-height:32px !important;padding:0 14px !important;}
+}

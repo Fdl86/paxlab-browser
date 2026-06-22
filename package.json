@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-28-3-ui-polish",
+  "version": "1.0.0-dev15-28-4-spacing-responsive",
   "type": "module",
   "scripts": {
     "dev": "vite",
