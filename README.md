@@ -1,8 +1,8 @@
-# PAXLAB Browser Engine - DEV15.29
+# PAXLAB Browser Engine - DEV15.29.1
 
-DEV15.29 reconstruit `src/styles.css` depuis une base propre pour stabiliser l UI premium et préparer un responsive réellement exploitable. Le moteur audio, les presets, les cibles LUFS, Basses punchy, Espace stéréo, le player A/B et les exports WAV / FLAC restent inchangés.
+DEV15.29.1 reconstruit `src/styles.css` depuis une base propre pour stabiliser l UI premium et préparer un responsive réellement exploitable. Le moteur audio, les presets, les cibles LUFS, Basses punchy, Espace stéréo, le player A/B et les exports WAV / FLAC restent inchangés.
 
-## Modifications DEV15.29
+## Modifications DEV15.29.1
 
 - Reconstruction complète de `src/styles.css` avec une structure claire : tokens, base, topbar, layouts, player, sidebar, export, accordéons et responsive.
 - Desktop premium conservé dans l esprit de DEV15.28.4.
@@ -10,7 +10,7 @@ DEV15.29 reconstruit `src/styles.css` depuis une base propre pour stabiliser l U
 - Collapse à une colonne dès 1200 px pour éviter la sidebar trop large sur laptop.
 - Correction du libellé `Marge peak` au repos avec `En attente de lecture`.
 - Réduction massive des règles concurrentes et des `!important`.
-- Titre de l onglet navigateur passé en `PAXLAB Browser Engine - DEV15.29`.
+- Titre de l onglet navigateur passé en `PAXLAB Browser Engine - DEV15.29.1`.
 
 ## Contraintes conservées
 

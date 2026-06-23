@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-29-css-rebuild",
+  "version": "1.0.0-dev15-29-1-css-polish",
   "type": "module",
   "scripts": {
     "dev": "vite",
