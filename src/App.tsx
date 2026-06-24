@@ -692,15 +692,6 @@ function RenderChoiceCard({
 }) {
   const isRendering = previewStatus === "rendering";
   const canGenerate = hasAudio && analysisStatus === "ready" && Boolean(sourceAnalysis) && !isRendering;
-  const isRecommendedSelection = Boolean(
-    recommendedPlan &&
-      settings.autoIntensity === recommendedPlan.autoIntensity &&
-      settings.antiFatigue === recommendedPlan.antiFatigue &&
-      !settings.vocalPresence &&
-      !settings.stereoSpace &&
-      !settings.bassPunch,
-  );
-
   function rebuild(partial: Partial<PreviewSettings>) {
     const base = normalizePresenceOptions({
       ...settings,
@@ -750,9 +741,7 @@ function RenderChoiceCard({
         ? hasPendingChanges
           ? "Régénérer la Preview"
           : "Générer une autre Preview"
-        : isRecommendedSelection
-          ? "Générer la Preview conseillée"
-          : "Générer la Preview";
+        : "Générer la Preview";
 
   return (
     <section id="paxlab-render-card" className="panel guided-render-card">
@@ -1279,7 +1268,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV16.1
+          PAXLAB Browser Engine - DEV16.4
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>

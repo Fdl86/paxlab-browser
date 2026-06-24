@@ -1,31 +1,31 @@
-# PAXLAB Browser Engine - DEV16.1
+# PAXLAB Browser Engine - DEV16.4
 
-DEV16.1 reprend `paxlab-browser-dev16-ui-rewrite.zip` et applique une passe ciblée sur la colonne Rendu, la landing page et la waveform source.
+DEV16.4 reprend la base DEV16.1 et applique la passe de finition demandée sur l'écran d'accueil, les switches de la colonne Rendu et le bouton de génération.
 
 ## Objectif
 
-Rendre l'interface plus lisible sans repartir dans un empilement CSS fragile : moins de texte dans les tuiles, hauteur des switches réduite, espacement régulier, waveform source alignée sur le composant A/B post-traitement.
+Stabiliser l'interface sans toucher au moteur audio : landing page plus équilibrée, tuiles plus compactes, CTA toujours lisible et comportement visuel constant quand une option est cochée.
 
-## Modifications DEV16.1
+## Modifications DEV16.4
 
 ### Landing page
-- Colonne Workflow élargie via le token `--landing-side-w` pour éviter les retours à la ligne inutiles.
-- La largeur reste pilotée par variable CSS pour rester facilement ajustable.
+- La grille d'accueil utilise `align-items: stretch`.
+- La carte Upload et la carte Workflow prennent `height: 100%` pour obtenir une hauteur visuelle alignée.
+- La largeur de la colonne Workflow reste pilotée par le token `--landing-side-w`, donc facilement ajustable plus tard.
 
 ### Carte Rendu
-- Suppression des badges texte `Recommandé` dans la carte Rendu.
-- Le preset conseillé est maintenant signalé par une étoile à côté du libellé du preset.
-- Les presets affichent uniquement : nom du preset + phrase courte.
-- Le bouton `Générer la Preview` reprend le même espacement vertical que les tuiles de switches.
+- Le bouton principal garde le libellé stable `Générer la Preview`.
+- Le libellé variable `Générer la Preview conseillée` a été supprimé dans `src/App.tsx`.
+- Le CTA reste compact grâce à une grille interne stable, avec padding réduit et colonnes équilibrées.
 
 ### Switches
-- Suppression du texte explicatif sous les switches.
-- Titre et toggle sont alignés sur une seule ligne.
-- Hauteur réduite : les tuiles suivent désormais le contenu + padding, sans masse inutile.
+- Les tuiles switches sont compactées.
+- Le titre et le toggle sont verrouillés sur la même ligne CSS Grid.
+- Le texte explicatif des options reste supprimé pour éviter la masse visuelle.
+- Les box suivent le contenu réel + padding, sans hauteur forcée inutile.
 
-### Waveform
-- Ajout d'un helper partagé `src/audio/waveformView.ts`.
-- La waveform de l'écran `Morceau chargé` utilise le même calcul, les mêmes dimensions et les mêmes classes visuelles que la waveform du monitoring A/B.
+### Presets et waveform
+- Les ajustements DEV16.1 sont conservés : preset conseillé par étoile, tuiles presets allégées, waveform source alignée sur la waveform A/B via `src/audio/waveformView.ts`.
 
 ## Points conservés
 

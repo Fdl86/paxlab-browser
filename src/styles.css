@@ -1,6 +1,6 @@
 /* ============================================================================
-   PAXLAB Browser Engine - dev16.1 · "Studio clair-obscur"
-   Réécriture CSS from scratch — architecture en couches, tokens, 0 !important.
+   PAXLAB Browser Engine - dev16.4 - "Studio clair-obscur"
+   Réécriture CSS from scratch - architecture en couches, tokens, 0 !important.
    Ordre des couches (la cascade fait le travail, pas la spécificité) :
      0 reset · 1 tokens · 2 typo · 3 primitives · 4 layout · 5 composants · 6 responsive
    ========================================================================== */
@@ -239,7 +239,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 
 /* ---------- 5. COMPOSANTS ----------------------------------------------- */
 
-/* — Landing / hero — */
+/* - Landing / hero - */
 .guided-landing-hero{display:grid;justify-items:start;text-align:left;padding:28px 44px 16px;}
 .guided-landing-hero h1{max-width:520px;margin-bottom:var(--sp-3);}
 .guided-landing-hero p:not(.version){max-width:440px;margin-bottom:var(--sp-5);color:var(--muted);font-size:0.98rem;line-height:1.5;}
@@ -305,7 +305,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .simple-status-list small,.simple-result-preview small{display:block;margin-top:6px;color:var(--muted);line-height:1.35;}
 .simple-result-preview{display:block;margin-bottom:var(--sp-3);padding:13px;border:1px solid var(--green-line);border-radius:var(--r-3);background:var(--green-soft);}
 
-/* — Carte source chargée — */
+/* - Carte source chargée - */
 .guided-source-card,.loaded-file-stage-card{
   border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);padding:30px 32px;
 }
@@ -327,7 +327,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .loaded-source-monitor .waveform-canvas{cursor:default;touch-action:auto;}
 .static-bar-waveform-canvas{pointer-events:none;}
 
-/* — Carte Rendu — */
+/* - Carte Rendu - */
 .guided-render-card{border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);padding:20px;}
 .guided-card-heading{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-bottom:var(--sp-3);}
 .guided-card-heading h2{color:#fff;font-size:1.06rem;}
@@ -390,10 +390,11 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .big-fatigue-toggle{min-height:0;}
 
 .guided-main-cta{
-  display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;justify-content:stretch;
-  width:100%;margin-top:var(--sp-2);min-height:54px;text-align:left;column-gap:var(--sp-4);
+  display:grid;grid-template-columns:minmax(0,0.95fr) minmax(0,1.05fr);align-items:center;justify-content:stretch;
+  width:100%;margin-top:var(--sp-2);min-height:0;padding:12px 14px;text-align:left;column-gap:var(--sp-3);
+  line-height:1.15;white-space:normal;
 }
-.guided-main-cta small{display:block;font-size:0.78rem;line-height:1.25;opacity:0.8;}
+.guided-main-cta small{display:block;min-width:0;font-size:0.76rem;line-height:1.2;opacity:0.82;}
 
 /* intensité auto / mode-toggle / segmented */
 .auto-intensity-control,.mode-toggle,.segmented-control{
@@ -421,7 +422,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .dynamic-controls-panel{border-color:var(--gold-line);}
 .divider{height:1px;margin:var(--sp-4) 0;background:var(--line);border:0;}
 
-/* — Monitor A/B / realtime — */
+/* - Monitor A/B / realtime - */
 .realtime-panel{border:1px solid var(--line);border-radius:var(--r-4);background:var(--s1);padding:24px 28px;}
 .guided-ab-stage{min-width:0;display:grid;gap:var(--sp-4);}
 .ab-control-bar{
@@ -499,7 +500,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .waveform-label-left small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted-2);font-size:0.84rem;}
 .monitor-time-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);margin-top:var(--sp-3);color:var(--muted);font-size:0.82rem;font-variant-numeric:tabular-nums;}
 
-/* — Résumé des changements — */
+/* - Résumé des changements - */
 .preview-change-summary{margin-top:var(--sp-4);padding:18px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);}
 .preview-change-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-4);margin-bottom:var(--sp-3);}
 .preview-change-heading h2{margin:2px 0 0;color:#fff;font-size:1rem;line-height:1.2;}
@@ -517,7 +518,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .listening-summary-card span{display:block;color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;}
 .listening-summary-card strong{display:block;margin-top:7px;color:#fff;font-size:0.95rem;line-height:1.38;}
 
-/* — Export — */
+/* - Export - */
 .export-panel-anchor{display:block;}
 .export-panel,.premium-export-panel,.simple-export-panel{
   border:1px solid var(--blue-line);border-radius:var(--r-3);background:var(--s1);padding:20px;
@@ -549,7 +550,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .premium-download-button.export-main-button{border:1px solid var(--blue);color:var(--blue);background:var(--blue-soft);}
 .premium-download-button.export-main-button:hover:not(:disabled){background:rgba(143,178,222,0.2);border-color:var(--blue);}
 
-/* — Résumé latéral — */
+/* - Résumé latéral - */
 .compact-side-summary{border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);padding:20px;}
 .compact-side-summary h2{margin:2px 0 var(--sp-3);color:#fff;font-size:1.12rem;}
 .compact-side-summary p:not(.eyebrow){margin:var(--sp-3) 0 0;color:var(--muted);font-size:0.82rem;line-height:1.45;}
@@ -562,7 +563,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .compact-meter-pill span{color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
 .compact-meter-pill strong{color:#fff;}
 
-/* — Historique — */
+/* - Historique - */
 .premium-history-panel,.history-panel,.session-panel{padding:16px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);}
 .premium-history-panel .panel-heading{display:none;}
 .history-list,.premium-history-list{display:grid;grid-template-columns:1fr;gap:var(--sp-2);}
@@ -577,7 +578,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .history-mini-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:7px;}
 .history-mini-metrics span{padding:5px 7px;border:1px solid var(--gold-line);border-radius:var(--r-2);color:var(--gold);background:var(--gold-soft);font-size:0.72rem;font-weight:700;white-space:nowrap;}
 
-/* — Conseiller — */
+/* - Conseiller - */
 .advisor-panel{display:grid;gap:var(--sp-3);}
 .advisor-summary{padding:14px;border:1px solid var(--gold-line);border-radius:var(--r-3);background:var(--gold-soft);}
 .advisor-summary strong{display:block;margin-bottom:6px;}
@@ -594,7 +595,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .advisor-actions.single-action .primary-button{display:grid;gap:3px;text-align:left;}
 .advisor-actions.single-action .primary-button small{color:rgba(26,20,10,0.72);font-size:0.74rem;font-weight:700;line-height:1.35;}
 
-/* — Dashboard / objectifs — */
+/* - Dashboard / objectifs - */
 .dashboard-panel,.visual-report-panel,.visual-before-after-panel,.metrics-panel,.processing-panel,.report-card{
   border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);
 }
@@ -642,7 +643,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .before-after-bar.original i::after{background:var(--gold);}
 .before-after-bar b{color:#fff;text-align:right;font-size:0.84rem;font-weight:700;}
 
-/* — Rapport / mesures — */
+/* - Rapport / mesures - */
 .report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);}
 .report-card{padding:14px;min-height:82px;}
 .report-card span{display:block;color:var(--gold);font-size:0.71rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
@@ -668,7 +669,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .control-room-summary strong{display:block;margin-top:6px;}
 .control-room-summary small{display:block;margin-top:6px;color:var(--muted-2);font-size:0.72rem;line-height:1.28;}
 
-/* — Overlays / modaux — */
+/* - Overlays / modaux - */
 .analysis-processing-overlay,.guided-processing-overlay,.export-processing-overlay{
   position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:24px;
   background:rgba(8,9,12,0.72);backdrop-filter:blur(6px);
@@ -684,7 +685,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .guided-progress span{display:block;width:var(--progress);height:100%;border-radius:inherit;background:var(--gold);transition:width 160ms ease;}
 .export-spinner{width:42px;height:42px;margin:18px auto 12px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:var(--r-pill);animation:paxlab-export-spin 0.85s linear infinite;}
 
-/* PreviewReadyCard — variante large conservée (sécurité d'évolutivité) */
+/* PreviewReadyCard - variante large conservée (sécurité d'évolutivité) */
 .guided-ready-card{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-6);margin:var(--sp-4) 0;padding:22px 24px;border:1px solid var(--green-line);border-radius:var(--r-4);background:var(--green-soft);}
 .guided-ready-card.pending{border-color:var(--amber-line);background:var(--amber-soft);}
 .guided-ready-card h2{margin-bottom:var(--sp-2);font-size:1.4rem;}
@@ -694,7 +695,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .guided-ready-metrics b{display:block;color:#fff;font-size:1.1rem;}
 
 /* ---------- 6. RESPONSIVE (3 paliers nets, sans chevauchement) ---------- */
-/* ≤ 1024px : laptop / tablette — la colonne latérale passe dessous */
+/* ≤ 1024px : laptop / tablette - la colonne latérale passe dessous */
 @media (max-width:1024px){
   .guided-landing-grid,.guided-config-grid,.loaded-layout-grid,.guided-result-grid{
     grid-template-columns:minmax(0,1fr);padding:28px 28px 24px;gap:var(--sp-5);
