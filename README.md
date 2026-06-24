@@ -1,43 +1,39 @@
-# PAXLAB Browser Engine - DEV16
+# PAXLAB Browser Engine - DEV16.1
 
-DEV16 reprend la base DEV15.28.4 et **réécrit entièrement la couche UI/CSS** pour garantir
-une évolutivité durable, sans toucher au moteur audio.
+DEV16.1 reprend `paxlab-browser-dev16-ui-rewrite.zip` et applique une passe ciblée sur la colonne Rendu, la landing page et la waveform source.
 
 ## Objectif
 
-Rendre l'interface nette, cohérente et surtout **modifiable sans casse**, en remplaçant
-un CSS empilé par patches (1451 lignes, ~1580 `!important`, 24 media queries qui se
-chevauchaient) par une architecture en couches pilotée par tokens.
+Rendre l'interface plus lisible sans repartir dans un empilement CSS fragile : moins de texte dans les tuiles, hauteur des switches réduite, espacement régulier, waveform source alignée sur le composant A/B post-traitement.
 
-## Modifications DEV16
+## Modifications DEV16.1
 
-### Direction visuelle — "Studio clair-obscur"
-- ADN sombre + or conservé, mais l'or devient un **accent réservé** (action primaire + marque).
-- Profondeur par **surfaces neutres en couches** (fond / surface / inset) à la place des
-  dégradés radiaux empilés. Aplats nets : plus premium et plus rapide à peindre.
-- Rôles de couleur clairs : **bleu** = interactif / export, **vert / ambre / rouge** = états des vumètres.
-- Hiérarchie typographique et rythme d'espacement 8 px régularisés.
+### Landing page
+- Colonne Workflow élargie via le token `--landing-side-w` pour éviter les retours à la ligne inutiles.
+- La largeur reste pilotée par variable CSS pour rester facilement ajustable.
 
-### Architecture CSS (réécrite de zéro)
-- Couches : `reset → tokens → typo → primitives → layout → composants → responsive`.
-- **0 `!important`** (contre ~1580). Changer une couleur = changer un token.
-- **3 breakpoints nets** sans chevauchement : 1024px, 720px, 480px.
-- `styles.css` : 1451 → ~720 lignes. Bundle CSS : ~118 kB → ~45 kB (gzip 18 → 8 kB).
+### Carte Rendu
+- Suppression des badges texte `Recommandé` dans la carte Rendu.
+- Le preset conseillé est maintenant signalé par une étoile à côté du libellé du preset.
+- Les presets affichent uniquement : nom du preset + phrase courte.
+- Le bouton `Générer la Preview` reprend le même espacement vertical que les tuiles de switches.
 
-### UX ("user first")
-- Les 4 switches (`Basses punchy`, `Espace stéréo`, `Présence vocale`, `AI Brightness
-  Smoothing`) restent **groupés au même endroit** dans la carte Rendu.
-- L'**incompatibilité mutuelle** s'affiche désormais **en clair sous le toggle** concerné
-  (visible sur mobile), au lieu d'un `title` au survol.
+### Switches
+- Suppression du texte explicatif sous les switches.
+- Titre et toggle sont alignés sur une seule ligne.
+- Hauteur réduite : les tuiles suivent désormais le contenu + padding, sans masse inutile.
 
-## Points conservés (inchangés)
+### Waveform
+- Ajout d'un helper partagé `src/audio/waveformView.ts`.
+- La waveform de l'écran `Morceau chargé` utilise le même calcul, les mêmes dimensions et les mêmes classes visuelles que la waveform du monitoring A/B.
 
-- Aucun changement DSP, cibles LUFS, player A/B.
-- Exports WAV 16 / 24-bit et FLAC 24-bit inchangés.
-- Comportement des presets inchangé.
-- `AI Brightness Smoothing`, `Présence vocale`, `Espace stéréo`, `Basses punchy` :
-  logique identique.
-- Application 100 % navigateur, locale, sans upload.
+## Points conservés
+
+- Aucun changement du moteur audio.
+- Aucun changement des presets DSP.
+- Aucun changement des exports WAV / FLAC.
+- Aucun changement du player A/B.
+- Application toujours 100 % navigateur, locale, sans upload.
 
 ## Vérification
 
@@ -46,8 +42,4 @@ npm install
 npm run build
 ```
 
-Build vérifié avant livraison (TypeScript clean). Le zip livré ne contient ni
-`node_modules`, ni `dist`.
-
-> Note : la passe visuelle finale (rendu navigateur) est à faire côté utilisateur ;
-> la livraison garantit le build et la couverture de toutes les classes vivantes.
+Le zip livré ne contient ni `node_modules`, ni `dist`.

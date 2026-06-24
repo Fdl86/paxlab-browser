@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev16-ui-rewrite",
+  "version": "1.0.0-dev16-1-ui-polish",
   "type": "module",
   "scripts": {
     "dev": "vite",

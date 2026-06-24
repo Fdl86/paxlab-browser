@@ -12,6 +12,13 @@ import { formatBytes, formatDuration } from "./audio/audioBufferUtils";
 import { decodeAudioFile } from "./audio/decodeAudio";
 import { DEFAULT_PREVIEW_SETTINGS } from "./audio/previewPresets";
 import { renderPreviewMaster } from "./audio/renderPreviewMaster";
+import {
+  buildWaveformRects,
+  DEFAULT_WAVEFORM_HEIGHT,
+  DEFAULT_WAVEFORM_SCALE_Y,
+  DEFAULT_WAVEFORM_WIDTH,
+  getCachedWaveformBins,
+} from "./audio/waveformView";
 import { useABAudioPlayer } from "./audio/useABAudioPlayer";
 import type {
   AdvancedAudioMetrics,
@@ -53,7 +60,7 @@ const ANALYSIS_STEPS = [
   "Mesure du niveau",
   "Analyse spectrale",
   "Détection brillance IA",
-  "Choix de la Preview recommandée",
+  "Choix de la Preview conseillée",
 ];
 
 function waitForVisualStep(ms: number): Promise<void> {
@@ -64,31 +71,26 @@ const SIMPLE_RENDERS: Array<{
   id: AutoIntensityId;
   label: string;
   title: string;
-  text: string;
 }> = [
   {
     id: "safe",
     label: "Nettoyage léger",
     title: "Correction discrète",
-    text: "Corrige doucement sans changer le caractère du morceau.",
   },
   {
     id: "balanced",
     label: "Traitement naturel",
     title: "Rendu stable et musical",
-    text: "Rendu stable, musical, sans excès.",
   },
   {
     id: "impact",
     label: "Impact",
     title: "Plus fort et plus dense",
-    text: "Basses plus présentes et rendu plus massif.",
   },
   {
     id: "youtube",
     label: "Mix YouTube",
     title: "Upload propre à -14 LUFS max",
-    text: "Niveau stabilisé, peak prudent, grave et aigus IA contrôlés.",
   },
 ];
 
@@ -132,15 +134,15 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
   let autoIntensity: AutoIntensityId = "youtube";
   let antiFatigue = brightOrFizz;
   let label = "Mix YouTube";
-  let reason = "Sortie vidéo recommandée : niveau stabilisé, peak prudent et aigus IA contrôlés.";
+  let reason = "Sortie vidéo conseillée : niveau stabilisé, peak prudent et aigus IA contrôlés.";
 
   if (lowLufsWithLimitedHeadroom || quietAndDynamic) {
     autoIntensity = "impact";
     antiFatigue = false;
     label = "Impact";
     reason = lowLufsWithLimitedHeadroom
-      ? "Niveau perçu bas avec des crêtes déjà présentes : PAXLAB recommande un rendu Power plus dense."
-      : "Source basse et assez dynamique : PAXLAB recommande plus de densité avant validation A/B.";
+      ? "Niveau perçu bas avec des crêtes déjà présentes : PAXLAB conseille un rendu Power plus dense."
+      : "Source basse et assez dynamique : PAXLAB conseille plus de densité avant validation A/B.";
   } else if (alreadySmooth) {
     autoIntensity = "balanced";
     antiFatigue = false;
@@ -150,12 +152,12 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
     autoIntensity = "youtube";
     antiFatigue = true;
     label = "Mix YouTube + AI Brightness Smoothing";
-    reason = "Brillance IA ou fizz détecté : PAXLAB recommande le lissage des aigus pour une écoute plus confortable.";
+    reason = "Brillance IA ou fizz détecté : PAXLAB conseille le lissage des aigus pour une écoute plus confortable.";
   } else if (clippedOrHot || compact) {
     autoIntensity = "youtube";
     antiFatigue = false;
     label = "Mix YouTube";
-    reason = "Source dense ou proche du plafond : rendu YouTube prudent recommandé avant export.";
+    reason = "Source dense ou proche du plafond : rendu YouTube prudent conseillé avant export.";
   }
 
   const recommendedPresetId = autoIntensity === "youtube" ? "youtube" : autoIntensity === "impact" ? "power" : "auto";
@@ -490,45 +492,6 @@ function WorkflowStepper({
 }
 
 
-function buildStaticWaveformBars(buffer: AudioBuffer | null, bins = 180): Array<{ height: number }> {
-  if (!buffer || buffer.length <= 0) {
-    return [];
-  }
-
-  const channelCount = buffer.numberOfChannels;
-  const step = Math.max(1, Math.floor(buffer.length / bins));
-  const raw: number[] = [];
-
-  for (let bin = 0; bin < bins; bin += 1) {
-    const start = bin * step;
-    const end = Math.min(buffer.length, start + step);
-    let sumSquares = 0;
-    let sampleCount = 0;
-
-    for (let channel = 0; channel < channelCount; channel += 1) {
-      const data = buffer.getChannelData(channel);
-      for (let index = start; index < end; index += 1) {
-        const sample = data[index] ?? 0;
-        sumSquares += sample * sample;
-        sampleCount += 1;
-      }
-    }
-
-    raw.push(sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0);
-  }
-
-  const sorted = raw.filter((value) => value > 0.00001).sort((a, b) => a - b);
-  const reference = Math.max(0.0008, sorted[Math.floor(sorted.length * 0.92)] ?? 0.0008);
-
-  return raw.map((value, index) => {
-    const previous = raw[index - 1] ?? value;
-    const next = raw[index + 1] ?? value;
-    const smooth = previous * 0.18 + value * 0.64 + next * 0.18;
-    const normalized = Math.min(1, Math.pow(Math.min(3.2, smooth / reference), 0.72) * 0.72 + 0.08);
-    return { height: Math.max(8, normalized * 88) };
-  });
-}
-
 function formatChannelLabel(channelCount: number): string {
   if (channelCount === 1) {
     return "1 (Mono)";
@@ -539,6 +502,70 @@ function formatChannelLabel(channelCount: number): string {
   }
 
   return `${channelCount} canaux`;
+}
+
+function StaticSourceWaveform({
+  buffer,
+  fileName,
+}: {
+  buffer: AudioBuffer;
+  fileName: string;
+}) {
+  const waveformBins = useMemo(
+    () => getCachedWaveformBins(buffer, buffer),
+    [buffer],
+  );
+  const waveformRects = useMemo(
+    () =>
+      buildWaveformRects(
+        waveformBins,
+        DEFAULT_WAVEFORM_WIDTH,
+        DEFAULT_WAVEFORM_HEIGHT,
+        DEFAULT_WAVEFORM_SCALE_Y,
+      ),
+    [waveformBins],
+  );
+
+  return (
+    <div className="loaded-source-monitor monitor-waveform">
+      <div className="waveform-label-row">
+        <div className="waveform-label-left">
+          <span>Source chargée - Original</span>
+          <small>{fileName}</small>
+        </div>
+        <strong className="live-pill">Analyse</strong>
+      </div>
+      <div className="waveform-canvas bar-waveform-canvas static-bar-waveform-canvas">
+        <svg
+          className="bar-waveform-svg"
+          viewBox={`0 0 ${DEFAULT_WAVEFORM_WIDTH} ${DEFAULT_WAVEFORM_HEIGHT}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <line
+            className="waveform-zero"
+            x1="0"
+            y1={DEFAULT_WAVEFORM_HEIGHT / 2}
+            x2={DEFAULT_WAVEFORM_WIDTH}
+            y2={DEFAULT_WAVEFORM_HEIGHT / 2}
+          />
+          <g className="waveform-layer waveform-layer-listened">
+            {waveformRects.map((bar, index) => (
+              <rect
+                key={index}
+                className="waveform-bar waveform-bar-listened"
+                x={bar.x.toFixed(2)}
+                y={bar.y.toFixed(2)}
+                width={bar.width.toFixed(2)}
+                height={bar.height.toFixed(2)}
+                rx="1.2"
+              />
+            ))}
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
 }
 
 function SourceLoadedCard({
@@ -558,7 +585,6 @@ function SourceLoadedCard({
     onFileSelected(file);
   }
 
-  const sourceBars = buildStaticWaveformBars(decodedAudio.audioBuffer);
   const isFlacSource = decodedAudio.file.name.toLowerCase().endsWith(".flac");
 
   return (
@@ -592,7 +618,7 @@ function SourceLoadedCard({
         {analysisStatus === "running"
           ? "Analyse locale en cours..."
           : analysisStatus === "ready"
-            ? "Analyse locale terminée - Preview recommandée prête à générer à droite."
+            ? "Analyse locale terminée - Preview conseillée prête à générer à droite."
             : analysisStatus === "error"
               ? "Analyse locale indisponible - vérifie le fichier ou recharge-le."
               : "Analyse locale automatique après chargement."}
@@ -610,11 +636,10 @@ function SourceLoadedCard({
         </p>
       )}
 
-      <div className="loaded-source-waveform" aria-hidden="true">
-        {sourceBars.map((bar, index) => (
-          <i key={index} style={{ height: `${bar.height}%` }} />
-        ))}
-      </div>
+      <StaticSourceWaveform
+        buffer={decodedAudio.audioBuffer}
+        fileName={decodedAudio.file.name}
+      />
 
       <div className="loaded-file-metadata">
         <span>
@@ -726,7 +751,7 @@ function RenderChoiceCard({
           ? "Régénérer la Preview"
           : "Générer une autre Preview"
         : isRecommendedSelection
-          ? "Générer la Preview recommandée"
+          ? "Générer la Preview conseillée"
           : "Générer la Preview";
 
   return (
@@ -736,12 +761,11 @@ function RenderChoiceCard({
           <p className="eyebrow">Rendu</p>
           <h2>Choisis le rendu</h2>
         </div>
-        <span className="status-pill">{isRecommendedSelection ? "Recommandé" : recommendedPlan ? "Personnalisé" : "Analyse"}</span>
       </div>
 
       {recommendedPlan && (
         <div className="recommended-preview-note">
-          <strong>Preview recommandée : {recommendedPlan.label}</strong>
+          <strong>Conseil PAXLAB : {recommendedPlan.label}</strong>
           <span>{recommendedPlan.reason}</span>
         </div>
       )}
@@ -771,10 +795,13 @@ function RenderChoiceCard({
                 })
               }
             >
-              <strong>{render.label}</strong>
+              <strong>
+                {render.label}
+                {isRecommended && (
+                  <span className="recommendation-star" aria-label="Preset conseillé">★</span>
+                )}
+              </strong>
               <span>{render.title}</span>
-              {isRecommended && <em>Recommandé</em>}
-              <small>{render.text}</small>
             </button>
           );
         })}
@@ -798,13 +825,12 @@ function RenderChoiceCard({
           onChange={(event) => rebuild({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
         />
         <span>
-          <strong>AI Brightness Smoothing</strong>
-          <small>
-            {settings.vocalPresence
-              ? "Incompatible avec Présence vocale — désactive-la d’abord."
-              : "Calme les aigus métalliques, le fizz et la fatigue d’écoute."}
-          </small>
-          {recommendedPlan?.antiFatigue && <em>Recommandé</em>}
+          <strong>
+            AI Brightness Smoothing
+            {recommendedPlan?.antiFatigue && (
+              <span className="recommendation-star" aria-label="Option conseillée">★</span>
+            )}
+          </strong>
         </span>
       </label>
 
@@ -827,7 +853,6 @@ function RenderChoiceCard({
         />
         <span>
           <strong>Présence vocale</strong>
-          <small>{settings.antiFatigue ? "Incompatible avec AI Brightness Smoothing — désactive-le d’abord." : "Fait ressortir légèrement le chant sans rendre les aigus agressifs."}</small>
         </span>
       </label>
 
@@ -848,7 +873,6 @@ function RenderChoiceCard({
         />
         <span>
           <strong>Espace stéréo</strong>
-          <small>Élargit légèrement l’image stéréo sans toucher aux graves.</small>
         </span>
       </label>
 
@@ -871,7 +895,6 @@ function RenderChoiceCard({
         />
         <span>
           <strong>Basses punchy</strong>
-          <small>{settings.vocalPresence ? "Incompatible avec Présence vocale — désactive-la d’abord." : "Renforce le kick et le grave utile sans gonfler le mix."}</small>
         </span>
       </label>
 
@@ -1256,7 +1279,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV16
+          PAXLAB Browser Engine - DEV16.1
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1291,7 +1314,7 @@ function SimpleLanding({
             </li>
             <li>
               <b>Mixer</b>
-              <span>Preview recommandée automatiquement.</span>
+              <span>Preview auto selon analyse.</span>
             </li>
             <li>
               <b>Comparer</b>
