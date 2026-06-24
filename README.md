@@ -1,27 +1,35 @@
-# PAXLAB Browser Engine - DEV16.5
+# PAXLAB Browser Engine - DEV16.6
 
-DEV16.5 reprend DEV16.4 et applique une passe ciblée sur l'écran de résultat après génération.
+DEV16.6 reprend DEV16.5 et applique une passe de micro-polish UI ciblée, sans toucher au moteur audio.
 
 ## Objectif
 
-Améliorer la lisibilité du rendu post-traitement sans toucher au moteur audio : mêmes traitements, même player A/B, mêmes exports WAV / FLAC, mais une lecture visuelle plus claire sous la waveform.
+Sécuriser plusieurs ajustements visuels sur l'écran de comparaison et la colonne d'export : barre A/B plus équilibrée, tuiles plus régulières, switches plus lisibles et boutons d'export plus premium.
 
-## Modifications DEV16.5
+## Modifications DEV16.6
 
-### Carte Rendu
-- L'option `Espace stéréo` utilise maintenant le même état actif champagne que les autres switches.
-- Le style bleu spécifique de cette tuile a été supprimé pour garder une cohérence visuelle.
+### Barre A/B
 
-### Mesures sous waveform
-- Les 3 tuiles `Peak lecture`, `Niveau local` et `Marge peak` passent en grille 3 colonnes.
-- Elles prennent maintenant toute la largeur disponible sous la waveform.
-- Les tuiles sont agrandies pour ressembler au rendu cible : plus de padding, meilleure hiérarchie, valeur principale plus lisible.
+- Le bloc `Volume égal` est centré entre le sélecteur `Original / Rendu PAXLAB` et les boutons de lecture.
+- La barre de contrôle passe sur une grille 3 zones propre : source, volume égal, transport.
+- Le responsive repasse en colonne sous 720 px pour éviter toute compression.
 
-### Résumé des changements
-- La zone `Ce que PAXLAB a changé` garde toujours 5 tuiles sur desktop.
-- La grille passe en `repeat(5, minmax(0, 1fr))`.
-- Les tuiles restent dynamiques selon les options actives, notamment `Basses punchy` et `Espace stéréo`.
-- Les breakpoints responsive sont conservés : 2 colonnes à 720 px, 1 colonne à 480 px.
+### Waveform et mesures
+
+- Les temps de lecture sous la waveform respirent davantage avant les 3 tuiles de mesure.
+- Les 3 tuiles de mesure DEV16.5 sont conservées et restent pleine largeur.
+
+### Presets et switches
+
+- Les 4 tuiles de preset ont maintenant une hauteur harmonisée, basée sur la plus haute.
+- Les icônes sont réintroduites dans les switches : brillance IA, présence vocale, espace stéréo, basses punchy.
+- Les états actifs champagne restent inchangés.
+
+### Export
+
+- Les boutons `FLAC 24-bit`, `WAV 24-bit` et `WAV 16-bit` sont retouchés en style champagne premium.
+- L'état actif utilise un check rond à droite, plus lisible et plus cohérent avec le reste de l'UI.
+- Le CTA export conserve le style action principale champagne.
 
 ## Points conservés
 

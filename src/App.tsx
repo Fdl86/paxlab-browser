@@ -799,6 +799,7 @@ function RenderChoiceCard({
       <label
         className={[
           "guided-fatigue",
+          "guided-ai-brightness",
           settings.antiFatigue ? "active" : "",
           settings.vocalPresence ? "mutually-disabled" : "",
           recommendedPlan?.antiFatigue ? "recommended" : "",
@@ -813,6 +814,7 @@ function RenderChoiceCard({
           checked={settings.antiFatigue}
           onChange={(event) => rebuild({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">✦</i>
         <span>
           <strong>
             AI Brightness Smoothing
@@ -840,6 +842,7 @@ function RenderChoiceCard({
           checked={settings.vocalPresence}
           onChange={(event) => rebuild({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">♪</i>
         <span>
           <strong>Présence vocale</strong>
         </span>
@@ -860,6 +863,7 @@ function RenderChoiceCard({
           checked={settings.stereoSpace}
           onChange={(event) => rebuild({ stereoSpace: event.target.checked })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">◎</i>
         <span>
           <strong>Espace stéréo</strong>
         </span>
@@ -882,6 +886,7 @@ function RenderChoiceCard({
           checked={settings.bassPunch}
           onChange={(event) => rebuild({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">◍</i>
         <span>
           <strong>Basses punchy</strong>
         </span>
@@ -1268,7 +1273,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV16.5
+          PAXLAB Browser Engine - DEV16.6
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
