@@ -363,7 +363,6 @@ export function RealtimeMonitorPanel({
     : meter.headroomDb;
   const peakReadingIdle = isSilentReading(meter.peakHoldDb);
   const localLevelIdle = isSilentReading(meter.integratedLufsEstimate);
-  const marginIdle = isSilentReading(meter.peakHoldDb);
   const waveformDragCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -683,7 +682,7 @@ export function RealtimeMonitorPanel({
             <div className="compact-meter-pill">
               <span>Marge peak</span>
               <strong>{activeHeadroom.toFixed(1)} dB</strong>
-              <small>{marginIdle ? "En attente de lecture" : meterLabel(meter.status)}</small>
+              <small>{meterLabel(meter.status)}</small>
             </div>
           </div>
 
