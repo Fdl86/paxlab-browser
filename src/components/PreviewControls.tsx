@@ -282,57 +282,6 @@ export function PreviewControls({
             ))}
           </div>
 
-          <label className={["fatigue-toggle", "big-fatigue-toggle", settings.antiFatigue ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
-            <input
-              type="checkbox"
-              checked={settings.antiFatigue}
-              disabled={settings.vocalPresence}
-              onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
-            />
-            <span>
-              <strong>AI Brightness Smoothing</strong>
-              <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
-            </span>
-          </label>
-
-          <label className={["fatigue-toggle", "big-fatigue-toggle", "vocal-presence-toggle", settings.vocalPresence ? "active" : "", settings.antiFatigue ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
-            <input
-              type="checkbox"
-              checked={settings.vocalPresence}
-              disabled={settings.antiFatigue}
-              onChange={(event) => rebuildAutoSettings({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
-            />
-            <span>
-              <strong>Présence vocale</strong>
-              <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
-            </span>
-          </label>
-
-          <label className={["fatigue-toggle", "big-fatigue-toggle", "stereo-space-toggle", settings.stereoSpace ? "active" : ""].filter(Boolean).join(" ")}>
-            <input
-              type="checkbox"
-              checked={settings.stereoSpace}
-              onChange={(event) => rebuildAutoSettings({ stereoSpace: event.target.checked })}
-            />
-            <span>
-              <strong>Espace stéréo</strong>
-              <small>Élargit légèrement l’image stéréo sans toucher aux graves.</small>
-            </span>
-          </label>
-
-          <label className={["fatigue-toggle", "big-fatigue-toggle", "bass-punch-toggle", settings.bassPunch ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
-            <input
-              type="checkbox"
-              checked={settings.bassPunch}
-              disabled={settings.vocalPresence}
-              onChange={(event) => rebuildAutoSettings({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
-            />
-            <span>
-              <strong>Basses punchy</strong>
-              <small>Renforce le kick et le grave utile sans gonfler le mix.</small>
-            </span>
-          </label>
-
           <div className="simple-result-preview">
             <span>Réglage choisi</span>
             <strong>{selectedSimplePreset.label}{formatActiveOptions(settings)}</strong>
@@ -391,63 +340,12 @@ export function PreviewControls({
             </div>
           </div>
 
-          <label className={["fatigue-toggle", "stereo-space-toggle", settings.stereoSpace ? "active" : ""].filter(Boolean).join(" ")}>
-            <input
-              type="checkbox"
-              checked={settings.stereoSpace}
-              onChange={(event) => rebuildAutoSettings({ stereoSpace: event.target.checked })}
-            />
-            <span>
-              <strong>Espace stéréo</strong>
-              <small>Élargit légèrement l’image stéréo par Mid/Side protégé, sans élargir les graves.</small>
-            </span>
-          </label>
-
-          <label className={["fatigue-toggle", "bass-punch-toggle", settings.bassPunch ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
-            <input
-              type="checkbox"
-              checked={settings.bassPunch}
-              disabled={settings.vocalPresence}
-              onChange={(event) => rebuildAutoSettings({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
-            />
-            <span>
-              <strong>Basses punchy</strong>
-              <small>Kick renforcé, grave utile contrôlé, sans boost sub excessif.</small>
-            </span>
-          </label>
-
           {isYoutubeMix ? (
             <p className="message message-info">
               Mix YouTube verrouille automatiquement la sécurité peak autour de 2.2 dB et garde le niveau sous -14.4 LUFS max. Réglages utiles : nettoyage source, niveau YouTube, brillance et espace stéréo.
             </p>
           ) : (
             <>
-              <label className={["fatigue-toggle", settings.antiFatigue ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
-                <input
-                  type="checkbox"
-                  checked={settings.antiFatigue}
-                  disabled={settings.vocalPresence}
-                  onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
-                />
-                <span>
-                  <strong>AI Brightness Smoothing</strong>
-                  <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
-                </span>
-              </label>
-
-              <label className={["fatigue-toggle", "vocal-presence-toggle", settings.vocalPresence ? "active" : "", settings.antiFatigue ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
-                <input
-                  type="checkbox"
-                  checked={settings.vocalPresence}
-                  disabled={settings.antiFatigue}
-                  onChange={(event) => rebuildAutoSettings({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
-                />
-                <span>
-                  <strong>Présence vocale</strong>
-                  <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
-                </span>
-              </label>
-
               <label className={settings.spacePreserve ? "fatigue-toggle space-toggle active" : "fatigue-toggle space-toggle"}>
                 <input
                   type="checkbox"

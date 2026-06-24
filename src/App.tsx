@@ -381,13 +381,6 @@ function AnalysisOverlay({
               <span key={step} className={stateClass}>
                 <b>{String(index + 1).padStart(2, "0")}</b>
                 <em>{step}</em>
-                <small>
-                  {index < activeIndex
-                    ? "Terminé"
-                    : index === activeIndex
-                      ? "En cours"
-                      : "En attente"}
-                </small>
               </span>
             );
           })}
@@ -444,13 +437,6 @@ function ProcessingOverlay({
               <span key={step} className={stateClass}>
                 <b>{String(index + 1).padStart(2, "0")}</b>
                 <em>{step}</em>
-                <small>
-                  {index < activeIndex
-                    ? "Terminé"
-                    : index === activeIndex
-                      ? "En cours"
-                      : "En attente"}
-                </small>
               </span>
             );
           })}
