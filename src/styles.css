@@ -1,5 +1,5 @@
 /* ============================================================================
-   PAXLAB Browser Engine - dev16.6 - "Micro polish UI"
+   PAXLAB Browser Engine - dev16.7 - "Détails techniques compacts"
    Réécriture CSS from scratch - architecture en couches, tokens, 0 !important.
    Ordre des couches (la cascade fait le travail, pas la spécificité) :
      0 reset · 1 tokens · 2 typo · 3 primitives · 4 layout · 5 composants · 6 responsive
@@ -658,6 +658,46 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .before-after-bar.original i::after{background:var(--gold);}
 .before-after-bar b{color:#fff;text-align:right;font-size:0.84rem;font-weight:700;}
 
+
+/* détails techniques compact */
+.technical-heading{align-items:center;}
+.technical-summary-card{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--sp-4);
+  margin:0 0 var(--sp-3);padding:12px 14px;border:1px solid var(--gold-line);border-radius:var(--r-3);background:var(--gold-soft);
+}
+.technical-summary-card span{display:block;color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;}
+.technical-summary-card strong{display:block;margin-top:5px;color:#fff;font-size:0.9rem;line-height:1.34;}
+.technical-summary-card p{margin:0;color:var(--muted);font-size:0.74rem;font-weight:600;white-space:nowrap;}
+.technical-summary-card p b{color:var(--text);font-size:0.74rem;}
+.technical-list{display:grid;gap:var(--sp-2);}
+.technical-row{
+  display:grid;grid-template-columns:174px minmax(0,1fr) 132px;align-items:center;gap:var(--sp-3);
+  min-height:68px;padding:11px 13px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s2);
+}
+.technical-row-label{display:grid;gap:4px;min-width:0;}
+.technical-row-label strong{color:#fff;font-size:0.92rem;line-height:1.15;}
+.technical-row-label small{color:var(--muted);font-size:0.73rem;font-weight:600;line-height:1.2;}
+.technical-row-bars{display:grid;gap:6px;min-width:0;}
+.technical-bar{display:grid;grid-template-columns:62px minmax(0,1fr) 104px;align-items:center;gap:var(--sp-3);}
+.technical-bar span{color:var(--muted);font-size:0.72rem;font-weight:700;}
+.technical-bar i{position:relative;display:block;height:8px;border-radius:var(--r-pill);background:var(--s3);overflow:hidden;}
+.technical-bar i::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--value,50%);min-width:4px;border-radius:inherit;background:var(--green);}
+.technical-bar.original i::after{background:var(--gold);}
+.technical-bar b{color:#fff;text-align:right;font-size:0.78rem;font-weight:700;font-variant-numeric:tabular-nums;}
+.technical-result{display:grid;justify-items:end;gap:5px;min-width:0;}
+.technical-result strong{
+  display:inline-flex;align-items:center;justify-content:center;max-width:100%;min-height:28px;padding:5px 9px;
+  border:1px solid var(--gold-line);border-radius:var(--r-pill);background:var(--gold-soft);color:#fff;
+  font-size:0.75rem;font-weight:800;line-height:1.1;text-align:center;overflow-wrap:anywhere;
+}
+.technical-result small{color:var(--muted);font-size:0.68rem;font-weight:700;line-height:1.1;text-align:right;}
+.technical-chip-row{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:var(--sp-3);}
+.technical-chip-row span{
+  display:inline-flex;align-items:center;min-height:28px;padding:6px 9px;border:1px solid var(--gold-line);
+  border-radius:var(--r-pill);color:var(--text);background:var(--s2);font-size:0.74rem;font-weight:600;
+}
+.technical-note{margin:var(--sp-3) 0 0;color:var(--muted);font-size:0.78rem;line-height:1.4;}
+
 /* - Rapport / mesures - */
 .report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);}
 .report-card{padding:14px;min-height:82px;}
@@ -734,6 +774,11 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
   .loaded-file-change{grid-column:1 / -1;justify-self:start;}
   .realtime-panel{padding:18px;}
   .report-grid,.info-grid{grid-template-columns:1fr;}
+  .technical-summary-card{grid-template-columns:1fr;}
+  .technical-summary-card p{white-space:normal;}
+  .technical-row{grid-template-columns:1fr;align-items:stretch;}
+  .technical-result{justify-items:start;}
+  .technical-result small{text-align:left;}
 }
 /* ≤ 480px : mobile */
 @media (max-width:480px){
@@ -748,5 +793,12 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
   .guided-main-cta{grid-template-columns:1fr;text-align:center;}
   .before-after-row{grid-template-columns:1fr;}
   .before-after-bar{grid-template-columns:54px minmax(0,1fr) 84px;}
+  .technical-bar{grid-template-columns:58px minmax(0,1fr);}
+  .technical-bar b{grid-column:2;text-align:left;}
+  .technical-summary-card{grid-template-columns:1fr;}
+  .technical-summary-card p{white-space:normal;}
+  .technical-row{grid-template-columns:1fr;align-items:stretch;}
+  .technical-result{justify-items:start;}
+  .technical-result small{text-align:left;}
   .standalone-message{margin:12px 18px;}
 }

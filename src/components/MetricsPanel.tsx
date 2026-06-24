@@ -36,7 +36,7 @@ function formatBassPunchRatio(value: number): string {
 }
 
 function normalizeBassPunchRatio(value: number): number {
-  return clampPercent(value * 380);
+  return clampPercent((value / 0.6) * 100);
 }
 
 function brightnessRelativeChange(before: number, after: number): number {
@@ -70,7 +70,7 @@ function clampPercent(value: number): number {
 }
 
 function normalizeLufs(value: number): number {
-  return clampPercent(((value + 24) / 16) * 100);
+  return clampPercent(((value + 18) / 6) * 100);
 }
 
 function normalizePeak(value: number): number {
@@ -82,7 +82,7 @@ function normalizePercent(value: number): number {
 }
 
 function normalizeStereoRatio(value: number): number {
-  return clampPercent(value * 160);
+  return clampPercent(((value - 0.25) / 0.35) * 100);
 }
 
 function normalizeCrest(value: number, isYoutubeMix = false, isImpact = false): number {
@@ -209,7 +209,8 @@ function ComparisonRow({
   delta,
   listening,
   originalScore,
-  previewScore
+  previewScore,
+  scale
 }: {
   label: string;
   original: string;
@@ -218,25 +219,29 @@ function ComparisonRow({
   listening: string;
   originalScore: number;
   previewScore: number;
+  scale: string;
 }) {
   return (
-    <article className="before-after-row listening-before-after-row">
-      <div className="before-after-label">
+    <article className="technical-row">
+      <div className="technical-row-label">
         <strong>{label}</strong>
         <small>{listening}</small>
-        <span>{delta}</span>
       </div>
-      <div className="before-after-bars">
-        <div className="before-after-bar original" style={{ "--value": `${originalScore}%` } as CSSProperties}>
+      <div className="technical-row-bars">
+        <div className="technical-bar original" style={{ "--value": `${originalScore}%` } as CSSProperties}>
           <span>Original</span>
           <i />
           <b>{original}</b>
         </div>
-        <div className="before-after-bar preview" style={{ "--value": `${previewScore}%` } as CSSProperties}>
+        <div className="technical-bar preview" style={{ "--value": `${previewScore}%` } as CSSProperties}>
           <span>Preview</span>
           <i />
           <b>{preview}</b>
         </div>
+      </div>
+      <div className="technical-result">
+        <strong>{delta}</strong>
+        <small>{scale}</small>
       </div>
     </article>
   );
@@ -249,10 +254,10 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
 
   return (
     <section className="panel metrics-panel visual-before-after-panel">
-      <div className="panel-heading compact-heading">
+      <div className="panel-heading compact-heading technical-heading">
         <div>
-          <p className="eyebrow">Avant / Après</p>
-          <h2>Lecture auditive du rendu</h2>
+          <p className="eyebrow">Détails techniques</p>
+          <h2>Mesures avant / après</h2>
         </div>
         {result && <span className="status-pill">Mesures estimées</span>}
       </div>
@@ -288,12 +293,15 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
 
       {result && (
         <>
-          <div className="listening-summary-card">
-            <span>Traduction à l'écoute</span>
-            <strong>{buildListeningSummary(result)}</strong>
+          <div className="technical-summary-card">
+            <div>
+              <span>Résumé à l'écoute</span>
+              <strong>{buildListeningSummary(result)}</strong>
+            </div>
+            <p><b>Champagne</b> Original · <b>Vert</b> Preview · Échelles fixes par mesure</p>
           </div>
 
-          <div className="before-after-list">
+          <div className="technical-list">
             <ComparisonRow
               label="Niveau perçu"
               original={formatLufs(result.beforeMetrics.estimatedLufs)}
@@ -302,6 +310,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               listening={loudnessListeningLabel(result.beforeMetrics.estimatedLufs, result.afterMetrics.estimatedLufs)}
               originalScore={normalizeLufs(result.beforeMetrics.estimatedLufs)}
               previewScore={normalizeLufs(result.afterMetrics.estimatedLufs)}
+              scale="-18 à -12 LUFS"
             />
             <ComparisonRow
               label="Peak global"
@@ -311,6 +320,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               listening={peakListeningLabel(result.beforeMetrics.peakDb, result.afterMetrics.peakDb)}
               originalScore={normalizePeak(result.beforeMetrics.peakDb)}
               previewScore={normalizePeak(result.afterMetrics.peakDb)}
+              scale="-12 à 0 dBFS"
             />
             <ComparisonRow
               label="Brillance IA / fizz"
@@ -320,6 +330,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               listening={brightnessListeningLabel(result.beforeMetrics.fizzRatio, result.afterMetrics.fizzRatio)}
               originalScore={normalizePercent(result.beforeMetrics.fizzRatio)}
               previewScore={normalizePercent(result.afterMetrics.fizzRatio)}
+              scale="0 à 4 % fizz"
             />
             <ComparisonRow
               label="Dynamique / respiration"
@@ -329,6 +340,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               listening={dynamicsListeningLabel(result.beforeMetrics.crestFactorDb, result.afterMetrics.crestFactorDb)}
               originalScore={normalizeCrest(result.beforeMetrics.crestFactorDb, isYoutubeMix, isImpact)}
               previewScore={normalizeCrest(result.afterMetrics.crestFactorDb, isYoutubeMix, isImpact)}
+              scale={isYoutubeMix ? "10 à 22 dB" : isImpact ? "7 à 15 dB" : "7 à 17 dB"}
             />
             {result.settings.bassPunch && (
               <ComparisonRow
@@ -339,6 +351,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
                 listening={result.report.bassPunch.safeMode ? "Dose réduite, grave déjà dense" : "Kick renforcé, bas contrôlé"}
                 originalScore={normalizeBassPunchRatio(result.report.bassPunch.beforeRatio)}
                 previewScore={normalizeBassPunchRatio(result.report.bassPunch.afterRatio)}
+                scale="0 à 60 % utiles"
               />
             )}
             <ComparisonRow
@@ -349,18 +362,19 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               listening={stereoListeningLabel(result)}
               originalScore={normalizeStereoRatio(result.report.stereoImage.beforeRatio)}
               previewScore={normalizeStereoRatio(result.report.stereoImage.afterRatio)}
+              scale="0.25 à 0.60"
             />
           </div>
 
-          <div className="visual-chip-row visual-metric-chips">
+          <div className="technical-chip-row visual-metric-chips">
             <span>Rendu local : {(result.renderTimeMs / 1000).toFixed(2)} s</span>
             <span>Gain obtenu : {formatDelta(result.report.loudness.gainAppliedDb, " dB")}</span>
             <span>Marge peak finale : {(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB</span>
             <span>Marge peak active : {result.report.loudness.headroomSummary ? result.report.loudness.headroomSummary.activeAverageHeadroomDb.toFixed(1) : "-"} dB moy.</span>
           </div>
 
-          <p className="message message-info">
-            La différence de brillance est exprimée en pourcentage relatif à la brillance d'origine. Les mesures restent indicatives et doivent être validées à l'écoute.
+          <p className="technical-note">
+            Mesures indicatives. La différence de brillance est relative à l'origine et la validation finale reste l'écoute.
           </p>
         </>
       )}

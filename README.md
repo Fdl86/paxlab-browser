@@ -1,35 +1,36 @@
-# PAXLAB Browser Engine - DEV16.6
+# PAXLAB Browser Engine - DEV16.7
 
-DEV16.6 reprend DEV16.5 et applique une passe de micro-polish UI ciblée, sans toucher au moteur audio.
+DEV16.7 reprend DEV16.6 et compacte la section Détails techniques, sans toucher au moteur audio.
 
 ## Objectif
 
-Sécuriser plusieurs ajustements visuels sur l'écran de comparaison et la colonne d'export : barre A/B plus équilibrée, tuiles plus régulières, switches plus lisibles et boutons d'export plus premium.
+Rendre les mesures après Preview plus lisibles et plus utiles : moins de répétitions, lignes plus compactes, bandes Original / Preview avec échelles fixes par mesure, et résumé à l'écoute intégré.
 
-## Modifications DEV16.6
+## Modifications DEV16.7
 
-### Barre A/B
+### Détails techniques
 
-- Le bloc `Volume égal` est centré entre le sélecteur `Original / Rendu PAXLAB` et les boutons de lecture.
-- La barre de contrôle passe sur une grille 3 zones propre : source, volume égal, transport.
-- Le responsive repasse en colonne sous 720 px pour éviter toute compression.
+- Le titre de section devient `Détails techniques` avec un sous-titre `Mesures avant / après`.
+- Le bloc `Traduction à l'écoute` est remplacé par un résumé compact intégré en haut de section.
+- Les lignes de comparaison sont compactées pour réduire fortement la hauteur totale.
+- Chaque ligne conserve une lecture Original / Preview avec deux bandes fines.
+- Une légende indique clairement : champagne = Original, vert = Preview, échelles fixes par mesure.
+- Chaque mesure affiche un verdict court à droite et l'échelle utilisée.
 
-### Waveform et mesures
+### Échelles visuelles
 
-- Les temps de lecture sous la waveform respirent davantage avant les 3 tuiles de mesure.
-- Les 3 tuiles de mesure DEV16.5 sont conservées et restent pleine largeur.
+- Niveau perçu : échelle de -18 à -12 LUFS.
+- Peak global : échelle de -12 à 0 dBFS.
+- Brillance IA / fizz : échelle de 0 à 4 %.
+- Dynamique / respiration : échelle adaptée au preset actif.
+- Basses punchy : échelle de 0 à 60 % utiles.
+- Espace stéréo : échelle de 0.25 à 0.60.
 
-### Presets et switches
+### Nettoyage visuel
 
-- Les 4 tuiles de preset ont maintenant une hauteur harmonisée, basée sur la plus haute.
-- Les icônes sont réintroduites dans les switches : brillance IA, présence vocale, espace stéréo, basses punchy.
-- Les états actifs champagne restent inchangés.
-
-### Export
-
-- Les boutons `FLAC 24-bit`, `WAV 24-bit` et `WAV 16-bit` sont retouchés en style champagne premium.
-- L'état actif utilise un check rond à droite, plus lisible et plus cohérent avec le reste de l'UI.
-- Le CTA export conserve le style action principale champagne.
+- Les chips techniques restent en bas, mais dans un style compact.
+- La note finale devient plus courte et plus discrète.
+- Les anciennes classes avant / après sont conservées pour sécurité, mais la nouvelle section utilise des classes dédiées `technical-*`.
 
 ## Points conservés
 
@@ -37,7 +38,7 @@ Sécuriser plusieurs ajustements visuels sur l'écran de comparaison et la colon
 - Aucun changement des presets DSP.
 - Aucun changement des exports WAV / FLAC.
 - Aucun changement du player A/B.
-- Application toujours 100 % navigateur, locale, sans upload.
+- Aucun changement du workflow local, sans serveur et sans upload.
 
 ## Vérification
 
