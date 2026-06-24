@@ -1,31 +1,27 @@
-# PAXLAB Browser Engine - DEV16.4
+# PAXLAB Browser Engine - DEV16.5
 
-DEV16.4 reprend la base DEV16.1 et applique la passe de finition demandée sur l'écran d'accueil, les switches de la colonne Rendu et le bouton de génération.
+DEV16.5 reprend DEV16.4 et applique une passe ciblée sur l'écran de résultat après génération.
 
 ## Objectif
 
-Stabiliser l'interface sans toucher au moteur audio : landing page plus équilibrée, tuiles plus compactes, CTA toujours lisible et comportement visuel constant quand une option est cochée.
+Améliorer la lisibilité du rendu post-traitement sans toucher au moteur audio : mêmes traitements, même player A/B, mêmes exports WAV / FLAC, mais une lecture visuelle plus claire sous la waveform.
 
-## Modifications DEV16.4
-
-### Landing page
-- La grille d'accueil utilise `align-items: stretch`.
-- La carte Upload et la carte Workflow prennent `height: 100%` pour obtenir une hauteur visuelle alignée.
-- La largeur de la colonne Workflow reste pilotée par le token `--landing-side-w`, donc facilement ajustable plus tard.
+## Modifications DEV16.5
 
 ### Carte Rendu
-- Le bouton principal garde le libellé stable `Générer la Preview`.
-- Le libellé variable `Générer la Preview conseillée` a été supprimé dans `src/App.tsx`.
-- Le CTA reste compact grâce à une grille interne stable, avec padding réduit et colonnes équilibrées.
+- L'option `Espace stéréo` utilise maintenant le même état actif champagne que les autres switches.
+- Le style bleu spécifique de cette tuile a été supprimé pour garder une cohérence visuelle.
 
-### Switches
-- Les tuiles switches sont compactées.
-- Le titre et le toggle sont verrouillés sur la même ligne CSS Grid.
-- Le texte explicatif des options reste supprimé pour éviter la masse visuelle.
-- Les box suivent le contenu réel + padding, sans hauteur forcée inutile.
+### Mesures sous waveform
+- Les 3 tuiles `Peak lecture`, `Niveau local` et `Marge peak` passent en grille 3 colonnes.
+- Elles prennent maintenant toute la largeur disponible sous la waveform.
+- Les tuiles sont agrandies pour ressembler au rendu cible : plus de padding, meilleure hiérarchie, valeur principale plus lisible.
 
-### Presets et waveform
-- Les ajustements DEV16.1 sont conservés : preset conseillé par étoile, tuiles presets allégées, waveform source alignée sur la waveform A/B via `src/audio/waveformView.ts`.
+### Résumé des changements
+- La zone `Ce que PAXLAB a changé` garde toujours 5 tuiles sur desktop.
+- La grille passe en `repeat(5, minmax(0, 1fr))`.
+- Les tuiles restent dynamiques selon les options actives, notamment `Basses punchy` et `Espace stéréo`.
+- Les breakpoints responsive sont conservés : 2 colonnes à 720 px, 1 colonne à 480 px.
 
 ## Points conservés
 

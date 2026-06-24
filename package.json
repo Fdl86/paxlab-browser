@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev16-4-cta-stable",
+  "version": "1.0.0-dev16-5-measures-polish",
   "type": "module",
   "scripts": {
     "dev": "vite",
