@@ -32,7 +32,6 @@ import type {
   SourceAnalysisResult,
 } from "./audio/types";
 import { ExportPanel } from "./components/ExportPanel";
-import { MasterDashboard } from "./components/MasterDashboard";
 import { MetricsPanel } from "./components/MetricsPanel";
 import { PreviewControls } from "./components/PreviewControls";
 import {
@@ -41,7 +40,6 @@ import {
 } from "./components/PreviewHistoryPanel";
 import { ProcessingReportPanel } from "./components/ProcessingReportPanel";
 import { RealtimeMonitorPanel } from "./components/RealtimeMonitorPanel";
-import { SmartAdvisorPanel } from "./components/SmartAdvisorPanel";
 import { UploadPanel } from "./components/UploadPanel";
 
 const RENDER_STEPS = [
@@ -1273,7 +1271,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV16.7
+          PAXLAB Browser Engine - DEV16.8
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -2015,27 +2013,15 @@ export default function App() {
               <summary>
                 <span>Détails techniques</span>
                 <small>
-                  Conseil automatique, rapport de traitement et mesures
+                  Mesures avant / après et journal de traitement local
                 </small>
               </summary>
-              <div className="guided-details-grid">
-                <SmartAdvisorPanel
-                  sourceAnalysis={sourceAnalysis}
-                  previewResult={previewResult}
-                  settings={previewSettings}
-                  isRendering={previewStatus === "rendering"}
-                  onApplySettings={handleApplyRecommended}
-                />
-                <MasterDashboard
-                  sourceAnalysis={sourceAnalysis}
-                  previewResult={previewResult}
-                  previewSettings={previewSettings}
-                />
-                <ProcessingReportPanel result={previewResult} />
+              <div className="guided-details-stack">
                 <MetricsPanel
                   result={previewResult}
                   sourceAnalysis={sourceAnalysis}
                 />
+                <ProcessingReportPanel result={previewResult} />
               </div>
             </details>
           </section>

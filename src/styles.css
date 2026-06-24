@@ -1,5 +1,5 @@
 /* ============================================================================
-   PAXLAB Browser Engine - dev16.7 - "Détails techniques compacts"
+   PAXLAB Browser Engine - dev16.8 - "Traitement appliqué compact"
    Réécriture CSS from scratch - architecture en couches, tokens, 0 !important.
    Ordre des couches (la cascade fait le travail, pas la spécificité) :
      0 reset · 1 tokens · 2 typo · 3 primitives · 4 layout · 5 composants · 6 responsive
@@ -228,6 +228,8 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .guided-accordion[open]>summary{border-bottom:1px solid var(--line);}
 .guided-details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);padding:var(--sp-3);}
 .guided-details-grid>.panel{border:0;border-radius:0;padding:var(--sp-4);}
+.guided-details-stack{display:grid;grid-template-columns:1fr;gap:var(--sp-3);padding:var(--sp-3);}
+.guided-details-stack>.panel{padding:18px 20px;}
 .side-technical-drawer{margin-top:0;}
 
 /* stepper (conservé masqué comme en dev15) */
@@ -698,6 +700,41 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 }
 .technical-note{margin:var(--sp-3) 0 0;color:var(--muted);font-size:0.78rem;line-height:1.4;}
 
+
+/* traitement appliqué compact */
+.treatment-panel{margin-bottom:var(--sp-4);}
+.technical-heading,.treatment-heading{align-items:center;margin-bottom:var(--sp-3);}
+.guided-details-stack .technical-heading,.guided-details-stack .treatment-heading{padding:0;margin:0 0 var(--sp-3);}
+.treatment-summary-card{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--sp-4);
+  margin:0 0 var(--sp-3);padding:13px 15px;border:1px solid var(--gold-line);border-radius:var(--r-3);background:var(--gold-soft);
+}
+.treatment-summary-card span{display:block;color:var(--gold);font-size:0.68rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;}
+.treatment-summary-card strong{display:block;margin-top:5px;color:#fff;font-size:0.98rem;line-height:1.25;}
+.treatment-summary-card p{margin:6px 0 0;color:var(--muted);font-size:0.82rem;line-height:1.4;}
+.treatment-status{
+  display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 13px;border:1px solid var(--green-line);
+  border-radius:var(--r-pill);background:var(--green-soft);color:var(--green);font-size:0.78rem;font-weight:800;white-space:nowrap;
+}
+.treatment-chip-row{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-3);}
+.treatment-chip-row span{
+  display:inline-flex;align-items:center;min-height:30px;padding:7px 10px;border:1px solid var(--line);
+  border-radius:var(--r-pill);background:var(--s2);color:var(--text);font-size:0.76rem;font-weight:700;line-height:1.1;
+}
+.technical-journal{border:1px solid var(--line);border-radius:var(--r-3);background:var(--s2);overflow:hidden;}
+.technical-journal>summary{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--sp-3);padding:13px 15px;list-style:none;}
+.technical-journal>summary::-webkit-details-marker{display:none;}
+.technical-journal>summary::after{content:"▾";color:var(--gold);font-size:0.9rem;transition:transform 140ms ease;}
+.technical-journal[open]>summary::after{transform:rotate(180deg);}
+.technical-journal>summary span{color:#fff;font-size:0.94rem;font-weight:800;}
+.technical-journal>summary small{min-width:0;color:var(--muted);font-size:0.76rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.journal-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--sp-2);padding:0 15px 15px;border-top:1px solid var(--line);}
+.journal-card{min-height:88px;padding:13px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);}
+.journal-card.active{border-color:var(--gold-line);background:var(--gold-soft);}
+.journal-card span{display:block;color:var(--gold);font-size:0.68rem;font-weight:800;letter-spacing:0.11em;text-transform:uppercase;}
+.journal-card strong{display:block;margin-top:8px;color:#fff;font-size:0.96rem;line-height:1.18;overflow-wrap:anywhere;}
+.journal-card small{display:block;margin-top:7px;color:var(--muted);font-size:0.72rem;font-weight:600;line-height:1.25;}
+
 /* - Rapport / mesures - */
 .report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);}
 .report-card{padding:14px;min-height:82px;}
@@ -757,6 +794,9 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
   }
   .guided-result-side,.compact-side-panel{position:static;}
   .guided-details-grid{grid-template-columns:1fr;}
+  .journal-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .technical-journal>summary{grid-template-columns:1fr;}
+  .technical-journal>summary small{white-space:normal;}
   .compact-studio-topbar{padding:16px 28px;}
   .guided-landing-hero{padding:24px 28px 12px;}
   .guided-accordions{padding:0 28px 8px;}
@@ -773,7 +813,8 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
   .loaded-file-header{grid-template-columns:auto minmax(0,1fr);}
   .loaded-file-change{grid-column:1 / -1;justify-self:start;}
   .realtime-panel{padding:18px;}
-  .report-grid,.info-grid{grid-template-columns:1fr;}
+  .report-grid,.info-grid,.journal-grid{grid-template-columns:1fr;}
+  .treatment-summary-card{grid-template-columns:1fr;}
   .technical-summary-card{grid-template-columns:1fr;}
   .technical-summary-card p{white-space:normal;}
   .technical-row{grid-template-columns:1fr;align-items:stretch;}

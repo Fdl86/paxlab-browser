@@ -1,36 +1,32 @@
-# PAXLAB Browser Engine - DEV16.7
+# PAXLAB Browser Engine - DEV16.8
 
-DEV16.7 reprend DEV16.6 et compacte la section Détails techniques, sans toucher au moteur audio.
+DEV16.8 reprend DEV16.7 et nettoie les anciens blocs de type rapport/debug dans les détails techniques, sans toucher au moteur audio.
 
 ## Objectif
 
-Rendre les mesures après Preview plus lisibles et plus utiles : moins de répétitions, lignes plus compactes, bandes Original / Preview avec échelles fixes par mesure, et résumé à l'écoute intégré.
+Conserver les informations utiles du traitement local, mais les présenter dans une forme plus compacte, plus premium et plus cohérente avec le reste de l'interface.
 
-## Modifications DEV16.7
+## Modifications DEV16.8
 
 ### Détails techniques
 
-- Le titre de section devient `Détails techniques` avec un sous-titre `Mesures avant / après`.
-- Le bloc `Traduction à l'écoute` est remplacé par un résumé compact intégré en haut de section.
-- Les lignes de comparaison sont compactées pour réduire fortement la hauteur totale.
-- Chaque ligne conserve une lecture Original / Preview avec deux bandes fines.
-- Une légende indique clairement : champagne = Original, vert = Preview, échelles fixes par mesure.
-- Chaque mesure affiche un verdict court à droite et l'échelle utilisée.
+- Le tiroir `Détails techniques` passe en affichage vertical simple.
+- Les anciens blocs massifs `Smart Repair` et `Rapport de Preview` sont retirés de l'affichage principal.
+- La section `Mesures avant / après` reste la référence principale pour comprendre le rendu.
+- Le padding du header `Détails techniques` est harmonisé afin d'éviter un décalage visuel trop important à gauche.
 
-### Échelles visuelles
+### Traitement appliqué
 
-- Niveau perçu : échelle de -18 à -12 LUFS.
-- Peak global : échelle de -12 à 0 dBFS.
-- Brillance IA / fizz : échelle de 0 à 4 %.
-- Dynamique / respiration : échelle adaptée au preset actif.
-- Basses punchy : échelle de 0 à 60 % utiles.
-- Espace stéréo : échelle de 0.25 à 0.60.
+- Nouveau bloc compact `Traitement appliqué`.
+- Résumé clair de la chaîne locale : profil, anti-fizz, basses, stéréo et marge peak.
+- Chips synthétiques pour garder les informations importantes visibles sans surcharge.
+- Statut `Terminé` et indication d'export sécurisé quand une Preview est disponible.
 
-### Nettoyage visuel
+### Journal technique
 
-- Les chips techniques restent en bas, mais dans un style compact.
-- La note finale devient plus courte et plus discrète.
-- Les anciennes classes avant / après sont conservées pour sécurité, mais la nouvelle section utilise des classes dédiées `technical-*`.
+- La chaîne détaillée est déplacée dans un `Journal technique` repliable.
+- Les données expertes restent disponibles : profil, objectif LUFS, résultat, marge finale, ceiling, anti-fizz, basses, stéréo, réparations et temps de rendu.
+- Les cartes du journal sont compactes et responsives.
 
 ## Points conservés
 

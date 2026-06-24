@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev16-7-technical-details",
+  "version": "1.0.0-dev16-8-treatment-panel",
   "type": "module",
   "scripts": {
     "dev": "vite",
