@@ -1,36 +1,53 @@
-# PAXLAB Browser Engine - DEV15.28.4
+# PAXLAB Browser Engine - DEV16
 
-DEV15.28.4 consolide la base premium DEV15.28.3 avec un polish de respiration UI et une securite responsive. Le moteur audio, les presets, les cibles LUFS, le player A/B, les exports WAV / FLAC, Basses punchy et Espace stereo restent inchanges.
+DEV16 reprend la base DEV15.28.4 et **réécrit entièrement la couche UI/CSS** pour garantir
+une évolutivité durable, sans toucher au moteur audio.
 
 ## Objectif
 
-Donner plus d air a la topbar et a la grille principale sans modifier le workflow valide, tout en continuant le nettoyage CSS prudent.
+Rendre l'interface nette, cohérente et surtout **modifiable sans casse**, en remplaçant
+un CSS empilé par patches (1451 lignes, ~1580 `!important`, 24 media queries qui se
+chevauchaient) par une architecture en couches pilotée par tokens.
 
-## Modifications DEV15.28.4
+## Modifications DEV16
 
-- Espacement horizontal augmente dans la topbar.
-- Logo, titre, badges `Local` et `Aucun upload` moins colles aux bordures.
-- Grille principale legerement mieux alignee avec la topbar.
-- Securites responsive ajoutees pour largeurs intermediaires, laptop et mobile.
-- Nettoyage CSS prudent sur quelques anciennes regles topbar supersedees.
-- Titre de l onglet navigateur passe en `PAXLAB Browser Engine - DEV15.28.4`.
+### Direction visuelle — "Studio clair-obscur"
+- ADN sombre + or conservé, mais l'or devient un **accent réservé** (action primaire + marque).
+- Profondeur par **surfaces neutres en couches** (fond / surface / inset) à la place des
+  dégradés radiaux empilés. Aplats nets : plus premium et plus rapide à peindre.
+- Rôles de couleur clairs : **bleu** = interactif / export, **vert / ambre / rouge** = états des vumètres.
+- Hiérarchie typographique et rythme d'espacement 8 px régularisés.
 
-## Points conserves
+### Architecture CSS (réécrite de zéro)
+- Couches : `reset → tokens → typo → primitives → layout → composants → responsive`.
+- **0 `!important`** (contre ~1580). Changer une couleur = changer un token.
+- **3 breakpoints nets** sans chevauchement : 1024px, 720px, 480px.
+- `styles.css` : 1451 → ~720 lignes. Bundle CSS : ~118 kB → ~45 kB (gzip 18 → 8 kB).
 
-- Aucun changement DSP volontaire.
-- Aucun changement des cibles LUFS.
-- Aucun changement du player A/B.
-- Aucun changement des exports WAV 16 / 24-bit et FLAC 24-bit.
-- Aucun changement de comportement des presets.
-- `AI Brightness Smoothing`, `Presence vocale`, `Espace stereo` et `Basses punchy` conservent leur logique.
-- Application toujours 100 % navigateur, locale, sans upload.
+### UX ("user first")
+- Les 4 switches (`Basses punchy`, `Espace stéréo`, `Présence vocale`, `AI Brightness
+  Smoothing`) restent **groupés au même endroit** dans la carte Rendu.
+- L'**incompatibilité mutuelle** s'affiche désormais **en clair sous le toggle** concerné
+  (visible sur mobile), au lieu d'un `title` au survol.
 
-## Verification
+## Points conservés (inchangés)
 
-Build verifie avant livraison :
+- Aucun changement DSP, cibles LUFS, player A/B.
+- Exports WAV 16 / 24-bit et FLAC 24-bit inchangés.
+- Comportement des presets inchangé.
+- `AI Brightness Smoothing`, `Présence vocale`, `Espace stéréo`, `Basses punchy` :
+  logique identique.
+- Application 100 % navigateur, locale, sans upload.
+
+## Vérification
 
 ```bash
+npm install
 npm run build
 ```
 
-Le zip livre ne contient ni `node_modules`, ni `dist`.
+Build vérifié avant livraison (TypeScript clean). Le zip livré ne contient ni
+`node_modules`, ni `dist`.
+
+> Note : la passe visuelle finale (rendu navigateur) est à faire côté utilisateur ;
+> la livraison garantit le build et la couverture de toutes les classes vivantes.

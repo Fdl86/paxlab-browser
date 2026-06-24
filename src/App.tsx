@@ -814,7 +814,9 @@ function RenderChoiceCard({
         <span>
           <strong>AI Brightness Smoothing</strong>
           <small>
-            Calme les aigus métalliques, le fizz et la fatigue d’écoute.
+            {settings.vocalPresence
+              ? "Incompatible avec Présence vocale — désactive-la d’abord."
+              : "Calme les aigus métalliques, le fizz et la fatigue d’écoute."}
           </small>
           {recommendedPlan?.antiFatigue && <em>Recommandé</em>}
         </span>
@@ -839,7 +841,7 @@ function RenderChoiceCard({
         />
         <span>
           <strong>Présence vocale</strong>
-          <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
+          <small>{settings.antiFatigue ? "Incompatible avec AI Brightness Smoothing — désactive-le d’abord." : "Fait ressortir légèrement le chant sans rendre les aigus agressifs."}</small>
         </span>
       </label>
 
@@ -883,7 +885,7 @@ function RenderChoiceCard({
         />
         <span>
           <strong>Basses punchy</strong>
-          <small>Renforce le kick et le grave utile sans gonfler le mix.</small>
+          <small>{settings.vocalPresence ? "Incompatible avec Présence vocale — désactive-la d’abord." : "Renforce le kick et le grave utile sans gonfler le mix."}</small>
         </span>
       </label>
 
@@ -1268,7 +1270,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.28.4
+          PAXLAB Browser Engine - DEV16
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
