@@ -317,7 +317,7 @@ export function ExportPanel({
           <div>
             <h2>
               {previewBuffer
-                ? `Exporter la Preview sélectionnée #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
+                ? `Exporter le rendu sélectionné #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
                 : "Exporter le rendu"}
             </h2>
           </div>
@@ -326,13 +326,13 @@ export function ExportPanel({
               type="button"
               className="status-pill status-pill-button"
               onClick={onRegenerateRequest}
-              title="Régénérer la Preview avec les réglages actuels."
+              title="Régénérer le rendu avec les réglages actuels."
             >
               À régénérer
             </button>
           ) : (
             <span className={canExport ? "status-pill ready-pill" : "status-pill"}>
-              {canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}
+              {canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Rendu requis"}
             </span>
           )}
         </div>
@@ -381,18 +381,18 @@ export function ExportPanel({
           aria-busy={isExporting}
         >
           {buttonLabel}
-          <small>{isExporting ? "Export local en cours" : "Local - Aucun upload - Preview à jour"}</small>
+          <small>{isExporting ? "Export local en cours" : "Local - Aucun upload - Rendu à jour"}</small>
         </button>
 
         {!previewBuffer && (
           <p className="message message-info">
-            Génère d’abord une Preview pour activer l’export.
+            Génère d’abord un rendu pour activer l’export.
           </p>
         )}
 
         {hasPendingChanges && previewBuffer && (
           <p className="message message-warning export-action-warning">
-            Réglages modifiés. Régénère la Preview avant export.
+            Réglages modifiés. Régénère le rendu avant export.
             {onRegenerateRequest && (
               <button type="button" onClick={onRegenerateRequest}>
                 Ouvrir les réglages

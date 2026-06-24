@@ -58,7 +58,7 @@ const ANALYSIS_STEPS = [
   "Mesure du niveau",
   "Analyse spectrale",
   "Détection brillance IA",
-  "Choix de la Preview conseillée",
+  "Choix du rendu conseillé",
 ];
 
 function waitForVisualStep(ms: number): Promise<void> {
@@ -149,7 +149,7 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
   } else if (brightOrFizz) {
     autoIntensity = "youtube";
     antiFatigue = true;
-    label = "Mix YouTube + AI Brightness Smoothing";
+    label = "Mix YouTube + Lissage brillance IA";
     reason = "Brillance IA ou fizz détecté : PAXLAB conseille le lissage des aigus pour une écoute plus confortable.";
   } else if (clippedOrHot || compact) {
     autoIntensity = "youtube";
@@ -281,7 +281,7 @@ function areSettingsEqual(
 
 function vocalOptionLabel(settings: PreviewSettings): string {
   if (settings.antiFatigue) {
-    return "AI Brightness Smoothing actif";
+    return "Lissage brillance IA actif";
   }
 
   if (settings.vocalPresence) {
@@ -295,7 +295,7 @@ function activeOptionLabel(settings: PreviewSettings): string {
   const options: string[] = [];
 
   if (settings.antiFatigue) {
-    options.push("AI Brightness Smoothing");
+    options.push("Lissage brillance IA");
   }
 
   if (settings.vocalPresence) {
@@ -361,7 +361,7 @@ function AnalysisOverlay({
         <p className="eyebrow">Analyse locale</p>
         <h2>Analyse du morceau</h2>
         <p>
-          PAXLAB mesure le niveau, la brillance et la dynamique pour proposer une Preview adaptée.
+          PAXLAB mesure le niveau, la brillance et la dynamique pour proposer une rendu adapté.
           {isLargeFile && " Fichier volumineux : l'analyse peut prendre un peu plus de temps."}
         </p>
         <div
@@ -416,7 +416,7 @@ function ProcessingOverlay({
       <div className="guided-processing-card processing-modal-premium">
         <div className="processing-logo-mark" aria-hidden="true">×</div>
         <p className="eyebrow">Traitement local</p>
-        <h2>Préparation de la Preview</h2>
+        <h2>Préparation du rendu</h2>
         <p>
           Le rendu est généré dans ton navigateur. Aucun serveur, aucun upload.
         </p>
@@ -616,7 +616,7 @@ function SourceLoadedCard({
         {analysisStatus === "running"
           ? "Analyse locale en cours..."
           : analysisStatus === "ready"
-            ? "Analyse locale terminée - Preview conseillée prête à générer à droite."
+            ? "Analyse locale terminée - rendu conseillé prêt à générer à droite."
             : analysisStatus === "error"
               ? "Analyse locale indisponible - vérifie le fichier ou recharge-le."
               : "Analyse locale automatique après chargement."}
@@ -737,9 +737,9 @@ function RenderChoiceCard({
         ? "Analyse locale en cours..."
         : hasPreview
         ? hasPendingChanges
-          ? "Régénérer la Preview"
-          : "Générer une autre Preview"
-        : "Générer la Preview";
+          ? "Régénérer le rendu"
+          : "Générer un autre rendu"
+        : "Générer le rendu";
 
   return (
     <section id="paxlab-render-card" className="panel guided-render-card">
@@ -815,7 +815,7 @@ function RenderChoiceCard({
         <i className="guided-switch-icon" aria-hidden="true">✦</i>
         <span>
           <strong>
-            AI Brightness Smoothing
+            Lissage brillance IA
             {recommendedPlan?.antiFatigue && (
               <span className="recommendation-star" aria-label="Option conseillée">★</span>
             )}
@@ -832,7 +832,7 @@ function RenderChoiceCard({
         ]
           .filter(Boolean)
           .join(" ")}
-        title={settings.antiFatigue ? "AI Brightness Smoothing actif : désactive-le pour utiliser la présence vocale." : undefined}
+        title={settings.antiFatigue ? "Lissage brillance IA actif : désactive-le pour utiliser la présence vocale." : undefined}
       >
         <input
           type="checkbox"
@@ -904,64 +904,12 @@ function RenderChoiceCard({
 
       {hasPendingChanges && hasPreview && (
         <p className="message message-warning">
-          Les réglages ont changé. Régénère pour mettre la Preview à jour.
+          Les réglages ont changé. Régénère pour mettre la Rendu à jour.
         </p>
       )}
       {previewStatus === "error" && previewErrorMessage && (
         <p className="message message-error">{previewErrorMessage}</p>
       )}
-    </section>
-  );
-}
-
-function PreviewReadyCard({
-  previewResult,
-  settings,
-  revision,
-  renderedAt,
-  hasPendingChanges,
-}: {
-  previewResult: PreviewRenderResult;
-  settings: PreviewSettings;
-  revision: number;
-  renderedAt: string | null;
-  hasPendingChanges: boolean;
-}) {
-  const headroom =
-    previewResult.report.loudness.headroomSummary?.finalHeadroomDb ??
-    previewResult.report.loudness.achievedHeadroomDb;
-  const label = intensityLabel(settings.autoIntensity);
-
-  return (
-    <section
-      className={
-        hasPendingChanges ? "guided-ready-card pending" : "guided-ready-card"
-      }
-    >
-      <div>
-        <p className="eyebrow">Preview prête</p>
-        <h2>
-          {hasPendingChanges
-            ? "Preview à régénérer"
-            : "Version de comparaison prête"}
-        </h2>
-        <p>
-          Preview #{revision}
-          {renderedAt ? ` · ${renderedAt}` : ""} · {label}
-          {settings.antiFatigue ? " · AI Brightness Smoothing" : settings.vocalPresence ? " · Présence vocale" : ""}{settings.stereoSpace ? " · Espace stéréo" : ""}{settings.bassPunch ? " · Basses punchy" : ""}
-        </p>
-      </div>
-      <div className="guided-ready-metrics">
-        <span>
-          <b>{previewResult.afterMetrics.estimatedLufs.toFixed(1)}</b> LUFS est.
-        </span>
-        <span>
-          <b>{headroom.toFixed(1)}</b> dB marge
-        </span>
-        <span>
-          <b>{hasPendingChanges ? "À jour ?" : "OK"}</b> statut
-        </span>
-      </div>
     </section>
   );
 }
@@ -1189,8 +1137,8 @@ function CompactPreviewSummary({
     >
       <strong>
         {hasPendingChanges
-          ? "Preview à régénérer"
-          : `Preview #${revision} prête`}
+          ? "Rendu à régénérer"
+          : `Rendu #${revision} prête`}
       </strong>
       <span>{label}</span>
       <span>
@@ -1225,7 +1173,7 @@ function ResultSideSummary({
     previewResult.report.loudness.achievedHeadroomDb;
   return (
     <section className="panel compact-side-summary">
-      <p className="eyebrow">Preview</p>
+      <p className="eyebrow">Rendu</p>
       <h2>{hasPendingChanges ? "À régénérer" : `#${revision} prête`}</h2>
       <div className="compact-summary-grid">
         <span>
@@ -1271,7 +1219,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV16.8
+          PAXLAB Browser Engine - v0.9.0-RC1
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1280,7 +1228,7 @@ function SimpleLanding({
         <div className="guided-trust-row">
           <span>Local</span>
           <span>Aucun upload</span>
-          <span>A/B Original / Preview</span>
+          <span>A/B Original / Rendu</span>
           <span>Export WAV / FLAC</span>
         </div>
       </header>
@@ -1306,11 +1254,11 @@ function SimpleLanding({
             </li>
             <li>
               <b>Mixer</b>
-              <span>Preview auto selon analyse.</span>
+              <span>Rendu auto selon analyse.</span>
             </li>
             <li>
               <b>Comparer</b>
-              <span>Écoute Original / Preview en A/B.</span>
+              <span>Écoute Original / Rendu en A/B.</span>
             </li>
             <li>
               <b>Exporter</b>
@@ -1669,7 +1617,7 @@ export default function App() {
         const message =
           error instanceof Error
             ? error.message
-            : "Erreur inconnue pendant la génération de la Preview Master.";
+            : "Erreur inconnue pendant la génération du rendu Master.";
         setPreviewErrorMessage(message);
         setPreviewStatus("error");
         setShouldSelectPreviewAfterRender(false);

@@ -1,5 +1,5 @@
 /* ============================================================================
-   PAXLAB Browser Engine - dev16.8 - "Traitement appliqué compact"
+   PAXLAB Browser Engine - v0.9.0-RC1 - release candidate cleanup
    Réécriture CSS from scratch - architecture en couches, tokens, 0 !important.
    Ordre des couches (la cascade fait le travail, pas la spécificité) :
      0 reset · 1 tokens · 2 typo · 3 primitives · 4 layout · 5 composants · 6 responsive
@@ -541,17 +541,17 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .export-choice-stack{display:grid;gap:var(--sp-2);margin:var(--sp-3) 0;}
 .export-choice-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-2);}
 .export-choice-card{
-  display:grid;grid-template-columns:minmax(0,1fr) 22px;align-items:start;gap:var(--sp-2);min-height:74px;padding:12px 13px;
+  display:grid;grid-template-columns:minmax(0,1fr) 22px;align-items:center;gap:var(--sp-2);min-height:76px;padding:12px 13px;
   border:1px solid var(--line);border-radius:var(--r-2);background:var(--s2);color:var(--text);cursor:pointer;
   transition:border-color 140ms ease, background 140ms ease, transform 120ms ease;
 }
 .export-choice-card:hover:not(:disabled){border-color:var(--gold-line);background:var(--gold-soft);transform:translateY(-1px);}
 .export-choice-card.active{border-color:var(--gold);background:var(--gold-soft);}
-.export-choice-copy{grid-column:1;grid-row:1;display:grid;gap:4px;min-width:0;align-content:start;}
+.export-choice-copy{grid-column:1;grid-row:1;display:grid;gap:4px;min-width:0;align-content:center;}
 .export-choice-copy strong{color:#fff;font-size:0.9rem;line-height:1.1;}
 .export-choice-copy small{color:var(--muted);font-size:0.74rem;line-height:1.18;}
 .export-radio{
-  grid-column:2;grid-row:1;align-self:start;justify-self:end;display:grid;place-items:center;
+  grid-column:2;grid-row:1;align-self:center;justify-self:end;display:grid;place-items:center;
   width:20px;height:20px;border:1px solid var(--line-2);border-radius:var(--r-pill);background:var(--s3);
 }
 .export-radio::after{content:"";width:7px;height:7px;border-radius:inherit;background:transparent;}
@@ -581,7 +581,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .compact-meter-pill small{color:var(--muted);font-size:0.78rem;line-height:1.25;}
 
 /* - Historique - */
-.premium-history-panel,.history-panel,.session-panel{padding:16px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);}
+.premium-history-panel,.history-panel{padding:16px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);}
 .premium-history-panel .panel-heading{display:none;}
 .history-list,.premium-history-list{display:grid;grid-template-columns:1fr;gap:var(--sp-2);}
 .history-item,.premium-history-item{
@@ -595,70 +595,14 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .history-mini-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:7px;}
 .history-mini-metrics span{padding:5px 7px;border:1px solid var(--gold-line);border-radius:var(--r-2);color:var(--gold);background:var(--gold-soft);font-size:0.72rem;font-weight:700;white-space:nowrap;}
 
-/* - Conseiller - */
-.advisor-panel{display:grid;gap:var(--sp-3);}
-.advisor-summary{padding:14px;border:1px solid var(--gold-line);border-radius:var(--r-3);background:var(--gold-soft);}
-.advisor-summary strong{display:block;margin-bottom:6px;}
-.advisor-summary span{display:block;color:var(--muted);font-size:0.86rem;}
-.advisor-list{display:grid;gap:var(--sp-2);}
-.advisor-move{padding:12px;border:1px solid var(--line);border-radius:var(--r-2);background:var(--s2);}
-.advisor-move strong{display:block;margin-bottom:5px;}
-.advisor-move span{color:var(--muted);font-size:0.88rem;line-height:1.42;}
-.advisor-move.warning{border-color:var(--amber-line);background:var(--amber-soft);}
-.advisor-move.success{border-color:var(--green-line);background:var(--green-soft);}
-.advisor-actions{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);}
-.advisor-actions.single-action{grid-template-columns:1fr;}
-.advisor-actions button{border:1px solid var(--line);border-radius:var(--r-2);padding:9px 12px;color:var(--text);background:var(--s2);font-weight:600;}
-.advisor-actions.single-action .primary-button{display:grid;gap:3px;text-align:left;}
-.advisor-actions.single-action .primary-button small{color:rgba(26,20,10,0.72);font-size:0.74rem;font-weight:700;line-height:1.35;}
-
-/* - Dashboard / objectifs - */
-.dashboard-panel,.visual-report-panel,.visual-before-after-panel,.metrics-panel,.processing-panel,.report-card{
-  border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);
-}
+/* - Mesures compactes - */
+.metrics-panel,.processing-panel{border:1px solid var(--line);border-radius:var(--r-3);background:var(--s1);}
 .metrics-panel{margin-bottom:var(--sp-4);}
-.visual-report-heading h2,.visual-before-after-panel h2{letter-spacing:-0.03em;}
-.visual-summary-strip,.source-measure-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3);}
-.source-measure-strip{grid-template-columns:repeat(3,minmax(0,1fr));}
-.visual-summary-strip>div,.source-measure-strip>div{min-height:72px;padding:13px 14px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s2);}
-.visual-summary-strip span,.source-measure-strip span,.visual-decision-card span,.visual-objective-topline span{display:block;color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
-.visual-summary-strip strong,.source-measure-strip strong{display:block;margin-top:7px;color:#fff;font-size:1.18rem;line-height:1.1;}
-.visual-objectives-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3);}
-.visual-objective{min-height:184px;min-width:0;padding:13px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s2);}
-.visual-objective.success{border-color:var(--green-line);background:var(--green-soft);}
-.visual-objective.warning{border-color:var(--amber-line);background:var(--amber-soft);}
-.visual-objective.neutral{border-color:var(--gold-line);background:var(--gold-soft);}
-.visual-objective.danger{border-color:var(--red-line);background:var(--red-soft);}
-.visual-objective strong{display:block;min-height:42px;color:#fff;font-size:1.06rem;line-height:1.18;}
-.visual-objective small{display:block;min-height:34px;margin-top:5px;color:var(--muted);font-size:0.78rem;line-height:1.34;}
-.visual-objective p,.visual-decision-card p{margin:0;color:var(--muted);font-size:0.82rem;line-height:1.42;}
-.visual-objective-topline{display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:var(--sp-2);}
-.visual-objective-topline span{min-width:0;overflow-wrap:anywhere;}
-.visual-objective-topline b{display:inline-flex;align-items:center;justify-self:start;min-height:24px;max-width:100%;padding:4px 7px;border-radius:var(--r-pill);background:var(--s3);color:var(--text);font-size:0.68rem;line-height:1.1;white-space:normal;}
-.visual-range-bar{position:relative;height:9px;margin:11px 0 10px;border-radius:var(--r-pill);background:var(--s3);overflow:hidden;}
-.visual-range-bar::before{content:"";position:absolute;inset:0 28%;border-radius:inherit;background:var(--green-soft);}
-.visual-range-bar i{position:absolute;top:-3px;left:var(--marker,50%);width:3px;height:15px;border-radius:var(--r-pill);transform:translateX(-50%);background:var(--text);}
-.visual-decision-card{padding:14px 15px;border:1px solid var(--gold-line);border-radius:var(--r-3);background:var(--gold-soft);}
-.visual-decision-card.compact{margin-top:var(--sp-1);}
-.visual-decision-card strong{display:block;margin:7px 0 6px;color:#fff;font-size:1.06rem;}
-.visual-chip-row{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-top:11px;}
-.visual-chip-row span{display:inline-flex;align-items:center;min-height:28px;padding:6px 9px;border:1px solid var(--gold-line);border-radius:var(--r-pill);color:var(--text);background:var(--s2);font-size:0.76rem;font-weight:600;}
+.source-measure-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-3);}
+.source-measure-strip>div{min-height:72px;padding:13px 14px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s2);}
+.source-measure-strip span{display:block;color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
+.source-measure-strip strong{display:block;margin-top:7px;color:#fff;font-size:1.18rem;line-height:1.1;}
 .visual-metric-chips{margin-top:var(--sp-3);}
-
-/* before/after */
-.before-after-list{display:grid;gap:var(--sp-3);}
-.before-after-row{display:grid;grid-template-columns:170px minmax(0,1fr);gap:var(--sp-3);align-items:stretch;padding:13px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s2);}
-.before-after-label{display:grid;align-content:center;gap:5px;}
-.before-after-label strong{color:#fff;font-size:0.98rem;}
-.before-after-label span{display:inline-flex;width:fit-content;padding:5px 8px;border-radius:var(--r-pill);color:var(--text);background:var(--gold-soft);border:1px solid var(--gold-line);font-size:0.74rem;font-weight:700;}
-.before-after-label small{color:var(--muted);font-size:0.76rem;font-weight:600;line-height:1.26;}
-.before-after-bars{display:grid;gap:var(--sp-2);}
-.before-after-bar{display:grid;grid-template-columns:64px minmax(0,1fr) 104px;align-items:center;gap:var(--sp-3);}
-.before-after-bar span{color:var(--muted);font-size:0.77rem;font-weight:600;}
-.before-after-bar i{position:relative;display:block;height:10px;border-radius:var(--r-pill);background:var(--s3);overflow:hidden;}
-.before-after-bar i::after{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--value,50%);min-width:4px;border-radius:inherit;background:var(--green);}
-.before-after-bar.original i::after{background:var(--gold);}
-.before-after-bar b{color:#fff;text-align:right;font-size:0.84rem;font-weight:700;}
 
 
 /* détails techniques compact */
@@ -735,13 +679,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .journal-card strong{display:block;margin-top:8px;color:#fff;font-size:0.96rem;line-height:1.18;overflow-wrap:anywhere;}
 .journal-card small{display:block;margin-top:7px;color:var(--muted);font-size:0.72rem;font-weight:600;line-height:1.25;}
 
-/* - Rapport / mesures - */
-.report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);}
-.report-card{padding:14px;min-height:82px;}
-.report-card span{display:block;color:var(--gold);font-size:0.71rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;}
-.report-card strong{display:block;margin-top:9px;color:#fff;font-size:1rem;overflow-wrap:anywhere;}
-.chain-list{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-3);}
-.chain-list span{display:inline-flex;padding:7px 9px;border:1px solid var(--line);border-radius:var(--r-pill);color:#ded6c8;background:var(--s2);font-size:0.78rem;font-weight:600;}
+/* - Progression modale - */
 .detailed-processing-steps,.processing-steps,.analysis-processing-steps,.guided-processing-steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2);text-align:left;}
 .detailed-processing-steps span,.processing-steps span,.analysis-processing-steps span,.guided-processing-steps span{display:flex;align-items:center;gap:7px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--r-2);color:var(--muted);background:var(--s2);font-size:0.82rem;font-weight:600;}
 .detailed-processing-steps span.done,.processing-steps span.done,.analysis-processing-steps span.done,.guided-processing-steps span.done{color:#fff;border-color:var(--gold-line);background:var(--gold-soft);}
@@ -750,8 +688,6 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .detailed-processing-steps span.done b,.processing-steps span.done b,.analysis-processing-steps span.done b,.guided-processing-steps span.done b{background:var(--gold-line);color:var(--gold-ink);}
 .detailed-processing-steps span.active b,.processing-steps span.active b,.analysis-processing-steps span.active b,.guided-processing-steps span.active b{background:var(--gold-soft);color:var(--gold);}
 .detailed-processing-steps span em,.processing-steps span em,.analysis-processing-steps span em,.guided-processing-steps span em{font-style:normal;}
-.info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3);}
-.info-card,.info-panel{padding:14px;border:1px solid var(--line);border-radius:var(--r-3);background:var(--s2);}
 
 /* contrôle pièce / monitoring */
 .control-room-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2);margin-bottom:var(--sp-3);}
@@ -777,15 +713,6 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .guided-progress span{display:block;width:var(--progress);height:100%;border-radius:inherit;background:var(--gold);transition:width 160ms ease;}
 .export-spinner{width:42px;height:42px;margin:18px auto 12px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:var(--r-pill);animation:paxlab-export-spin 0.85s linear infinite;}
 
-/* PreviewReadyCard - variante large conservée (sécurité d'évolutivité) */
-.guided-ready-card{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-6);margin:var(--sp-4) 0;padding:22px 24px;border:1px solid var(--green-line);border-radius:var(--r-4);background:var(--green-soft);}
-.guided-ready-card.pending{border-color:var(--amber-line);background:var(--amber-soft);}
-.guided-ready-card h2{margin-bottom:var(--sp-2);font-size:1.4rem;}
-.guided-ready-card p{margin:0;color:var(--muted);}
-.guided-ready-metrics{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--sp-2);}
-.guided-ready-metrics span{min-width:112px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-3);color:var(--muted);background:var(--s2);font-size:0.82rem;}
-.guided-ready-metrics b{display:block;color:#fff;font-size:1.1rem;}
-
 /* ---------- 6. RESPONSIVE (3 paliers nets, sans chevauchement) ---------- */
 /* ≤ 1024px : laptop / tablette - la colonne latérale passe dessous */
 @media (max-width:1024px){
@@ -804,7 +731,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 }
 /* ≤ 720px : petite tablette / grand mobile */
 @media (max-width:720px){
-  .visual-summary-strip,.preview-change-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .preview-change-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
   .source-measure-strip,.control-room-summary,.compact-summary-grid,.compact-meter-row{grid-template-columns:repeat(2,minmax(0,1fr));}
   .ab-control-bar,.ab-switch-block.ab-control-bar{grid-template-columns:1fr;align-items:stretch;}
   .ab-control-bar .monitor-source-switch{width:100%;max-width:none;justify-self:stretch;}
@@ -813,7 +740,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
   .loaded-file-header{grid-template-columns:auto minmax(0,1fr);}
   .loaded-file-change{grid-column:1 / -1;justify-self:start;}
   .realtime-panel{padding:18px;}
-  .report-grid,.info-grid,.journal-grid{grid-template-columns:1fr;}
+  .journal-grid{grid-template-columns:1fr;}
   .treatment-summary-card{grid-template-columns:1fr;}
   .technical-summary-card{grid-template-columns:1fr;}
   .technical-summary-card p{white-space:normal;}
@@ -827,13 +754,11 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
   .compact-topbar-actions{justify-content:flex-start;}
   .guided-landing-grid,.guided-config-grid,.loaded-layout-grid,.guided-result-grid{padding:18px;}
   .guided-landing-hero,.guided-accordions{padding-left:18px;padding-right:18px;}
-  .guided-render-options,.simple-choice-grid,.simple-status-list,.visual-summary-strip,.source-measure-strip,
+  .guided-render-options,.simple-choice-grid,.simple-status-list,.source-measure-strip,
   .control-room-summary,.compact-summary-grid,.compact-meter-row,.preview-change-grid,.history-mini-metrics,.export-choice-row{
     grid-template-columns:1fr;
   }
   .guided-main-cta{grid-template-columns:1fr;text-align:center;}
-  .before-after-row{grid-template-columns:1fr;}
-  .before-after-bar{grid-template-columns:54px minmax(0,1fr) 84px;}
   .technical-bar{grid-template-columns:58px minmax(0,1fr);}
   .technical-bar b{grid-column:2;text-align:left;}
   .technical-summary-card{grid-template-columns:1fr;}

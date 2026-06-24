@@ -234,7 +234,7 @@ function ComparisonRow({
           <b>{original}</b>
         </div>
         <div className="technical-bar preview" style={{ "--value": `${previewScore}%` } as CSSProperties}>
-          <span>Preview</span>
+          <span>rendu</span>
           <i />
           <b>{preview}</b>
         </div>
@@ -253,7 +253,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
   const isImpact = result?.settings.autoIntensity === "impact" || result?.settings.presetId === "power";
 
   return (
-    <section className="panel metrics-panel visual-before-after-panel">
+    <section className="panel metrics-panel">
       <div className="panel-heading compact-heading technical-heading">
         <div>
           <p className="eyebrow">Détails techniques</p>
@@ -286,7 +286,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
             </div>
           </div>
           <p className="message message-info">
-            Analyse source terminée. Génère une Preview pour afficher le comparatif graphique avant / après.
+            Analyse source terminée. Génère une rendu pour afficher le comparatif graphique avant / après.
           </p>
         </>
       )}
@@ -298,7 +298,7 @@ export function MetricsPanel({ result, sourceAnalysis }: MetricsPanelProps) {
               <span>Résumé à l'écoute</span>
               <strong>{buildListeningSummary(result)}</strong>
             </div>
-            <p><b>Champagne</b> Original · <b>Vert</b> Preview · Échelles fixes par mesure</p>
+            <p><b>Champagne</b> Original · <b>Vert</b> rendu · Échelles fixes par mesure</p>
           </div>
 
           <div className="technical-list">

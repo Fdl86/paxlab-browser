@@ -169,7 +169,7 @@ export function inferAutoMasterPlan(
     profile = "strongLift";
     profileLabel = "Auto lift fort";
     compressionIntent = "fort prudent";
-    reason = "Source basse et dynamique : rapprochement d’une Preview plus dense.";
+    reason = "Source basse et dynamique : rapprochement d’une rendu plus dense.";
   } else if (veryQuiet) {
     targetLufsEstimate = fatiguingHigh ? -12.5 : -12.0;
     profile = "strongLift";
@@ -193,7 +193,7 @@ export function inferAutoMasterPlan(
   if (autoIntensity === "youtube") {
     if (antiFatigue) {
       targetLufsEstimate -= 0.25;
-      reason = `${reason} AI Brightness Smoothing actif : le preset YouTube garde un rendu encore plus confortable.`;
+      reason = `${reason} Lissage brillance IA actif : le preset YouTube garde un rendu encore plus confortable.`;
     }
   } else {
     targetLufsEstimate += intensityTargetShift(autoIntensity, antiFatigue);
@@ -219,7 +219,7 @@ export function inferAutoMasterPlan(
 
   if (antiFatigue && autoIntensity !== "youtube") {
     profileLabel = `${profileLabel} anti-fatigue`;
-    reason = `${reason} Option AI Brightness Smoothing active : le haut du spectre est calmé et la cible reste plus confortable.`;
+    reason = `${reason} Option Lissage brillance IA active : le haut du spectre est calmé et la cible reste plus confortable.`;
   }
 
   targetLufsEstimate = autoIntensity === "youtube"

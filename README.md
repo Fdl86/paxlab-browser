@@ -1,34 +1,30 @@
-# PAXLAB Browser Engine - DEV16.8
+# PAXLAB Browser Engine - v0.9.0-RC1
 
-DEV16.8 reprend DEV16.7 et nettoie les anciens blocs de type rapport/debug dans les détails techniques, sans toucher au moteur audio.
+Release candidate de stabilisation basée sur la dernière version validée. Objectif : figer une version propre, cohérente et testable avant release stable.
 
-## Objectif
+## Objectif RC1
 
-Conserver les informations utiles du traitement local, mais les présenter dans une forme plus compacte, plus premium et plus cohérente avec le reste de l'interface.
+- Conserver le workflow simple : charger un audio, générer un rendu, comparer en A/B, exporter localement.
+- Nettoyer les traces d’anciens blocs prototype/debug.
+- Harmoniser le vocabulaire, les paddings, les badges et les tuiles export.
+- Garder les informations techniques utiles sans surcharger l’écran principal.
 
-## Modifications DEV16.8
+## Modifications RC1
 
-### Détails techniques
+### Nettoyage produit
 
-- Le tiroir `Détails techniques` passe en affichage vertical simple.
-- Les anciens blocs massifs `Smart Repair` et `Rapport de Preview` sont retirés de l'affichage principal.
-- La section `Mesures avant / après` reste la référence principale pour comprendre le rendu.
-- Le padding du header `Détails techniques` est harmonisé afin d'éviter un décalage visuel trop important à gauche.
+- Suppression des composants morts non importés : ancien dashboard, ancien conseiller, panneau session et panneau info audio.
+- Suppression du helper audio lié à l’ancien conseiller non utilisé.
+- Nettoyage de styles legacy associés aux anciens panneaux.
 
-### Traitement appliqué
+### Interface
 
-- Nouveau bloc compact `Traitement appliqué`.
-- Résumé clair de la chaîne locale : profil, anti-fizz, basses, stéréo et marge peak.
-- Chips synthétiques pour garder les informations importantes visibles sans surcharge.
-- Statut `Terminé` et indication d'export sécurisé quand une Preview est disponible.
+- Version visible passée en `PAXLAB Browser Engine - v0.9.0-RC1`.
+- Wording principal harmonisé autour de `rendu`, `A/B`, `export local` et `mesures estimées`.
+- Tuiles export FLAC / WAV réalignées verticalement.
+- Détails techniques et traitement appliqué conservés en version compacte.
 
-### Journal technique
-
-- La chaîne détaillée est déplacée dans un `Journal technique` repliable.
-- Les données expertes restent disponibles : profil, objectif LUFS, résultat, marge finale, ceiling, anti-fizz, basses, stéréo, réparations et temps de rendu.
-- Les cartes du journal sont compactes et responsives.
-
-## Points conservés
+### Stabilité
 
 - Aucun changement du moteur audio.
 - Aucun changement des presets DSP.
@@ -39,7 +35,7 @@ Conserver les informations utiles du traitement local, mais les présenter dans 
 ## Vérification
 
 ```bash
-npm install
+npm ci
 npm run build
 ```
 

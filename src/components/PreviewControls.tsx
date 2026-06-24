@@ -103,10 +103,10 @@ function autoIntensityLabel(value: AutoIntensityId): string {
 
 function formatPreviewReady(revision: number, renderedAt: string | null): string {
   if (revision <= 0) {
-    return "Aucune Preview générée";
+    return "Aucun rendu généré";
   }
 
-  return `Preview #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
+  return `Rendu #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
 }
 
 function formatActiveOptions(settings: PreviewSettings): string {
@@ -248,9 +248,9 @@ export function PreviewControls({
     ? "Génération en cours..."
     : hasPreview
       ? hasPendingChanges
-        ? "Mettre à jour la Preview"
-        : "Générer une nouvelle Preview"
-      : "Générer la Preview";
+        ? "Mettre à jour le rendu"
+        : "Générer un nouveau rendu"
+      : "Générer le rendu";
 
   return (
     <section className="panel controls-panel pro-controls-panel dynamic-controls-panel simple-first-panel">
@@ -315,7 +315,7 @@ export function PreviewControls({
             <div>
               <span>Option voix / fizz</span>
               <strong>{settings.antiFatigue ? "Anti-fizz" : settings.vocalPresence ? "Voix" : "Off"}</strong>
-              <small>{settings.antiFatigue ? "AI Brightness Smoothing actif" : settings.vocalPresence ? "Présence vocale active" : "Désactivé"}</small>
+              <small>{settings.antiFatigue ? "Lissage brillance IA actif" : settings.vocalPresence ? "Présence vocale active" : "Désactivé"}</small>
             </div>
             <div>
               <span>Options</span>
@@ -517,15 +517,15 @@ export function PreviewControls({
       </button>
 
       {!hasAudio && <p className="message message-info">Importe un fichier audio pour activer la génération locale.</p>}
-      {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouvelle Preview en cours.</p>}
+      {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouveau rendu en cours.</p>}
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
         <p className="message message-warning">Réglages modifiés. {formatPreviewReady(previewRevision, previewRenderedAt)} reste l’ancienne version tant que tu ne régénères pas.</p>
       )}
       {mode === "expert" && (
-        <p className="message message-info">Mode expert : les réglages changent la prochaine Preview uniquement après régénération.</p>
+        <p className="message message-info">Mode expert : les réglages changent la prochain rendu uniquement après régénération.</p>
       )}
       {previewStatus === "ready" && !hasPendingChanges && (
-        <p className="message message-success">{formatPreviewReady(previewRevision, previewRenderedAt)} prête pour A/B et export.</p>
+        <p className="message message-success">{formatPreviewReady(previewRevision, previewRenderedAt)} prêt pour A/B et export.</p>
       )}
       {previewStatus === "error" && errorMessage && <p className="message message-error">{errorMessage}</p>}
     </section>

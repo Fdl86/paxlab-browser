@@ -93,7 +93,7 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
       {!result && (
         <div className="empty-state small-empty-state">
           <p>Aucun traitement appliqué.</p>
-          <span>Le résumé apparaîtra après génération de la Preview.</span>
+          <span>Le résumé apparaîtra après génération de la rendu.</span>
         </div>
       )}
 
@@ -130,7 +130,7 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
             <div className="journal-grid">
               <JournalCard label="Profil" value={result.report.profileLabel} detail="Preset de rendu" />
               <JournalCard label="Objectif" value={`${result.report.loudness.targetLufsEstimate.toFixed(1)} LUFS est.`} detail="Cible initiale" />
-              <JournalCard label="Résultat" value={`${result.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.`} detail="Preview générée" active />
+              <JournalCard label="Résultat" value={`${result.afterMetrics.estimatedLufs.toFixed(1)} LUFS est.`} detail="Rendu généré" active />
               <JournalCard label="Marge finale" value={`${(result.report.loudness.headroomSummary?.finalHeadroomDb ?? result.report.loudness.achievedHeadroomDb).toFixed(1)} dB`} detail="Sécurité peak" active />
               <JournalCard label="Anti-fizz" value={result.settings.antiFatigue ? "Actif" : result.report.brightnessLabel} detail={`${result.report.tone.antiFizzReductionDb.toFixed(1)} dB approx.`} />
               <JournalCard label="Basses punchy" value={result.settings.bassPunch ? formatBassPunchPercent(result.report.bassPunch.changePercent) : "Off"} detail={result.settings.bassPunch ? `${formatBassPunchRatio(result.report.bassPunch.beforeRatio)} à ${formatBassPunchRatio(result.report.bassPunch.afterRatio)}` : "Grave conservé"} />
