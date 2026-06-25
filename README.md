@@ -1,31 +1,36 @@
-# PAXLAB Browser Engine - v0.9.0-RC2
+# PAXLAB Browser Engine - v0.9.0-RC3
 
-Release candidate de polish final basée sur RC1. Objectif : renforcer l'aspect produit fini sans modifier le moteur audio.
+Release candidate de finition basée sur RC2. Objectif : renforcer l'aspect produit fini, améliorer les contrôles visibles et corriger le retour immédiat du format d'export, sans modifier le moteur audio.
 
-## Objectif RC2
+## Objectif RC3
 
-- Donner plus de présence aux boutons principaux `Générer` et `Exporter`.
-- Supprimer les sous-textes redondants dans les CTA principaux.
-- Basculer directement les réglages en mode avancé, sans doublon simple/expert.
-- Nettoyer le code et le CSS legacy liés à l'ancien mode simple.
+- Donner un relief premium léger aux vrais boutons d'action.
+- Garder les cartes de format export en style plat pour ne pas surcharger l'interface.
+- Corriger l'alignement vertical des capsules d'état.
+- Rendre l'ouverture du journal technique plus visible.
+- Mettre à jour immédiatement l'extension du nom de fichier quand le format export change.
 - Conserver le workflow : charger, générer, comparer en A/B, exporter localement.
 
-## Modifications RC2
+## Modifications RC3
 
 ### Interface
 
-- Boutons principaux avec relief premium léger, ombre interne et état pressé.
-- Bouton de génération centré et simplifié.
-- Bouton d'export centré et simplifié en `Exporter le fichier`.
-- `Réglages experts` renommé en `Réglages avancés`.
-- Suppression du toggle `Simple / Expert` dans les réglages avancés.
-- Suppression des cartes simples redondantes dans les réglages.
+- Relief 3D léger appliqué uniquement aux boutons : `Original`, `Rendu PAXLAB`, `Play`, `Stop`, `Changer de fichier`, `Générer le rendu PAXLAB`, `Exporter le fichier`.
+- Les boutons de choix de format `FLAC 24-bit`, `WAV 24-bit`, `WAV 16-bit` restent plats et lisibles.
+- Capsule `Export sécurisé` mieux centrée verticalement.
+- Contrôle du `Journal technique` placé à droite dans l'en-tête de la ligne, avec libellé `Afficher` / `Masquer` plus visible.
+
+### Export
+
+- Le champ `Nom du fichier` se met à jour immédiatement quand l'utilisateur change de format.
+- Le suffixe `16bit` / `24bit` et l'extension `.wav` / `.flac` restent cohérents avec le format sélectionné.
+- Le nom final reste normalisé au moment du téléchargement.
 
 ### Optimisation
 
-- Suppression du code React devenu mort après retrait du mode simple.
-- Suppression des styles CSS legacy du mode simple et du mode toggle.
-- Vérification du CSS après nettoyage.
+- CSS ajusté par petites touches, sans créer de nouveau système parallèle.
+- Vérification du CSS après modification.
+- Aucun composant legacy réintroduit.
 
 ### Stabilité
 
@@ -33,7 +38,7 @@ Release candidate de polish final basée sur RC1. Objectif : renforcer l'aspect 
 - Aucun changement des presets DSP.
 - Aucun changement du player A/B.
 - Aucun changement de waveform.
-- Aucun changement des exports WAV / FLAC.
+- Aucun changement des exports WAV / FLAC, hors nom de fichier affiché.
 
 ## Vérification
 

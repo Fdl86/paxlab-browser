@@ -123,8 +123,14 @@ export function ProcessingReportPanel({ result }: ProcessingReportPanelProps) {
 
           <details className="technical-journal">
             <summary>
-              <span>Journal technique</span>
-              <small>{buildTreatmentSummary(result)}</small>
+              <span className="journal-summary-copy">
+                <span>Journal technique</span>
+                <small>{buildTreatmentSummary(result)}</small>
+              </span>
+              <strong className="journal-toggle-pill" aria-hidden="true">
+                <span className="journal-toggle-open">Afficher</span>
+                <span className="journal-toggle-close">Masquer</span>
+              </strong>
             </summary>
 
             <div className="journal-grid">
