@@ -1,36 +1,39 @@
-# PAXLAB Browser Engine - v0.9.0-RC1
+# PAXLAB Browser Engine - v0.9.0-RC2
 
-Release candidate de stabilisation basée sur la dernière version validée. Objectif : figer une version propre, cohérente et testable avant release stable.
+Release candidate de polish final basée sur RC1. Objectif : renforcer l'aspect produit fini sans modifier le moteur audio.
 
-## Objectif RC1
+## Objectif RC2
 
-- Conserver le workflow simple : charger un audio, générer un rendu, comparer en A/B, exporter localement.
-- Nettoyer les traces d’anciens blocs prototype/debug.
-- Harmoniser le vocabulaire, les paddings, les badges et les tuiles export.
-- Garder les informations techniques utiles sans surcharger l’écran principal.
+- Donner plus de présence aux boutons principaux `Générer` et `Exporter`.
+- Supprimer les sous-textes redondants dans les CTA principaux.
+- Basculer directement les réglages en mode avancé, sans doublon simple/expert.
+- Nettoyer le code et le CSS legacy liés à l'ancien mode simple.
+- Conserver le workflow : charger, générer, comparer en A/B, exporter localement.
 
-## Modifications RC1
-
-### Nettoyage produit
-
-- Suppression des composants morts non importés : ancien dashboard, ancien conseiller, panneau session et panneau info audio.
-- Suppression du helper audio lié à l’ancien conseiller non utilisé.
-- Nettoyage de styles legacy associés aux anciens panneaux.
+## Modifications RC2
 
 ### Interface
 
-- Version visible passée en `PAXLAB Browser Engine - v0.9.0-RC1`.
-- Wording principal harmonisé autour de `rendu`, `A/B`, `export local` et `mesures estimées`.
-- Tuiles export FLAC / WAV réalignées verticalement.
-- Détails techniques et traitement appliqué conservés en version compacte.
+- Boutons principaux avec relief premium léger, ombre interne et état pressé.
+- Bouton de génération centré et simplifié.
+- Bouton d'export centré et simplifié en `Exporter le fichier`.
+- `Réglages experts` renommé en `Réglages avancés`.
+- Suppression du toggle `Simple / Expert` dans les réglages avancés.
+- Suppression des cartes simples redondantes dans les réglages.
+
+### Optimisation
+
+- Suppression du code React devenu mort après retrait du mode simple.
+- Suppression des styles CSS legacy du mode simple et du mode toggle.
+- Vérification du CSS après nettoyage.
 
 ### Stabilité
 
 - Aucun changement du moteur audio.
 - Aucun changement des presets DSP.
-- Aucun changement des exports WAV / FLAC.
 - Aucun changement du player A/B.
-- Aucun changement du workflow local, sans serveur et sans upload.
+- Aucun changement de waveform.
+- Aucun changement des exports WAV / FLAC.
 
 ## Vérification
 

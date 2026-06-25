@@ -1,5 +1,4 @@
 import type { ChangeEvent } from "react";
-import { useState } from "react";
 import { buildSettingsFromAnalysis, inferAutoMasterPlan } from "../audio/autoTarget";
 import { PREVIEW_PRESETS, getPresetById, getSettingsForPreset, describeSourceRepair } from "../audio/previewPresets";
 import type {
@@ -25,40 +24,6 @@ interface PreviewControlsProps {
   onSettingsChange: (settings: PreviewSettings) => void;
   onRenderPreview: () => void;
 }
-
-type WorkMode = "simple" | "expert";
-
-const SIMPLE_PRESETS: Array<{
-  id: AutoIntensityId;
-  label: string;
-  promise: string;
-  help: string;
-}> = [
-  {
-    id: "safe",
-    label: "Nettoyage léger",
-    promise: "Correction douce",
-    help: "Corrige doucement sans changer le caractère du morceau."
-  },
-  {
-    id: "balanced",
-    label: "Traitement naturel",
-    promise: "Stable et musical",
-    help: "Rendu stable, musical, sans excès."
-  },
-  {
-    id: "impact",
-    label: "Impact",
-    promise: "Plus puissant",
-    help: "Basses plus présentes et rendu plus dense."
-  },
-  {
-    id: "youtube",
-    label: "Mix YouTube",
-    promise: "-14 LUFS max",
-    help: "Upload vidéo : niveau stable, peak prudent et aigus contrôlés."
-  }
-];
 
 function repairHelp(level: SourceRepairLevel): string {
   if (level === "strong") {
@@ -109,28 +74,6 @@ function formatPreviewReady(revision: number, renderedAt: string | null): string
   return `Rendu #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
 }
 
-function formatActiveOptions(settings: PreviewSettings): string {
-  const options: string[] = [];
-
-  if (settings.antiFatigue) {
-    options.push("anti-fatigue");
-  }
-
-  if (settings.vocalPresence) {
-    options.push("présence vocale");
-  }
-
-  if (settings.stereoSpace) {
-    options.push("espace stéréo");
-  }
-
-  if (settings.bassPunch) {
-    options.push("basses punchy");
-  }
-
-  return options.length ? ` + ${options.join(" + ")}` : "";
-}
-
 export function PreviewControls({
   settings,
   previewStatus,
@@ -145,7 +88,6 @@ export function PreviewControls({
   onSettingsChange,
   onRenderPreview
 }: PreviewControlsProps) {
-  const [mode, setMode] = useState<WorkMode>("simple");
   const preset = getPresetById(settings.presetId);
   const isRendering = previewStatus === "rendering";
   const autoPlan = sourceAnalysis
@@ -243,59 +185,24 @@ export function PreviewControls({
     onSettingsChange(nextPresetSettings);
   }
 
-  const selectedSimplePreset = SIMPLE_PRESETS.find((item) => item.id === settings.autoIntensity) ?? SIMPLE_PRESETS[1];
   const renderButtonLabel = isRendering
     ? "Génération en cours..."
     : hasPreview
       ? hasPendingChanges
         ? "Mettre à jour le rendu"
         : "Générer un nouveau rendu"
-      : "Générer le rendu";
+      : "Générer le rendu PAXLAB";
 
   return (
-    <section className="panel controls-panel pro-controls-panel dynamic-controls-panel simple-first-panel">
-      <div className="panel-heading compact-heading simple-header">
+    <section className="panel controls-panel pro-controls-panel dynamic-controls-panel advanced-controls-panel">
+      <div className="panel-heading compact-heading advanced-header">
         <div>
-          <p className="eyebrow">Action</p>
-          <h2>Choisis le rendu</h2>
-        </div>
-        <div className="mode-toggle" aria-label="Mode de réglage">
-          <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
-          <button type="button" className={mode === "expert" ? "active" : ""} onClick={() => setMode("expert")}>Expert</button>
+          <p className="eyebrow">Réglages</p>
+          <h2>Réglages avancés</h2>
         </div>
       </div>
 
-      {mode === "simple" && (
-        <>
-          <div className="simple-choice-grid" aria-label="Presets rapides">
-            {SIMPLE_PRESETS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className={settings.autoIntensity === item.id ? "simple-preset-card active" : "simple-preset-card"}
-                onClick={() => rebuildAutoSettings({ autoIntensity: item.id })}
-              >
-                <strong>{item.label}</strong>
-                <span>{item.promise}</span>
-                <small>{item.help}</small>
-              </button>
-            ))}
-          </div>
-
-          <div className="simple-result-preview">
-            <span>Réglage choisi</span>
-            <strong>{selectedSimplePreset.label}{formatActiveOptions(settings)}</strong>
-            <small>
-              {autoPlan
-                ? `${autoPlan.profileLabel} · objectif indicatif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)} LUFS`
-                : "PAXLAB ajustera la cible après analyse du fichier."}
-            </small>
-          </div>
-        </>
-      )}
-
-      {mode === "expert" && (
-        <>
+      <>
           <div className="control-room-summary control-room-summary-v2 dynamic-summary">
             <div>
               <span>Plan auto</span>
@@ -505,10 +412,9 @@ export function PreviewControls({
             )}
           </div>
         </>
-      )}
 
       <button
-        className="primary-button big-render-button simple-render-button"
+        className="primary-button big-render-button render-main-button"
         type="button"
         disabled={!hasAudio || isRendering}
         onClick={onRenderPreview}
@@ -520,9 +426,6 @@ export function PreviewControls({
       {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouveau rendu en cours.</p>}
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
         <p className="message message-warning">Réglages modifiés. {formatPreviewReady(previewRevision, previewRenderedAt)} reste l’ancienne version tant que tu ne régénères pas.</p>
-      )}
-      {mode === "expert" && (
-        <p className="message message-info">Mode expert : les réglages changent la prochain rendu uniquement après régénération.</p>
       )}
       {previewStatus === "ready" && !hasPendingChanges && (
         <p className="message message-success">{formatPreviewReady(previewRevision, previewRenderedAt)} prêt pour A/B et export.</p>

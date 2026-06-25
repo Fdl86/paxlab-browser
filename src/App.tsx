@@ -739,7 +739,7 @@ function RenderChoiceCard({
         ? hasPendingChanges
           ? "Régénérer le rendu"
           : "Générer un autre rendu"
-        : "Générer le rendu";
+        : "Générer le rendu PAXLAB";
 
   return (
     <section id="paxlab-render-card" className="panel guided-render-card">
@@ -897,14 +897,11 @@ function RenderChoiceCard({
         onClick={onRenderPreview}
       >
         {buttonLabel}
-        <small>
-          Analyse automatique, traitement local, validation à l’écoute
-        </small>
       </button>
 
       {hasPendingChanges && hasPreview && (
         <p className="message message-warning">
-          Les réglages ont changé. Régénère pour mettre la Rendu à jour.
+          Les réglages ont changé. Régénère pour mettre le rendu à jour.
         </p>
       )}
       {previewStatus === "error" && previewErrorMessage && (
@@ -1219,7 +1216,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - v0.9.0-RC1
+          PAXLAB Browser Engine - v0.9.0-RC2
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1935,10 +1932,9 @@ export default function App() {
 
             <details id="paxlab-expert-settings" className="guided-accordion">
               <summary>
-                <span>Réglages experts</span>
+                <span>Réglages avancés</span>
                 <small>
-                  Préserver l’espace, intensité, plafond peak et nettoyage
-                  source
+Nettoyage, brillance, niveau et marge peak
                 </small>
               </summary>
               <PreviewControls

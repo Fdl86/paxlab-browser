@@ -296,7 +296,7 @@ export function ExportPanel({
     !isExporting;
   const buttonLabel = isExporting
     ? exportJob?.title ?? "Préparation export..."
-    : `Exporter ${selectedExport.title}`;
+    : "Exporter le fichier";
 
   return (
     <>
@@ -312,7 +312,7 @@ export function ExportPanel({
         </div>
       )}
 
-      <section className="panel export-panel simple-export-panel premium-export-panel">
+      <section className="panel export-panel premium-export-panel">
         <div className="panel-heading compact-heading compact-export-heading">
           <div>
             <h2>
@@ -381,7 +381,6 @@ export function ExportPanel({
           aria-busy={isExporting}
         >
           {buttonLabel}
-          <small>{isExporting ? "Export local en cours" : "Local - Aucun upload - Rendu à jour"}</small>
         </button>
 
         {!previewBuffer && (
