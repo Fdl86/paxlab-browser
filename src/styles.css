@@ -1,5 +1,5 @@
 /* ============================================================================
-   PAXLAB Browser Engine - v0.9.0-RC4 - UI hotfix metadata and status chips
+   PAXLAB Browser Engine - v0.9.0-RC5 - UI hotfix treatment status chip
    Réécriture CSS from scratch - architecture en couches, tokens, 0 !important.
    Ordre des couches (la cascade fait le travail, pas la spécificité) :
      0 reset · 1 tokens · 2 typo · 3 primitives · 4 layout · 5 composants · 6 responsive
@@ -655,9 +655,23 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .treatment-summary-card span{display:block;color:var(--gold);font-size:0.68rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;}
 .treatment-summary-card strong{display:block;margin-top:5px;color:#fff;font-size:0.98rem;line-height:1.25;}
 .treatment-summary-card p{margin:6px 0 0;color:var(--muted);font-size:0.82rem;line-height:1.4;}
-.treatment-status{
-  display:inline-flex;align-items:center;justify-content:center;height:34px;margin:0;padding:0 14px;border:1px solid var(--green-line);
-  border-radius:var(--r-pill);background:var(--green-soft);color:var(--green);font-size:0.78rem;font-weight:800;line-height:1;white-space:nowrap;
+.treatment-summary-card .treatment-status{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  justify-self:end;
+  align-self:center;
+  min-height:34px;
+  margin:0;
+  padding:0 16px;
+  border:1px solid var(--green-line);
+  border-radius:var(--r-pill);
+  background:var(--green-soft);
+  color:var(--green);
+  font-size:0.78rem;
+  font-weight:800;
+  line-height:1;
+  white-space:nowrap;
 }
 .treatment-chip-row{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-3);}
 .treatment-chip-row span{

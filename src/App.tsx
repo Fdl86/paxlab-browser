@@ -1216,7 +1216,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - v0.9.0-RC4
+          PAXLAB Browser Engine - v0.9.0-RC5
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
