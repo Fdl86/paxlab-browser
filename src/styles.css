@@ -1,5 +1,5 @@
 /* ============================================================================
-   PAXLAB Browser Engine - v0.9.0-RC3 - CTA polish et réglages avancés
+   PAXLAB Browser Engine - v0.9.0-RC4 - UI hotfix metadata and status chips
    Réécriture CSS from scratch - architecture en couches, tokens, 0 !important.
    Ordre des couches (la cascade fait le travail, pas la spécificité) :
      0 reset · 1 tokens · 2 typo · 3 primitives · 4 layout · 5 composants · 6 responsive
@@ -303,7 +303,9 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .loaded-file-icon{display:grid;place-items:center;width:64px;height:64px;border-radius:var(--r-2);color:#eadba8;background:var(--s2);border:1px solid var(--line-2);font-size:2rem;}
 .loaded-file-copy h2{margin:0 0 var(--sp-2);color:#fff;font-size:1.7rem;line-height:1.06;}
 .loaded-file-copy p:not(.eyebrow){margin:0;color:var(--muted);font-size:1.05rem;}
-.loaded-file-metadata{display:flex;flex-wrap:wrap;gap:var(--sp-2);}
+.loaded-file-metadata{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);}
+.loaded-file-metadata span{display:inline-flex;align-items:baseline;gap:4px;white-space:nowrap;}
+.loaded-file-metadata small,.loaded-file-metadata b{line-height:1.1;}
 .loaded-file-change{min-height:48px;padding:0 18px;}
 .loaded-file-warning{
   margin:var(--sp-3) 0 0;padding:10px 12px;border:1px solid var(--gold-line);border-radius:var(--r-2);
@@ -654,7 +656,7 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .treatment-summary-card strong{display:block;margin-top:5px;color:#fff;font-size:0.98rem;line-height:1.25;}
 .treatment-summary-card p{margin:6px 0 0;color:var(--muted);font-size:0.82rem;line-height:1.4;}
 .treatment-status{
-  display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:1px 13px 0;border:1px solid var(--green-line);
+  display:inline-flex;align-items:center;justify-content:center;height:34px;margin:0;padding:0 14px;border:1px solid var(--green-line);
   border-radius:var(--r-pill);background:var(--green-soft);color:var(--green);font-size:0.78rem;font-weight:800;line-height:1;white-space:nowrap;
 }
 .treatment-chip-row{display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-3);}

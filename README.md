@@ -1,8 +1,8 @@
-# PAXLAB Browser Engine - v0.9.0-RC3
+# PAXLAB Browser Engine - v0.9.0-RC4
 
 Release candidate de finition basée sur RC2. Objectif : renforcer l'aspect produit fini, améliorer les contrôles visibles et corriger le retour immédiat du format d'export, sans modifier le moteur audio.
 
-## Objectif RC3
+## Objectif RC4
 
 - Donner un relief premium léger aux vrais boutons d'action.
 - Garder les cartes de format export en style plat pour ne pas surcharger l'interface.
@@ -11,7 +11,7 @@ Release candidate de finition basée sur RC2. Objectif : renforcer l'aspect prod
 - Mettre à jour immédiatement l'extension du nom de fichier quand le format export change.
 - Conserver le workflow : charger, générer, comparer en A/B, exporter localement.
 
-## Modifications RC3
+## Modifications RC4
 
 ### Interface
 

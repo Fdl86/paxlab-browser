@@ -641,19 +641,19 @@ function SourceLoadedCard({
 
       <div className="loaded-file-metadata">
         <span>
-          <small>Durée</small>
+          <small>Durée</small>{" "}
           <b>{formatDuration(decodedAudio.info.durationSeconds)}</b>
         </span>
         <span>
-          <small>Fréquence d’échantillonnage</small>
+          <small>Fréquence d’échantillonnage</small>{" "}
           <b>{decodedAudio.info.sampleRate.toLocaleString("fr-FR")} Hz</b>
         </span>
         <span>
-          <small>Canaux</small>
+          <small>Canaux</small>{" "}
           <b>{formatChannelLabel(decodedAudio.info.numberOfChannels)}</b>
         </span>
         <span>
-          <small>Format</small>
+          <small>Format</small>{" "}
           <b>{decodedAudio.file.type || "Audio navigateur"}</b>
         </span>
       </div>
@@ -1216,7 +1216,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - v0.9.0-RC3
+          PAXLAB Browser Engine - v0.9.0-RC4
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
