@@ -77,21 +77,34 @@ function buildCustomExportName(
   extension: ExportFormat,
   bitDepth: 16 | 24,
 ): string {
-  const sourceName = (baseName || fallbackName).trim();
-  const withoutKnownExtension = sourceName.replace(/\.(wav|flac)$/i, "");
-  const withoutBitDepth = withoutKnownExtension.replace(/[-_\s]*(16|24)bit$/i, "");
-  const withBitDepth = `${withoutBitDepth || "paxlab-preview"}-${bitDepth}bit.${extension}`;
+  const sourceName = baseName || fallbackName;
+  const withBitDepth =
+    bitDepth === 16 ? sourceName.replace(/24bit/i, "16bit") : sourceName;
+  const sanitized = sanitizeAudioFilename(withBitDepth, extension);
 
-  return sanitizeAudioFilename(withBitDepth, extension);
+  if (bitDepth === 16 && !sanitized.toLowerCase().includes("16bit")) {
+    return sanitized.replace(
+      new RegExp(`\\.${extension}$`, "i"),
+      `-16bit.${extension}`,
+    );
+  }
+
+  if (bitDepth === 24 && !sanitized.toLowerCase().includes("24bit")) {
+    return sanitized.replace(
+      new RegExp(`\\.${extension}$`, "i"),
+      `-24bit.${extension}`,
+    );
+  }
+
+  return sanitized;
 }
 
 function buildDefaultExportFilename(
   sourceFileName: string | null,
   previewRevision: number,
   extension: ExportFormat,
-  bitDepth: 16 | 24 = 24,
 ): string {
-  const suffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
+  const suffix = `paxlab-preview-${previewRevision || 1}-24bit`;
   return buildSafeAudioFilename(sourceFileName, suffix, extension);
 }
 
@@ -129,17 +142,12 @@ export function ExportPanel({
 
   useEffect(() => {
     setExportFilename(
-      buildDefaultExportFilename(
-        sourceFileName,
-        previewRevision,
-        selectedExport.format,
-        selectedExport.bitDepth,
-      ),
+      buildDefaultExportFilename(sourceFileName, previewRevision, selectedExport.format),
     );
     setLastExportName(null);
     setExportErrorMessage(null);
-    // Intentionally reset only when the Preview changes. Changing FLAC/WAV is handled separately
-    // so the visible filename extension stays aligned with the selected format.
+    // Intentionally reset only when the Preview changes. Changing FLAC/WAV keeps the typed name;
+    // the final extension is normalized at download time.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewRevision, sourceFileName]);
 
@@ -280,27 +288,6 @@ export function ExportPanel({
     void handleWavExport(selectedExport.bitDepth);
   }
 
-  function handleExportChoiceChange(choice: typeof EXPORT_CHOICES[number]) {
-    setSelectedChoice(choice.id);
-    setExportFilename((currentName) => {
-      const fallbackName = buildDefaultExportFilename(
-        sourceFileName,
-        previewRevision,
-        choice.format,
-        choice.bitDepth,
-      );
-
-      return buildCustomExportName(
-        currentName,
-        fallbackName,
-        choice.format,
-        choice.bitDepth,
-      );
-    });
-    setLastExportName(null);
-    setExportErrorMessage(null);
-  }
-
   const isExporting = Boolean(exportJob);
   const canExport =
     Boolean(previewBuffer) &&
@@ -309,7 +296,7 @@ export function ExportPanel({
     !isExporting;
   const buttonLabel = isExporting
     ? exportJob?.title ?? "Préparation export..."
-    : "Exporter le fichier";
+    : `Exporter ${selectedExport.title}`;
 
   return (
     <>
@@ -325,12 +312,12 @@ export function ExportPanel({
         </div>
       )}
 
-      <section className="panel export-panel premium-export-panel">
+      <section className="panel export-panel simple-export-panel premium-export-panel">
         <div className="panel-heading compact-heading compact-export-heading">
           <div>
             <h2>
               {previewBuffer
-                ? `Exporter le rendu sélectionné #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
+                ? `Exporter la Preview sélectionnée #${previewRevision}${previewRenderedAt ? ` - ${previewRenderedAt}` : ""}`
                 : "Exporter le rendu"}
             </h2>
           </div>
@@ -339,13 +326,13 @@ export function ExportPanel({
               type="button"
               className="status-pill status-pill-button"
               onClick={onRegenerateRequest}
-              title="Régénérer le rendu avec les réglages actuels."
+              title="Régénérer la Preview avec les réglages actuels."
             >
               À régénérer
             </button>
           ) : (
             <span className={canExport ? "status-pill ready-pill" : "status-pill"}>
-              {canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Rendu requis"}
+              {canExport ? "Prêt" : previewBuffer ? "À régénérer" : "Preview requise"}
             </span>
           )}
         </div>
@@ -365,7 +352,7 @@ export function ExportPanel({
               }
               aria-pressed={selectedChoice === choice.id}
               disabled={!previewBuffer || isRendering || isExporting}
-              onClick={() => handleExportChoiceChange(choice)}
+              onClick={() => setSelectedChoice(choice.id)}
             >
               <span className="export-radio" aria-hidden="true" />
               <span className="export-choice-copy">
@@ -394,17 +381,18 @@ export function ExportPanel({
           aria-busy={isExporting}
         >
           {buttonLabel}
+          <small>{isExporting ? "Export local en cours" : "Local - Aucun upload - Preview à jour"}</small>
         </button>
 
         {!previewBuffer && (
           <p className="message message-info">
-            Génère d’abord un rendu pour activer l’export.
+            Génère d’abord une Preview pour activer l’export.
           </p>
         )}
 
         {hasPendingChanges && previewBuffer && (
           <p className="message message-warning export-action-warning">
-            Réglages modifiés. Régénère le rendu avant export.
+            Réglages modifiés. Régénère la Preview avant export.
             {onRegenerateRequest && (
               <button type="button" onClick={onRegenerateRequest}>
                 Ouvrir les réglages

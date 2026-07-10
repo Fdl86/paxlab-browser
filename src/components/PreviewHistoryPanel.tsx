@@ -88,7 +88,7 @@ export function PreviewHistoryPanel({
     <section className="panel history-panel premium-history-panel">
       <div className="panel-heading compact-heading">
         <div>
-          <p className="eyebrow">Historique des rendus</p>
+          <p className="eyebrow">Historique Preview</p>
           <h2>Versions comparables</h2>
         </div>
         <span className="status-pill">{items.length}/6</span>
@@ -96,7 +96,7 @@ export function PreviewHistoryPanel({
 
       {!items.length && (
         <div className="empty-state small-empty-state">
-          <p>Aucun rendu généré.</p>
+          <p>Aucune Preview générée.</p>
           <span>Chaque rendu sera conservé ici avec loudness, headroom et réglages.</span>
         </div>
       )}
@@ -116,7 +116,7 @@ export function PreviewHistoryPanel({
                 onClick={() => onSelect(item)}
               >
                 <span className="history-item-title">
-                  Rendu #{item.id}
+                  Preview #{item.id}
                   <small>{item.renderedAt}</small>
                 </span>
                 <strong>{formatLabel(item.settings)}</strong>

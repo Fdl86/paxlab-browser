@@ -1,4 +1,5 @@
 import type { ChangeEvent } from "react";
+import { useState } from "react";
 import { buildSettingsFromAnalysis, inferAutoMasterPlan } from "../audio/autoTarget";
 import { PREVIEW_PRESETS, getPresetById, getSettingsForPreset, describeSourceRepair } from "../audio/previewPresets";
 import type {
@@ -24,6 +25,40 @@ interface PreviewControlsProps {
   onSettingsChange: (settings: PreviewSettings) => void;
   onRenderPreview: () => void;
 }
+
+type WorkMode = "simple" | "expert";
+
+const SIMPLE_PRESETS: Array<{
+  id: AutoIntensityId;
+  label: string;
+  promise: string;
+  help: string;
+}> = [
+  {
+    id: "safe",
+    label: "Nettoyage léger",
+    promise: "Correction douce",
+    help: "Corrige doucement sans changer le caractère du morceau."
+  },
+  {
+    id: "balanced",
+    label: "Traitement naturel",
+    promise: "Stable et musical",
+    help: "Rendu stable, musical, sans excès."
+  },
+  {
+    id: "impact",
+    label: "Impact",
+    promise: "Plus puissant",
+    help: "Basses plus présentes et rendu plus dense."
+  },
+  {
+    id: "youtube",
+    label: "Mix YouTube",
+    promise: "-14 LUFS max",
+    help: "Upload vidéo : niveau stable, peak prudent et aigus contrôlés."
+  }
+];
 
 function repairHelp(level: SourceRepairLevel): string {
   if (level === "strong") {
@@ -68,10 +103,32 @@ function autoIntensityLabel(value: AutoIntensityId): string {
 
 function formatPreviewReady(revision: number, renderedAt: string | null): string {
   if (revision <= 0) {
-    return "Aucun rendu généré";
+    return "Aucune Preview générée";
   }
 
-  return `Rendu #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
+  return `Preview #${revision}${renderedAt ? ` · ${renderedAt}` : ""}`;
+}
+
+function formatActiveOptions(settings: PreviewSettings): string {
+  const options: string[] = [];
+
+  if (settings.antiFatigue) {
+    options.push("anti-fatigue");
+  }
+
+  if (settings.vocalPresence) {
+    options.push("présence vocale");
+  }
+
+  if (settings.stereoSpace) {
+    options.push("espace stéréo");
+  }
+
+  if (settings.bassPunch) {
+    options.push("basses punchy");
+  }
+
+  return options.length ? ` + ${options.join(" + ")}` : "";
 }
 
 export function PreviewControls({
@@ -88,6 +145,7 @@ export function PreviewControls({
   onSettingsChange,
   onRenderPreview
 }: PreviewControlsProps) {
+  const [mode, setMode] = useState<WorkMode>("simple");
   const preset = getPresetById(settings.presetId);
   const isRendering = previewStatus === "rendering";
   const autoPlan = sourceAnalysis
@@ -185,24 +243,110 @@ export function PreviewControls({
     onSettingsChange(nextPresetSettings);
   }
 
+  const selectedSimplePreset = SIMPLE_PRESETS.find((item) => item.id === settings.autoIntensity) ?? SIMPLE_PRESETS[1];
   const renderButtonLabel = isRendering
     ? "Génération en cours..."
     : hasPreview
       ? hasPendingChanges
-        ? "Mettre à jour le rendu"
-        : "Générer un nouveau rendu"
-      : "Générer le rendu PAXLAB";
+        ? "Mettre à jour la Preview"
+        : "Générer une nouvelle Preview"
+      : "Générer la Preview";
 
   return (
-    <section className="panel controls-panel pro-controls-panel dynamic-controls-panel advanced-controls-panel">
-      <div className="panel-heading compact-heading advanced-header">
+    <section className="panel controls-panel pro-controls-panel dynamic-controls-panel simple-first-panel">
+      <div className="panel-heading compact-heading simple-header">
         <div>
-          <p className="eyebrow">Réglages</p>
-          <h2>Réglages avancés</h2>
+          <p className="eyebrow">Action</p>
+          <h2>Choisis le rendu</h2>
+        </div>
+        <div className="mode-toggle" aria-label="Mode de réglage">
+          <button type="button" className={mode === "simple" ? "active" : ""} onClick={() => setMode("simple")}>Simple</button>
+          <button type="button" className={mode === "expert" ? "active" : ""} onClick={() => setMode("expert")}>Expert</button>
         </div>
       </div>
 
-      <>
+      {mode === "simple" && (
+        <>
+          <div className="simple-choice-grid" aria-label="Presets rapides">
+            {SIMPLE_PRESETS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className={settings.autoIntensity === item.id ? "simple-preset-card active" : "simple-preset-card"}
+                onClick={() => rebuildAutoSettings({ autoIntensity: item.id })}
+              >
+                <strong>{item.label}</strong>
+                <span>{item.promise}</span>
+                <small>{item.help}</small>
+              </button>
+            ))}
+          </div>
+
+          <label className={["fatigue-toggle", "big-fatigue-toggle", settings.antiFatigue ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.antiFatigue}
+              disabled={settings.vocalPresence}
+              onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
+            />
+            <span>
+              <strong>AI Brightness Smoothing</strong>
+              <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
+            </span>
+          </label>
+
+          <label className={["fatigue-toggle", "big-fatigue-toggle", "vocal-presence-toggle", settings.vocalPresence ? "active" : "", settings.antiFatigue ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.vocalPresence}
+              disabled={settings.antiFatigue}
+              onChange={(event) => rebuildAutoSettings({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
+            />
+            <span>
+              <strong>Présence vocale</strong>
+              <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
+            </span>
+          </label>
+
+          <label className={["fatigue-toggle", "big-fatigue-toggle", "stereo-space-toggle", settings.stereoSpace ? "active" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.stereoSpace}
+              onChange={(event) => rebuildAutoSettings({ stereoSpace: event.target.checked })}
+            />
+            <span>
+              <strong>Espace stéréo</strong>
+              <small>Élargit légèrement l’image stéréo sans toucher aux graves.</small>
+            </span>
+          </label>
+
+          <label className={["fatigue-toggle", "big-fatigue-toggle", "bass-punch-toggle", settings.bassPunch ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.bassPunch}
+              disabled={settings.vocalPresence}
+              onChange={(event) => rebuildAutoSettings({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
+            />
+            <span>
+              <strong>Basses punchy</strong>
+              <small>Renforce le kick et le grave utile sans gonfler le mix.</small>
+            </span>
+          </label>
+
+          <div className="simple-result-preview">
+            <span>Réglage choisi</span>
+            <strong>{selectedSimplePreset.label}{formatActiveOptions(settings)}</strong>
+            <small>
+              {autoPlan
+                ? `${autoPlan.profileLabel} · objectif indicatif ${autoPlan.targetLufsMinEstimate.toFixed(1)} à ${autoPlan.targetLufsMaxEstimate.toFixed(1)} LUFS`
+                : "PAXLAB ajustera la cible après analyse du fichier."}
+            </small>
+          </div>
+        </>
+      )}
+
+      {mode === "expert" && (
+        <>
           <div className="control-room-summary control-room-summary-v2 dynamic-summary">
             <div>
               <span>Plan auto</span>
@@ -222,7 +366,7 @@ export function PreviewControls({
             <div>
               <span>Option voix / fizz</span>
               <strong>{settings.antiFatigue ? "Anti-fizz" : settings.vocalPresence ? "Voix" : "Off"}</strong>
-              <small>{settings.antiFatigue ? "Lissage brillance IA actif" : settings.vocalPresence ? "Présence vocale active" : "Désactivé"}</small>
+              <small>{settings.antiFatigue ? "AI Brightness Smoothing actif" : settings.vocalPresence ? "Présence vocale active" : "Désactivé"}</small>
             </div>
             <div>
               <span>Options</span>
@@ -247,12 +391,63 @@ export function PreviewControls({
             </div>
           </div>
 
+          <label className={["fatigue-toggle", "stereo-space-toggle", settings.stereoSpace ? "active" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.stereoSpace}
+              onChange={(event) => rebuildAutoSettings({ stereoSpace: event.target.checked })}
+            />
+            <span>
+              <strong>Espace stéréo</strong>
+              <small>Élargit légèrement l’image stéréo par Mid/Side protégé, sans élargir les graves.</small>
+            </span>
+          </label>
+
+          <label className={["fatigue-toggle", "bass-punch-toggle", settings.bassPunch ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+            <input
+              type="checkbox"
+              checked={settings.bassPunch}
+              disabled={settings.vocalPresence}
+              onChange={(event) => rebuildAutoSettings({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
+            />
+            <span>
+              <strong>Basses punchy</strong>
+              <small>Kick renforcé, grave utile contrôlé, sans boost sub excessif.</small>
+            </span>
+          </label>
+
           {isYoutubeMix ? (
             <p className="message message-info">
               Mix YouTube verrouille automatiquement la sécurité peak autour de 2.2 dB et garde le niveau sous -14.4 LUFS max. Réglages utiles : nettoyage source, niveau YouTube, brillance et espace stéréo.
             </p>
           ) : (
             <>
+              <label className={["fatigue-toggle", settings.antiFatigue ? "active" : "", settings.vocalPresence ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+                <input
+                  type="checkbox"
+                  checked={settings.antiFatigue}
+                  disabled={settings.vocalPresence}
+                  onChange={(event) => rebuildAutoSettings({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
+                />
+                <span>
+                  <strong>AI Brightness Smoothing</strong>
+                  <small>Calme les aigus métalliques, le fizz et la fatigue d’écoute.</small>
+                </span>
+              </label>
+
+              <label className={["fatigue-toggle", "vocal-presence-toggle", settings.vocalPresence ? "active" : "", settings.antiFatigue ? "mutually-disabled" : ""].filter(Boolean).join(" ")}>
+                <input
+                  type="checkbox"
+                  checked={settings.vocalPresence}
+                  disabled={settings.antiFatigue}
+                  onChange={(event) => rebuildAutoSettings({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
+                />
+                <span>
+                  <strong>Présence vocale</strong>
+                  <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
+                </span>
+              </label>
+
               <label className={settings.spacePreserve ? "fatigue-toggle space-toggle active" : "fatigue-toggle space-toggle"}>
                 <input
                   type="checkbox"
@@ -412,9 +607,10 @@ export function PreviewControls({
             )}
           </div>
         </>
+      )}
 
       <button
-        className="primary-button big-render-button render-main-button"
+        className="primary-button big-render-button simple-render-button"
         type="button"
         disabled={!hasAudio || isRendering}
         onClick={onRenderPreview}
@@ -423,12 +619,15 @@ export function PreviewControls({
       </button>
 
       {!hasAudio && <p className="message message-info">Importe un fichier audio pour activer la génération locale.</p>}
-      {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouveau rendu en cours.</p>}
+      {previewStatus === "rendering" && <p className="message message-info">Lecture arrêtée. Nouvelle Preview en cours.</p>}
       {hasPendingChanges && hasPreview && previewStatus !== "rendering" && (
         <p className="message message-warning">Réglages modifiés. {formatPreviewReady(previewRevision, previewRenderedAt)} reste l’ancienne version tant que tu ne régénères pas.</p>
       )}
+      {mode === "expert" && (
+        <p className="message message-info">Mode expert : les réglages changent la prochaine Preview uniquement après régénération.</p>
+      )}
       {previewStatus === "ready" && !hasPendingChanges && (
-        <p className="message message-success">{formatPreviewReady(previewRevision, previewRenderedAt)} prêt pour A/B et export.</p>
+        <p className="message message-success">{formatPreviewReady(previewRevision, previewRenderedAt)} prête pour A/B et export.</p>
       )}
       {previewStatus === "error" && errorMessage && <p className="message message-error">{errorMessage}</p>}
     </section>
