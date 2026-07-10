@@ -355,17 +355,29 @@ function AnalysisOverlay({
   );
 
   return (
-    <div className="guided-processing-overlay analysis-processing-overlay" role="status" aria-live="polite">
-      <div className="guided-processing-card processing-modal-premium analysis-processing-card">
+    <div
+      className="guided-processing-overlay analysis-processing-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-live="polite"
+      aria-labelledby="analysis-dialog-title"
+      aria-describedby="analysis-dialog-description"
+    >
+      <div className="guided-processing-card processing-modal-premium analysis-processing-card" tabIndex={-1} autoFocus>
         <div className="processing-logo-mark" aria-hidden="true">×</div>
         <p className="eyebrow">Analyse locale</p>
-        <h2>Analyse du morceau</h2>
-        <p>
+        <h2 id="analysis-dialog-title">Analyse du morceau</h2>
+        <p id="analysis-dialog-description">
           PAXLAB mesure le niveau, la brillance et la dynamique pour proposer une rendu adapté.
           {isLargeFile && " Fichier volumineux : l'analyse peut prendre un peu plus de temps."}
         </p>
         <div
           className="guided-progress"
+          role="progressbar"
+          aria-label="Progression de l'analyse"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(safeProgress)}
           style={{ "--progress": `${safeProgress}%` } as CSSProperties}
         >
           <span />
@@ -412,16 +424,28 @@ function ProcessingOverlay({
   );
 
   return (
-    <div className="guided-processing-overlay" role="status" aria-live="polite">
-      <div className="guided-processing-card processing-modal-premium">
+    <div
+      className="guided-processing-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-live="polite"
+      aria-labelledby="render-dialog-title"
+      aria-describedby="render-dialog-description"
+    >
+      <div className="guided-processing-card processing-modal-premium" tabIndex={-1} autoFocus>
         <div className="processing-logo-mark" aria-hidden="true">×</div>
         <p className="eyebrow">Traitement local</p>
-        <h2>Préparation du rendu</h2>
-        <p>
+        <h2 id="render-dialog-title">Préparation du rendu</h2>
+        <p id="render-dialog-description">
           Le rendu est généré dans ton navigateur. Aucun serveur, aucun upload.
         </p>
         <div
           className="guided-progress"
+          role="progressbar"
+          aria-label="Progression du rendu"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(safeProgress)}
           style={{ "--progress": `${safeProgress}%` } as CSSProperties}
         >
           <span />
@@ -1216,7 +1240,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - v0.9.0-RC5
+          PAXLAB Browser Engine - v0.9.0-RC6
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1670,17 +1694,9 @@ export default function App() {
     renderTokenRef.current += 1;
 
     if (validationMessage) {
-      setSelectedFile(null);
-      setDecodedAudio(null);
-      setDecodeStatus("error");
-      setDecodeErrorMessage(validationMessage);
-      setAnalysisStatus("idle");
-      setSourceAnalysis(null);
-      setAnalysisErrorMessage(null);
-      setPreviewStatus("idle");
-      setPreviewResult(null);
-      setAnalysisOverlayVisible(false);
-      setExportedRevision(null);
+      // Conserver le candidat sélectionné permet à l'effet de décodage de porter
+      // l'erreur sans qu'elle soit immédiatement effacée par l'état null.
+      setSelectedFile(file);
       return;
     }
 
@@ -1703,6 +1719,10 @@ export default function App() {
 
   useEffect(() => {
     function handleKeyboard(event: KeyboardEvent) {
+      if (analysisOverlayVisible || previewStatus === "rendering") {
+        return;
+      }
+
       if (isTypingInEditableField(event.target)) {
         return;
       }
@@ -1735,8 +1755,7 @@ export default function App() {
         key === "r" &&
         decodedAudio &&
         sourceAnalysis &&
-        analysisStatus === "ready" &&
-        previewStatus !== "rendering"
+        analysisStatus === "ready"
       ) {
         event.preventDefault();
         handleScrollToRender();
@@ -1752,7 +1771,7 @@ export default function App() {
 
     window.addEventListener("keydown", handleKeyboard);
     return () => window.removeEventListener("keydown", handleKeyboard);
-  }, [analysisStatus, decodedAudio, handleRenderPreview, player, previewResult, previewStatus, sourceAnalysis]);
+  }, [analysisOverlayVisible, analysisStatus, decodedAudio, handleRenderPreview, player, previewResult, previewStatus, sourceAnalysis]);
 
   const workflowStep: 1 | 2 | 3 | 4 = !decodedAudio
     ? 1

@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   analyzeHeadroomSummary,
   formatDuration,
@@ -197,6 +203,37 @@ export function RealtimeMonitorPanel({
     if (isAudio) {
       onFileSelected(file);
     }
+  }
+
+
+  function handleWaveformKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!activeBuffer || !duration || duration <= 0) {
+      return;
+    }
+
+    const fineStep = event.shiftKey ? 10 : 5;
+    let nextTime: number | null = null;
+
+    if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      nextTime = currentTime - fineStep;
+    } else if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      nextTime = currentTime + fineStep;
+    } else if (event.key === "PageDown") {
+      nextTime = currentTime - 30;
+    } else if (event.key === "PageUp") {
+      nextTime = currentTime + 30;
+    } else if (event.key === "Home") {
+      nextTime = 0;
+    } else if (event.key === "End") {
+      nextTime = duration;
+    }
+
+    if (nextTime === null) {
+      return;
+    }
+
+    event.preventDefault();
+    onSeek(Math.min(duration, Math.max(0, nextTime)));
   }
 
   function handleWaveformPointerDown(event: ReactPointerEvent<SVGSVGElement>) {
@@ -405,7 +442,15 @@ export function RealtimeMonitorPanel({
             </div>
             <div
               className="waveform-canvas bar-waveform-canvas"
-              title="Clique ou glisse sur la waveform pour naviguer dans le morceau."
+              title="Clique, glisse ou utilise les flèches pour naviguer dans le morceau."
+              role="slider"
+              tabIndex={0}
+              aria-label="Position de lecture"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(duration)}
+              aria-valuenow={Math.round(currentTime)}
+              aria-valuetext={`${formatDuration(currentTime)} sur ${formatDuration(duration)}`}
+              onKeyDown={handleWaveformKeyDown}
             >
               <svg
                 className="bar-waveform-svg"

@@ -10,6 +10,9 @@ type WindowWithWebkitAudioContext = Window &
 let sharedAudioContext: AudioContext | null = null;
 
 const MAX_DECODED_DURATION_SECONDS = 15 * 60;
+const MAX_DECODED_PCM_BYTES = 192 * 1024 * 1024;
+const ESTIMATED_RENDER_BUFFER_MULTIPLIER = 7;
+const MAX_ESTIMATED_RENDER_BYTES = 1280 * 1024 * 1024;
 
 function formatMinutes(seconds: number): string {
   const minutes = Math.round(seconds / 60);
@@ -57,6 +60,16 @@ export async function decodeAudioFile(file: File): Promise<DecodedAudioData> {
       );
     }
 
+    const decodedPcmBytes = audioBuffer.length * audioBuffer.numberOfChannels * Float32Array.BYTES_PER_ELEMENT;
+    const estimatedRenderBytes = decodedPcmBytes * ESTIMATED_RENDER_BUFFER_MULTIPLIER;
+
+    if (decodedPcmBytes > MAX_DECODED_PCM_BYTES || estimatedRenderBytes > MAX_ESTIMATED_RENDER_BYTES) {
+      const decodedMb = Math.round(decodedPcmBytes / (1024 * 1024));
+      throw new Error(
+        `Fichier trop volumineux après décodage (${decodedMb} Mo PCM). Pour protéger la mémoire du navigateur, utilise un fichier plus court, avec moins de canaux ou une fréquence d'échantillonnage plus basse.`
+      );
+    }
+
     const fileInfo: LocalAudioFileInfo = {
       name: file.name,
       sizeBytes: file.size,
@@ -77,7 +90,11 @@ export async function decodeAudioFile(file: File): Promise<DecodedAudioData> {
       audioBuffer
     };
   } catch (error) {
-    if (error instanceof Error && error.message.includes("Fichier trop long")) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("Fichier trop long") ||
+        error.message.includes("Fichier trop volumineux après décodage"))
+    ) {
       throw error;
     }
 

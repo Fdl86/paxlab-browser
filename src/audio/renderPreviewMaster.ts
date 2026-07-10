@@ -1,18 +1,20 @@
 import {
-  analyzeAdvancedAudioBuffer
+  analyzeAdvancedAudioBuffer,
+  measureLoudnessAndPeak
 } from "./advancedAnalysis";
 import {
-  analyzeAudioBuffer,
   applyGainToNewBuffer,
   applySafeTargetGain,
   applyTinyEdgeFade,
   analyzeHeadroomSummary,
   clamp,
   dbToLinear,
-  linearToDb,
   removeDcOffset
 } from "./audioBufferUtils";
+import { applyLinkedLookaheadLimiter } from "./audioSafety";
+import type { LinkedLimiterStats } from "./audioSafety";
 import { getPresetById } from "./previewPresets";
+import { applyStereoSpace, applyStereoWidth } from "./stereoProcessing";
 import type { AdvancedAudioMetrics, PreviewRenderResult, PreviewSettings, ProcessingReport } from "./types";
 
 export interface RenderProgressEvent {
@@ -35,7 +37,6 @@ const YOUTUBE_SAFE_TARGET_LUFS = -14.4;
 const YOUTUBE_MAX_LUFS = -14.0;
 const YOUTUBE_PEAK_TARGET_DB = -2.2;
 const YOUTUBE_PEAK_TRIGGER_DB = -3.4;
-const YOUTUBE_PEAK_CEILING_DB = -1.5;
 const YOUTUBE_PEAK_POLISH_THRESHOLD_DB = -15.0;
 
 
@@ -75,7 +76,8 @@ function analyzeBassPunch(source: AudioBuffer): BassPunchMeasurement {
     let mono = 0;
 
     for (let channel = 0; channel < source.numberOfChannels; channel += 1) {
-      mono += source.getChannelData(channel)[index] ?? 0;
+      const sample = source.getChannelData(channel)[index] ?? 0;
+      mono += Number.isFinite(sample) ? sample : 0;
     }
 
     mono /= Math.max(1, source.numberOfChannels);
@@ -144,8 +146,12 @@ function analyzeStereoImage(source: AudioBuffer): StereoImageMeasurement {
   let samples = 0;
 
   for (let index = 0; index < source.length; index += stride) {
-    const mid = (left[index] + right[index]) * 0.5;
-    const side = (left[index] - right[index]) * 0.5;
+    const rawLeft = left[index];
+    const rawRight = right[index];
+    const leftValue = Number.isFinite(rawLeft) ? rawLeft : 0;
+    const rightValue = Number.isFinite(rawRight) ? rawRight : 0;
+    const mid = (leftValue + rightValue) * 0.5;
+    const side = (leftValue - rightValue) * 0.5;
     const highSide = alpha * (previousHighSide + side - previousSide);
     const lowSide = side - highSide;
 
@@ -298,7 +304,11 @@ function cleanupInputBuffer(inputBuffer: AudioBuffer, settings: PreviewSettings)
 
   for (let channel = 0; channel < inputBuffer.numberOfChannels; channel += 1) {
     const input = inputBuffer.getChannelData(channel);
-    const data = new Float32Array(input);
+    const data = new Float32Array(input.length);
+
+    for (let index = 0; index < input.length; index += 1) {
+      data[index] = Number.isFinite(input[index]) ? input[index] : 0;
+    }
 
     for (let index = 1; index < data.length - 1; index += 1) {
       const value = data[index];
@@ -336,79 +346,6 @@ function cleanupInputBuffer(inputBuffer: AudioBuffer, settings: PreviewSettings)
   };
 }
 
-function applyStereoWidth(source: AudioBuffer, widthPercent: number, sourceStereoRatio?: number): AudioBuffer {
-  if (source.numberOfChannels < 2) {
-    return source;
-  }
-
-  const output = createEmptyLike(source);
-  const leftIn = source.getChannelData(0);
-  const rightIn = source.getChannelData(1);
-  const leftOut = output.getChannelData(0);
-  const rightOut = output.getChannelData(1);
-  const baseWidth = clamp(widthPercent / 100, 0.7, 1.18);
-  const safetyFactor = sourceStereoRatio === undefined
-    ? 1
-    : sourceStereoRatio > 0.6
-      ? 0.7
-      : sourceStereoRatio > 0.45
-        ? 0.85
-        : 1;
-  const width = baseWidth > 1 ? 1 + (baseWidth - 1) * safetyFactor : baseWidth;
-
-  for (let index = 0; index < source.length; index += 1) {
-    const mid = (leftIn[index] + rightIn[index]) * 0.5;
-    const side = (leftIn[index] - rightIn[index]) * 0.5 * width;
-    leftOut[index] = clamp(mid + side, -1, 1);
-    rightOut[index] = clamp(mid - side, -1, 1);
-  }
-
-  for (let channel = 2; channel < source.numberOfChannels; channel += 1) {
-    output.copyToChannel(source.getChannelData(channel), channel);
-  }
-
-  return output;
-}
-
-function applyStereoSpace(source: AudioBuffer, enabled: boolean): AudioBuffer {
-  if (!enabled || source.numberOfChannels < 2) {
-    return source;
-  }
-
-  const output = createEmptyLike(source);
-  const leftIn = source.getChannelData(0);
-  const rightIn = source.getChannelData(1);
-  const leftOut = output.getChannelData(0);
-  const rightOut = output.getChannelData(1);
-  const sideLift = 0.14;
-  const highPassFrequency = 220;
-  const rc = 1 / (2 * Math.PI * highPassFrequency);
-  const dt = 1 / source.sampleRate;
-  const alpha = rc / (rc + dt);
-  let previousSide = 0;
-  let previousHighSide = 0;
-
-  for (let index = 0; index < source.length; index += 1) {
-    const left = leftIn[index];
-    const right = rightIn[index];
-    const mid = (left + right) * 0.5;
-    const side = (left - right) * 0.5;
-    const highSide = alpha * (previousHighSide + side - previousSide);
-    const wideSide = side + highSide * sideLift;
-
-    leftOut[index] = clamp(mid + wideSide, -1, 1);
-    rightOut[index] = clamp(mid - wideSide, -1, 1);
-    previousSide = side;
-    previousHighSide = highSide;
-  }
-
-  for (let channel = 2; channel < source.numberOfChannels; channel += 1) {
-    output.copyToChannel(source.getChannelData(channel), channel);
-  }
-
-  return output;
-}
-
 function applyGentleDensity(source: AudioBuffer, density: number): AudioBuffer {
   const blend = clamp(density / 100, 0, 1) * 0.16;
 
@@ -424,54 +361,71 @@ function applyGentleDensity(source: AudioBuffer, density: number): AudioBuffer {
     const data = output.getChannelData(channel);
 
     for (let index = 0; index < source.length; index += 1) {
-      const clean = input[index];
+      const raw = input[index];
+      const clean = Number.isFinite(raw) ? raw : 0;
       const saturated = Math.tanh(clean * drive);
-      data[index] = clamp(clean * (1 - blend) + saturated * blend, -1, 1);
+      data[index] = clean * (1 - blend) + saturated * blend;
     }
   }
 
   return output;
 }
 
-function applyImprovedLimiter(source: AudioBuffer, maxPeakDb: number): { buffer: AudioBuffer; active: boolean; reductionDb: number } {
-  const ceiling = dbToLinear(maxPeakDb);
-  const output = createEmptyLike(source);
-  let peakBefore = 0;
-  let peakAfter = 0;
-  let active = false;
+interface LimiterApplication {
+  buffer: AudioBuffer;
+  active: boolean;
+  reductionDb: number;
+  stats: LinkedLimiterStats;
+}
 
-  for (let channel = 0; channel < source.numberOfChannels; channel += 1) {
-    const input = source.getChannelData(channel);
-    const data = output.getChannelData(channel);
-
-    for (let index = 0; index < source.length; index += 1) {
-      const sample = input[index];
-      const abs = Math.abs(sample);
-      peakBefore = Math.max(peakBefore, abs);
-
-      if (abs > ceiling) {
-        active = true;
-        const sign = Math.sign(sample) || 1;
-        const excess = abs / ceiling;
-        data[index] = sign * ceiling * Math.tanh(excess) / Math.tanh(1);
-      } else {
-        data[index] = sample;
-      }
-
-      if (Math.abs(data[index]) > ceiling) {
-        data[index] = Math.sign(data[index]) * ceiling;
-      }
-
-      peakAfter = Math.max(peakAfter, Math.abs(data[index]));
-    }
-  }
-
-  const reductionDb = Math.max(0, linearToDb(peakBefore || 1e-9) - linearToDb(peakAfter || 1e-9));
+function applyImprovedLimiter(source: AudioBuffer, maxPeakDb: number): LimiterApplication {
+  const limited = applyLinkedLookaheadLimiter(source, maxPeakDb, {
+    lookaheadMs: 3,
+    releaseMs: 85
+  });
 
   return {
-    buffer: output,
-    active,
-    reductionDb
+    buffer: limited.buffer,
+    active: limited.stats.active,
+    reductionDb: limited.stats.maxReductionDb,
+    stats: limited.stats
+  };
+}
+
+function summarizeLimiterStats(stats: LinkedLimiterStats[]): {
+  peakBeforeDb: number;
+  peakAfterDb: number;
+  maxReductionDb: number;
+  averageReductionDb: number;
+  samplesAboveCeiling: number;
+  nonFiniteSamples: number;
+  lookaheadMs: number;
+} {
+  const activeStats = stats.filter((item) => item.active || item.samplesAboveCeiling > 0 || item.nonFiniteSamples > 0);
+  const source = activeStats.length ? activeStats : stats;
+
+  if (!source.length) {
+    return {
+      peakBeforeDb: -120,
+      peakAfterDb: -120,
+      maxReductionDb: 0,
+      averageReductionDb: 0,
+      samplesAboveCeiling: 0,
+      nonFiniteSamples: 0,
+      lookaheadMs: 3
+    };
+  }
+
+  const averageReductionDb = source.reduce((sum, item) => sum + item.averageReductionDb, 0) / source.length;
+
+  return {
+    peakBeforeDb: Math.max(...source.map((item) => item.peakBeforeDb)),
+    peakAfterDb: Math.max(...source.map((item) => item.peakAfterDb)),
+    maxReductionDb: Math.max(...source.map((item) => item.maxReductionDb)),
+    averageReductionDb,
+    samplesAboveCeiling: source.reduce((sum, item) => sum + item.samplesAboveCeiling, 0),
+    nonFiniteSamples: source.reduce((sum, item) => sum + item.nonFiniteSamples, 0),
+    lookaheadMs: Math.max(...source.map((item) => item.lookaheadMs))
   };
 }
 
@@ -486,16 +440,23 @@ function applyPostLoudnessCalibration(
   autoIntensity: PreviewSettings["autoIntensity"],
   antiFatigue: boolean,
   spacePreserve: boolean
-): { buffer: AudioBuffer; limiterActive: boolean; limiterReductionDb: number; correctionGainDb: number } {
+): {
+  buffer: AudioBuffer;
+  limiterActive: boolean;
+  limiterReductionDb: number;
+  correctionGainDb: number;
+  limiterStats: LinkedLimiterStats[];
+} {
   let current = source;
   let limiterActive = false;
   let limiterReductionDb = 0;
   let correctionGainDb = 0;
   let upwardCorrectionDb = 0;
+  const limiterStats: LinkedLimiterStats[] = [];
   const maxExtraDb = (autoIntensity === "impact" ? 4.2 : autoIntensity === "youtube" ? 2.6 : antiFatigue || autoIntensity === "safe" ? 2.2 : 3.2) * (spacePreserve ? 0.62 : 1);
 
   if (autoIntensity !== "youtube") {
-    const initialMetrics = analyzeAdvancedAudioBuffer(current);
+    const initialMetrics = measureLoudnessAndPeak(current);
     const initialGapDb = targetLufsEstimate - initialMetrics.estimatedLufs;
 
     if (initialGapDb < -0.35) {
@@ -503,6 +464,7 @@ function applyPostLoudnessCalibration(
       current = applyGainToNewBuffer(current, dbToLinear(trimDb));
       const limited = applyImprovedLimiter(current, maxPeakDb);
       current = limited.buffer;
+      limiterStats.push(limited.stats);
       limiterActive = limiterActive || limited.active;
       limiterReductionDb = Math.max(limiterReductionDb, limited.reductionDb);
       correctionGainDb += trimDb;
@@ -510,7 +472,7 @@ function applyPostLoudnessCalibration(
   }
 
   for (let pass = 0; pass < 3; pass += 1) {
-    const metrics = analyzeAdvancedAudioBuffer(current);
+    const metrics = measureLoudnessAndPeak(current);
     const loudnessGapDb = targetLufsEstimate - metrics.estimatedLufs;
 
     if (loudnessGapDb <= 0.35 || upwardCorrectionDb >= maxExtraDb) {
@@ -534,6 +496,7 @@ function applyPostLoudnessCalibration(
     current = applyGainToNewBuffer(current, dbToLinear(passGainDb));
     const limited = applyImprovedLimiter(current, maxPeakDb);
     current = limited.buffer;
+    limiterStats.push(limited.stats);
     limiterActive = limiterActive || limited.active;
     limiterReductionDb = Math.max(limiterReductionDb, limited.reductionDb);
     upwardCorrectionDb += passGainDb;
@@ -544,7 +507,8 @@ function applyPostLoudnessCalibration(
     buffer: current,
     limiterActive,
     limiterReductionDb,
-    correctionGainDb
+    correctionGainDb,
+    limiterStats
   };
 }
 
@@ -601,7 +565,6 @@ function applyYoutubePeakPolish(
 ): YoutubePeakPolishResult {
   const before = knownMetrics ?? analyzeAdvancedAudioBuffer(source);
   const polishTargetDb = Math.min(YOUTUBE_PEAK_TARGET_DB, maxPeakDb);
-  const polishCeilingDb = Math.min(YOUTUBE_PEAK_CEILING_DB, maxPeakDb);
 
   if (
     before.estimatedLufs > YOUTUBE_MAX_LUFS - 0.1 ||
@@ -633,7 +596,6 @@ function applyYoutubePeakPolish(
   }
 
   const threshold = dbToLinear(YOUTUBE_PEAK_POLISH_THRESHOLD_DB);
-  const ceiling = dbToLinear(polishCeilingDb);
   const maxMultiplier = dbToLinear(desiredPeakLiftDb);
   const peakSpan = Math.max(before.peakLinear - threshold, 1e-6);
   const output = createEmptyLike(source);
@@ -643,7 +605,8 @@ function applyYoutubePeakPolish(
     const data = output.getChannelData(channel);
 
     for (let index = 0; index < source.length; index += 1) {
-      const sample = input[index];
+      const rawSample = input[index];
+      const sample = Number.isFinite(rawSample) ? rawSample : 0;
       const abs = Math.abs(sample);
 
       if (abs <= threshold) {
@@ -654,8 +617,7 @@ function applyYoutubePeakPolish(
       const weight = Math.min(Math.max((abs - threshold) / peakSpan, 0), 1);
       const shapedWeight = weight * weight;
       const multiplier = 1 + (maxMultiplier - 1) * shapedWeight;
-      const polished = sample * multiplier;
-      data[index] = clamp(polished, -ceiling, ceiling);
+      data[index] = Number.isFinite(sample) ? sample * multiplier : 0;
     }
   }
 
@@ -836,7 +798,6 @@ async function renderPreviewMasterInternal(
   const effectiveTargetLufs = isYoutubeMix ? Math.min(settings.targetLufsEstimate, YOUTUBE_SAFE_TARGET_LUFS) : settings.spacePreserve ? settings.targetLufsEstimate - 0.45 : settings.targetLufsEstimate;
   const effectiveTargetRmsDb = isYoutubeMix ? Math.min(settings.targetRmsDb, -16.8) : settings.spacePreserve ? settings.targetRmsDb - 0.45 : settings.targetRmsDb;
   const densityBuffer = applyGentleDensity(stereoBuffer, effectiveDensity);
-  const preGainMetrics = analyzeAudioBuffer(densityBuffer);
   notifyProgress(onProgress, 5, 76, "Normalisation du niveau");
   await waitForProgressFrame(240);
   const leveledBuffer = applySafeTargetGain(
@@ -855,12 +816,7 @@ async function renderPreviewMasterInternal(
   );
   notifyProgress(onProgress, 6, 88, "Sécurité peak");
   await waitForProgressFrame(220);
-  const limiter = {
-    buffer: calibrated.buffer,
-    active: firstLimiter.active || calibrated.limiterActive,
-    reductionDb: Math.max(firstLimiter.reductionDb, calibrated.limiterReductionDb)
-  };
-  const dcCorrection = removeDcOffset(limiter.buffer);
+  const dcCorrection = removeDcOffset(calibrated.buffer);
   const fadedBuffer = applyTinyEdgeFade(dcCorrection.buffer);
   const initialYoutubeClamp = isYoutubeMix
     ? applyYoutubeFinalLoudnessClamp(fadedBuffer)
@@ -877,9 +833,17 @@ async function renderPreviewMasterInternal(
         afterLufs: youtubePeakPolish.metrics.estimatedLufs,
         metrics: youtubePeakPolish.metrics
       };
-  const finalPeakLimiter = isYoutubeMix
-    ? applyImprovedLimiter(finalYoutubeClamp.buffer, effectiveMaxPeakDb)
-    : { buffer: finalYoutubeClamp.buffer, active: false, reductionDb: 0 };
+  // Dernière sécurité sur tous les presets, après DC, fades et éventuel peak polish.
+  const finalPeakLimiter = applyImprovedLimiter(finalYoutubeClamp.buffer, effectiveMaxPeakDb);
+  const limiterStats = summarizeLimiterStats([
+    firstLimiter.stats,
+    ...calibrated.limiterStats,
+    finalPeakLimiter.stats
+  ]);
+  const limiter = {
+    active: firstLimiter.active || calibrated.limiterActive || finalPeakLimiter.active,
+    reductionDb: Math.max(firstLimiter.reductionDb, calibrated.limiterReductionDb, finalPeakLimiter.reductionDb)
+  };
   const youtubeClampGainDb = initialYoutubeClamp.clampGainDb + finalYoutubeClamp.clampGainDb + youtubePeakPolish.loudnessTrimDb;
   const youtubeClamp = {
     buffer: finalPeakLimiter.buffer,
@@ -967,8 +931,8 @@ async function renderPreviewMasterInternal(
   if (isYoutubeMix && youtubeClamp.clampGainDb < -0.05) {
     appliedMoves.push(`clamp YouTube final ${youtubeClamp.clampGainDb.toFixed(1)} dB`);
   }
-  if (limiter.active || finalPeakLimiter.active) {
-    appliedMoves.push("limiteur de sécurité");
+  if (limiter.active) {
+    appliedMoves.push("limiteur stéréo lié avec lookahead");
   }
   if (dcCorrection.maxOffset > 0.0008) {
     appliedMoves.push("recentrage DC offset");
@@ -1020,8 +984,14 @@ async function renderPreviewMasterInternal(
       targetHeadroomMaxDb: isYoutubeMix ? Math.max(3.5, Math.abs(effectiveMaxPeakDb) + 0.4) : settings.spacePreserve ? 4.4 : settings.autoIntensity === "safe" || settings.antiFatigue ? 4.3 : settings.autoIntensity === "impact" ? 2.5 : 3.5,
       achievedHeadroomDb,
       headroomSummary,
-      limiterActive: limiter.active || finalPeakLimiter.active,
-      limiterReductionDb: Math.max(limiter.reductionDb, finalPeakLimiter.reductionDb)
+      limiterActive: limiter.active,
+      limiterReductionDb: limiter.reductionDb,
+      limiterPeakBeforeDb: limiterStats.peakBeforeDb,
+      limiterPeakAfterDb: limiterStats.peakAfterDb,
+      limiterAverageReductionDb: limiterStats.averageReductionDb,
+      limiterSamplesAboveCeiling: limiterStats.samplesAboveCeiling,
+      limiterNonFiniteSamples: limiterStats.nonFiniteSamples,
+      limiterLookaheadMs: limiterStats.lookaheadMs
     },
     stereoImage,
     bassPunch,

@@ -103,6 +103,31 @@ function waitForExportFeedback(): Promise<void> {
   });
 }
 
+function assertWavExport(blob: Blob, buffer: AudioBuffer, bitDepth: 16 | 24): void {
+  const expectedSize = 44 + buffer.length * buffer.numberOfChannels * (bitDepth / 8);
+
+  if (blob.type !== "audio/wav" || blob.size !== expectedSize) {
+    throw new Error("Validation WAV échouée. Aucun fichier incomplet n'a été téléchargé.");
+  }
+}
+
+async function assertFlacExport(blob: Blob): Promise<void> {
+  if (blob.size < 42) {
+    throw new Error("Validation FLAC échouée. Le fichier encodé est incomplet.");
+  }
+
+  const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+  const isNativeFlac =
+    header[0] === 0x66 &&
+    header[1] === 0x4c &&
+    header[2] === 0x61 &&
+    header[3] === 0x43;
+
+  if (!isNativeFlac) {
+    throw new Error("Validation FLAC échouée. Signature du fichier invalide.");
+  }
+}
+
 export function ExportPanel({
   sourceFileName,
   previewBuffer,
@@ -120,6 +145,8 @@ export function ExportPanel({
     useState<ExportChoiceId>("flac24");
   const [exportJob, setExportJob] = useState<ExportJobState | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const exportInFlightRef = useRef(false);
+  const exportGenerationRef = useRef(0);
   const selectedExport =
     EXPORT_CHOICES.find((choice) => choice.id === selectedChoice) ??
     EXPORT_CHOICES[0];
@@ -128,6 +155,7 @@ export function ExportPanel({
   );
 
   useEffect(() => {
+    exportGenerationRef.current += 1;
     setExportFilename(
       buildDefaultExportFilename(
         sourceFileName,
@@ -173,10 +201,17 @@ export function ExportPanel({
   }
 
   async function beginExportFeedback(choice: typeof EXPORT_CHOICES[number]) {
-    if (!previewBuffer || hasPendingChanges || isRendering || exportJob) {
+    if (
+      !previewBuffer ||
+      hasPendingChanges ||
+      isRendering ||
+      exportJob ||
+      exportInFlightRef.current
+    ) {
       return false;
     }
 
+    exportInFlightRef.current = true;
     setExportErrorMessage(null);
     setLastExportName(null);
     onBeforeExport();
@@ -205,6 +240,8 @@ export function ExportPanel({
       return;
     }
 
+    const exportGeneration = exportGenerationRef.current;
+
     try {
       const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-${bitDepth}bit`;
       const fallbackName = buildSafeAudioFilename(
@@ -219,6 +256,12 @@ export function ExportPanel({
         bitDepth,
       );
       const blob = encodeWavFromAudioBuffer(previewBuffer, { bitDepth });
+      assertWavExport(blob, previewBuffer, bitDepth);
+
+      if (exportGeneration !== exportGenerationRef.current) {
+        throw new Error("Le rendu a changé pendant l'export. Relance l'export du rendu actuel.");
+      }
+
       downloadBlob(blob, filename);
     } catch (error) {
       const message =
@@ -228,6 +271,7 @@ export function ExportPanel({
       setExportErrorMessage(message);
       setLastExportName(null);
     } finally {
+      exportInFlightRef.current = false;
       setExportJob(null);
     }
   }
@@ -240,6 +284,8 @@ export function ExportPanel({
     if (!(await beginExportFeedback(EXPORT_CHOICES[0]))) {
       return;
     }
+
+    const exportGeneration = exportGenerationRef.current;
 
     try {
       const fallbackSuffix = `paxlab-preview-${previewRevision || 1}-24bit`;
@@ -258,6 +304,12 @@ export function ExportPanel({
         bitDepth: 24,
         compression: 5,
       });
+      await assertFlacExport(blob);
+
+      if (exportGeneration !== exportGenerationRef.current) {
+        throw new Error("Le rendu a changé pendant l'export. Relance l'export du rendu actuel.");
+      }
+
       downloadBlob(blob, filename);
     } catch (error) {
       const message =
@@ -267,6 +319,7 @@ export function ExportPanel({
       setExportErrorMessage(message);
       setLastExportName(null);
     } finally {
+      exportInFlightRef.current = false;
       setExportJob(null);
     }
   }
@@ -314,11 +367,18 @@ export function ExportPanel({
   return (
     <>
       {exportJob && (
-        <div className="guided-processing-overlay export-processing-overlay" role="status" aria-live="polite">
-          <div className="guided-processing-card processing-modal-premium export-processing-card">
+        <div
+          className="guided-processing-overlay export-processing-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-live="polite"
+          aria-labelledby="export-dialog-title"
+          aria-describedby="export-dialog-description"
+        >
+          <div className="guided-processing-card processing-modal-premium export-processing-card" tabIndex={-1} autoFocus>
             <p className="eyebrow">Export local</p>
-            <h2>{exportJob.title}</h2>
-            <p>{exportJob.detail}</p>
+            <h2 id="export-dialog-title">{exportJob.title}</h2>
+            <p id="export-dialog-description">{exportJob.detail}</p>
             <div className="export-spinner" aria-hidden="true" />
             <strong>Aucun upload - traitement navigateur</strong>
           </div>

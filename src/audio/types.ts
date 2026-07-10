@@ -207,6 +207,12 @@ export interface ProcessingReport {
     headroomSummary?: HeadroomSummary;
     limiterActive: boolean;
     limiterReductionDb: number;
+    limiterPeakBeforeDb?: number;
+    limiterPeakAfterDb?: number;
+    limiterAverageReductionDb?: number;
+    limiterSamplesAboveCeiling?: number;
+    limiterNonFiniteSamples?: number;
+    limiterLookaheadMs?: number;
   };
   stereoImage: StereoImageSummary;
   bassPunch: BassPunchSummary;

@@ -195,6 +195,7 @@ export function useABAudioPlayer({
   const monitorGainDbBySourceRef = useRef<Partial<Record<PlaybackSource, number>>>({});
   const currentTimeRef = useRef(0);
   const animationFrameRef = useRef<number | null>(null);
+  const lastRealtimeUpdateRef = useRef(0);
   const playbackTokenRef = useRef(0);
   const shortTermWindowsRef = useRef<ShortTermWindow[]>([]);
   const integratedSquareSumRef = useRef(0);
@@ -359,6 +360,10 @@ export function useABAudioPlayer({
         setIsPlaying(false);
         isPlayingRef.current = false;
         setCurrentTime(sourceBuffer.duration);
+        currentTimeRef.current = sourceBuffer.duration;
+        analyserRef.current = null;
+        analyserDataRef.current = null;
+        resetMeter();
       };
 
       sourceNode.start(0, safeOffset);
@@ -372,7 +377,7 @@ export function useABAudioPlayer({
       setIsPlaying(true);
       isPlayingRef.current = true;
     },
-    [resetIntegratedMeterOnly, stopEverySource]
+    [resetIntegratedMeterOnly, resetMeter, stopEverySource]
   );
 
   const pause = useCallback(() => {
@@ -488,33 +493,35 @@ export function useABAudioPlayer({
       const shouldStopAtEnd = isAtOrPastEnd(offset, nextBuffer.duration);
       const wasPlaying = isPlayingRef.current;
 
-      if (wasPlaying && !shouldStopAtEnd) {
-        fadeOutExistingVoices(SWITCH_FADE_SECONDS);
-      } else {
-        stopEverySource(wasPlaying ? SWITCH_FADE_SECONDS : 0);
-      }
+      try {
+        if (wasPlaying && !shouldStopAtEnd) {
+          fadeOutExistingVoices(SWITCH_FADE_SECONDS);
+        } else {
+          stopEverySource(wasPlaying ? SWITCH_FADE_SECONDS : 0);
+        }
 
-      setActiveSourceState(nextSource);
-      activeSourceRef.current = nextSource;
-      setCurrentTime(offset);
-      currentTimeRef.current = offset;
-      if (!wasPlaying || shouldStopAtEnd) {
-        setIsPlaying(false);
-        isPlayingRef.current = false;
-      }
-      resetIntegratedMeterOnly();
+        setActiveSourceState(nextSource);
+        activeSourceRef.current = nextSource;
+        setCurrentTime(offset);
+        currentTimeRef.current = offset;
+        if (!wasPlaying || shouldStopAtEnd) {
+          setIsPlaying(false);
+          isPlayingRef.current = false;
+        }
+        resetIntegratedMeterOnly();
 
-      if (wasPlaying && !shouldStopAtEnd) {
-        await startSource(nextSource, offset, false);
-      } else {
-        resetMeter();
+        if (wasPlaying && !shouldStopAtEnd) {
+          await startSource(nextSource, offset, false);
+        } else {
+          resetMeter();
+        }
+      } finally {
+        switchUnlockTimerRef.current = window.setTimeout(() => {
+          isSwitchingRef.current = false;
+          setIsSwitching(false);
+          switchUnlockTimerRef.current = null;
+        }, Math.ceil(SWITCH_LOCK_SECONDS * 1000));
       }
-
-      switchUnlockTimerRef.current = window.setTimeout(() => {
-        isSwitchingRef.current = false;
-        setIsSwitching(false);
-        switchUnlockTimerRef.current = null;
-      }, Math.ceil(SWITCH_LOCK_SECONDS * 1000));
     },
     [fadeOutExistingVoices, readCurrentOffset, resetIntegratedMeterOnly, resetMeter, startSource, stopEverySource]
   );
@@ -576,8 +583,25 @@ export function useABAudioPlayer({
   }, []);
 
   useEffect(() => {
-    function tick() {
-      if (isPlayingRef.current) {
+    if (!isPlaying) {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      return;
+    }
+
+    lastRealtimeUpdateRef.current = 0;
+
+    function tick(timestamp: number) {
+      if (!isPlayingRef.current) {
+        animationFrameRef.current = null;
+        return;
+      }
+
+      // 30 Hz suffit pour les meters et évite de rerendre toute l'application à 60 Hz.
+      if (timestamp - lastRealtimeUpdateRef.current >= 33) {
+        lastRealtimeUpdateRef.current = timestamp;
         setCurrentTime(readCurrentOffset());
         updateMeter();
       }
@@ -590,13 +614,18 @@ export function useABAudioPlayer({
     return () => {
       if (animationFrameRef.current !== null) {
         window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
+    };
+  }, [isPlaying, readCurrentOffset, updateMeter]);
 
+  useEffect(() => {
+    return () => {
       if (switchUnlockTimerRef.current !== null) {
         window.clearTimeout(switchUnlockTimerRef.current);
       }
     };
-  }, [readCurrentOffset, updateMeter]);
+  }, []);
 
   useEffect(() => {
     stop();

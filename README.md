@@ -1,50 +1,64 @@
-# PAXLAB Browser Engine - v0.9.0-RC5
+# PAXLAB Browser Engine - v0.9.0-RC6
 
-Release candidate de finition basée sur RC2. Objectif : renforcer l'aspect produit fini, améliorer les contrôles visibles et corriger le retour immédiat du format d'export, sans modifier le moteur audio.
+Release candidate technique construite directement sur la base visuelle stable v0.9.0-RC5.
 
-## Objectif RC5
+L'interface et `src/styles.css` restent strictement identiques à RC5. RC6 concentre les changements sur la sécurité DSP, la robustesse du player, la mémoire, le chargement et la validation des exports.
 
-- Donner un relief premium léger aux vrais boutons d'action.
-- Garder les cartes de format export en style plat pour ne pas surcharger l'interface.
-- Corriger l'alignement vertical des capsules d'état.
-- Rendre l'ouverture du journal technique plus visible.
-- Mettre à jour immédiatement l'extension du nom de fichier quand le format export change.
-- Conserver le workflow : charger, générer, comparer en A/B, exporter localement.
+## Nouveautés RC6
 
-## Modifications RC5
+### Sécurité DSP
 
-### Interface
+- Gain intermédiaire sans écrêtage prématuré.
+- Limiteur offline multicanal lié avec lookahead court.
+- Réduction identique sur les canaux pour préserver l'image stéréo.
+- Suppression des hard clamps dans les étages Mid/Side intermédiaires.
+- Protection NaN / Infinity dans les analyses et les traitements.
+- Mesure LUFS / peak allégée pour les passes de calibration.
+- Statistiques internes du limiteur : peak avant / après, réduction maximale et moyenne, dépassements et valeurs non finies.
+- Cibles LUFS, ceilings, EQ, presets et intensités d'options inchangés.
 
-- Relief 3D léger appliqué uniquement aux boutons : `Original`, `Rendu PAXLAB`, `Play`, `Stop`, `Changer de fichier`, `Générer le rendu PAXLAB`, `Exporter le fichier`.
-- Les boutons de choix de format `FLAC 24-bit`, `WAV 24-bit`, `WAV 16-bit` restent plats et lisibles.
-- Capsule `Export sécurisé` mieux centrée verticalement.
-- Contrôle du `Journal technique` placé à droite dans l'en-tête de la ligne, avec libellé `Afficher` / `Masquer` plus visible.
+### Player A/B
+
+- Boucle d'animation active uniquement pendant la lecture.
+- Rafraîchissement des meters limité à environ 30 Hz.
+- Remise à zéro des meters à la fin naturelle.
+- Déverrouillage garanti de la bascule Original / Rendu, même après une erreur.
+- Nettoyage renforcé des noeuds et analyseurs.
+
+### Chargement et mémoire
+
+- Validation du poids PCM réel après décodage.
+- Estimation prudente de la mémoire nécessaire au rendu.
+- Message d'erreur de fichier invalide conservé au lieu d'être effacé par une remise à zéro concurrente.
+- Protection existante contre les décodages et rendus obsolètes conservée.
 
 ### Export
 
-- Le champ `Nom du fichier` se met à jour immédiatement quand l'utilisateur change de format.
-- Le suffixe `16bit` / `24bit` et l'extension `.wav` / `.flac` restent cohérents avec le format sélectionné.
-- Le nom final reste normalisé au moment du téléchargement.
+- Protection synchrone contre les doubles lancements.
+- Annulation logique si le rendu change pendant un encodage.
+- Validation de la taille et des entêtes WAV 16-bit / 24-bit avant téléchargement.
+- Validation de la signature FLAC avant téléchargement.
+- Noms, extensions et workflow visuel RC5 conservés.
 
-### Optimisation
+### Accessibilité invisible
 
-- CSS ajusté par petites touches, sans créer de nouveau système parallèle.
-- Vérification du CSS après modification.
-- Aucun composant legacy réintroduit.
+- Overlays d'analyse, de rendu et d'export déclarés comme dialogues modaux.
+- Barres de progression exposées avec leurs valeurs ARIA.
+- Raccourcis clavier neutralisés pendant l'analyse et le rendu.
 
-### Stabilité
-
-- Aucun changement du moteur audio.
-- Aucun changement des presets DSP.
-- Aucun changement du player A/B.
-- Aucun changement de waveform.
-- Aucun changement des exports WAV / FLAC, hors nom de fichier affiché.
-
-## Vérification
+## Tests
 
 ```bash
 npm ci
+npm test
 npm run build
 ```
 
-Le zip livré ne contient ni `node_modules`, ni `dist`.
+Commandes détaillées :
+
+```bash
+npm run test:dsp
+npm run test:exports
+```
+
+Le zip de livraison ne contient ni `node_modules`, ni `dist`.
