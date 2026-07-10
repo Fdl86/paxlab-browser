@@ -27,8 +27,7 @@ export function analyzeAudioBuffer(buffer: AudioBuffer): AudioMetrics {
     const data = buffer.getChannelData(channel);
 
     for (let index = 0; index < data.length; index += 1) {
-      const rawSample = data[index];
-      const sample = Number.isFinite(rawSample) ? rawSample : 0;
+      const sample = data[index];
       const absSample = Math.abs(sample);
 
       if (absSample > peak) {
@@ -74,36 +73,13 @@ export function applyGainToNewBuffer(source: AudioBuffer, gain: number): AudioBu
     length: source.length,
     sampleRate: source.sampleRate
   });
-  const safeGain = Number.isFinite(gain) ? gain : 1;
 
   for (let channel = 0; channel < source.numberOfChannels; channel += 1) {
     const input = source.getChannelData(channel);
     const output = processed.getChannelData(channel);
 
     for (let index = 0; index < input.length; index += 1) {
-      const sample = input[index];
-      output[index] = Number.isFinite(sample) ? sample * safeGain : 0;
-    }
-  }
-
-  return processed;
-}
-
-export function applyFinalClampToNewBuffer(source: AudioBuffer, ceilingLinear = 1): AudioBuffer {
-  const processed = new AudioBuffer({
-    numberOfChannels: source.numberOfChannels,
-    length: source.length,
-    sampleRate: source.sampleRate
-  });
-  const ceiling = clamp(Math.abs(ceilingLinear), 1e-6, 1);
-
-  for (let channel = 0; channel < source.numberOfChannels; channel += 1) {
-    const input = source.getChannelData(channel);
-    const output = processed.getChannelData(channel);
-
-    for (let index = 0; index < input.length; index += 1) {
-      const sample = Number.isFinite(input[index]) ? input[index] : 0;
-      output[index] = clamp(sample, -ceiling, ceiling);
+      output[index] = clamp(input[index] * gain, -1, 1);
     }
   }
 
@@ -155,16 +131,14 @@ export function removeDcOffset(source: AudioBuffer): { buffer: AudioBuffer; maxO
     let sum = 0;
 
     for (let index = 0; index < input.length; index += 1) {
-      const sample = input[index];
-      sum += Number.isFinite(sample) ? sample : 0;
+      sum += input[index];
     }
 
     const offset = sum / Math.max(1, input.length);
     maxOffset = Math.max(maxOffset, Math.abs(offset));
 
     for (let index = 0; index < input.length; index += 1) {
-      const sample = input[index];
-      output[index] = Number.isFinite(sample) ? sample - offset : 0;
+      output[index] = clamp(input[index] - offset, -1, 1);
     }
   }
 

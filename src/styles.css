@@ -980,20 +980,16 @@ body{
 }
 .guided-shell::before{display:none !important;}
 .compact-studio-topbar.compact-studio-topbar-minimal{
-  display:flex !important;
-  align-items:flex-start !important;
-  justify-content:space-between !important;
-  min-height:0 !important;
+  min-height:60px !important;
   margin:0 0 18px !important;
-  padding:0 10px 14px !important;
+  padding:0 10px 18px !important;
   box-sizing:border-box !important;
   border-bottom:1px solid rgba(232,216,180,0.10) !important;
   background:transparent !important;
   box-shadow:none !important;
 }
 .compact-brand-block{gap:12px !important;}
-.compact-topbar-actions{align-self:flex-start !important;padding-top:1px !important;}
-.compact-trust-badges{display:flex !important;align-items:flex-start !important;gap:10px !important;}
+.compact-trust-badges{display:flex !important;align-items:center !important;gap:10px !important;}
 .compact-trust-badges span{
   min-height:34px !important;
   padding:0 18px !important;

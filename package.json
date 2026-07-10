@@ -1,13 +1,12 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "1.0.0-dev15-28-7-dsp-safety",
+  "version": "1.0.0-dev15-28-4-spacing-responsive",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --project ./tsconfig.json --noEmit && vite build",
-    "preview": "vite preview",
-    "test:dsp": "node scripts/runDspTests.mjs"
+    "preview": "vite preview"
   },
   "dependencies": {
     "libflacjs": "^5.4.0",

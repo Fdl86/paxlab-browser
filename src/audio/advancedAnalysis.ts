@@ -103,8 +103,7 @@ function getMonoSample(buffer: AudioBuffer, index: number): number {
   const channelCount = buffer.numberOfChannels;
 
   for (let channel = 0; channel < channelCount; channel += 1) {
-    const sample = buffer.getChannelData(channel)[index] ?? 0;
-    sum += Number.isFinite(sample) ? sample : 0;
+    sum += buffer.getChannelData(channel)[index] ?? 0;
   }
 
   return sum / Math.max(1, channelCount);
@@ -364,9 +363,7 @@ function estimateIntegratedLoudness(buffer: AudioBuffer): IntegratedLoudnessEsti
     const rlbState = createBiquadState();
 
     for (let index = 0; index < data.length; index += 1) {
-      const rawSample = data[index];
-      const sample = Number.isFinite(rawSample) ? rawSample : 0;
-      const preFiltered = processBiquadSample(sample, preFilter, preState);
+      const preFiltered = processBiquadSample(data[index], preFilter, preState);
       const weighted = processBiquadSample(preFiltered, rlbFilter, rlbState);
       const chunk = Math.min(chunkCount - 1, Math.floor(index / hopSamples));
       chunkEnergies[chunk] += weighted * weighted;
@@ -405,43 +402,6 @@ function estimateIntegratedLoudness(buffer: AudioBuffer): IntegratedLoudnessEsti
   };
 }
 
-
-export interface LoudnessPeakMeasurement {
-  estimatedLufs: number;
-  peakLinear: number;
-  peakDb: number;
-  approxTruePeakDb: number;
-}
-
-export function measureLoudnessAndPeak(buffer: AudioBuffer): LoudnessPeakMeasurement {
-  let peak = 0;
-
-  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
-    const data = buffer.getChannelData(channel);
-
-    for (let index = 0; index < data.length; index += 1) {
-      const sample = data[index];
-
-      if (!Number.isFinite(sample)) {
-        continue;
-      }
-
-      peak = Math.max(peak, Math.abs(sample));
-    }
-  }
-
-  const peakDb = linearToDb(peak);
-  const loudness = estimateIntegratedLoudness(buffer);
-
-  return {
-    estimatedLufs: loudness.integratedLufs,
-    peakLinear: peak,
-    peakDb,
-    // Marge prudente proche de l'estimation historique, sans relancer la FFT.
-    approxTruePeakDb: peakDb + (peak > 0 ? 0.35 : 0)
-  };
-}
-
 function safeCorrelation(left: Float32Array, right: Float32Array, start = 0, end = left.length): number {
   let sumLeft = 0;
   let sumRight = 0;
@@ -452,10 +412,8 @@ function safeCorrelation(left: Float32Array, right: Float32Array, start = 0, end
   const safeEnd = Math.min(end, left.length, right.length);
 
   for (let index = start; index < safeEnd; index += 1) {
-    const rawLeft = left[index];
-    const rawRight = right[index];
-    const leftValue = Number.isFinite(rawLeft) ? rawLeft : 0;
-    const rightValue = Number.isFinite(rawRight) ? rawRight : 0;
+    const leftValue = left[index];
+    const rightValue = right[index];
     sumLeft += leftValue;
     sumRight += rightValue;
     sumLeftSq += leftValue * leftValue;
@@ -501,8 +459,7 @@ export function analyzeAdvancedAudioBuffer(buffer: AudioBuffer): AdvancedAudioMe
   for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
     const data = buffer.getChannelData(channel);
     for (let index = 0; index < data.length; index += 1) {
-      const rawSample = data[index];
-      const sample = Number.isFinite(rawSample) ? rawSample : 0;
+      const sample = data[index];
       const abs = Math.abs(sample);
       peak = Math.max(peak, abs);
       sumSquares += sample * sample;
@@ -515,10 +472,8 @@ export function analyzeAdvancedAudioBuffer(buffer: AudioBuffer): AdvancedAudioMe
   }
 
   for (let index = 0; index < buffer.length; index += 1) {
-    const leftSample = Number.isFinite(left[index]) ? left[index] : 0;
-    const rightSample = Number.isFinite(right[index]) ? right[index] : 0;
-    leftSumSquares += leftSample * leftSample;
-    rightSumSquares += rightSample * rightSample;
+    leftSumSquares += left[index] * left[index];
+    rightSumSquares += right[index] * right[index];
   }
 
   const spectrum = averageSpectrum(buffer);
@@ -563,15 +518,11 @@ function analyzeWindow(buffer: AudioBuffer, startIndex: number, endIndex: number
   let count = 0;
 
   for (let index = startIndex; index < endIndex; index += 1) {
-    const rawLeft = left[index];
-    const rawRight = right[index];
-    const leftValue = Number.isFinite(rawLeft) ? rawLeft : 0;
-    const rightValue = Number.isFinite(rawRight) ? rawRight : 0;
-    const mono = (leftValue + rightValue) * 0.5;
+    const mono = (left[index] + right[index]) * 0.5;
     peak = Math.max(peak, Math.abs(mono));
     sumSquares += mono * mono;
-    leftSq += leftValue * leftValue;
-    rightSq += rightValue * rightValue;
+    leftSq += left[index] * left[index];
+    rightSq += right[index] * right[index];
     count += 1;
   }
 
