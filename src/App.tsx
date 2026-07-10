@@ -12,6 +12,13 @@ import { formatBytes, formatDuration } from "./audio/audioBufferUtils";
 import { decodeAudioFile } from "./audio/decodeAudio";
 import { DEFAULT_PREVIEW_SETTINGS } from "./audio/previewPresets";
 import { renderPreviewMaster } from "./audio/renderPreviewMaster";
+import {
+  buildWaveformRects,
+  DEFAULT_WAVEFORM_HEIGHT,
+  DEFAULT_WAVEFORM_SCALE_Y,
+  DEFAULT_WAVEFORM_WIDTH,
+  getCachedWaveformBins,
+} from "./audio/waveformView";
 import { useABAudioPlayer } from "./audio/useABAudioPlayer";
 import type {
   AdvancedAudioMetrics,
@@ -25,7 +32,6 @@ import type {
   SourceAnalysisResult,
 } from "./audio/types";
 import { ExportPanel } from "./components/ExportPanel";
-import { MasterDashboard } from "./components/MasterDashboard";
 import { MetricsPanel } from "./components/MetricsPanel";
 import { PreviewControls } from "./components/PreviewControls";
 import {
@@ -34,7 +40,6 @@ import {
 } from "./components/PreviewHistoryPanel";
 import { ProcessingReportPanel } from "./components/ProcessingReportPanel";
 import { RealtimeMonitorPanel } from "./components/RealtimeMonitorPanel";
-import { SmartAdvisorPanel } from "./components/SmartAdvisorPanel";
 import { UploadPanel } from "./components/UploadPanel";
 
 const RENDER_STEPS = [
@@ -53,7 +58,7 @@ const ANALYSIS_STEPS = [
   "Mesure du niveau",
   "Analyse spectrale",
   "Détection brillance IA",
-  "Choix de la Preview recommandée",
+  "Choix du rendu conseillé",
 ];
 
 function waitForVisualStep(ms: number): Promise<void> {
@@ -64,31 +69,26 @@ const SIMPLE_RENDERS: Array<{
   id: AutoIntensityId;
   label: string;
   title: string;
-  text: string;
 }> = [
   {
     id: "safe",
     label: "Nettoyage léger",
     title: "Correction discrète",
-    text: "Corrige doucement sans changer le caractère du morceau.",
   },
   {
     id: "balanced",
     label: "Traitement naturel",
     title: "Rendu stable et musical",
-    text: "Rendu stable, musical, sans excès.",
   },
   {
     id: "impact",
     label: "Impact",
     title: "Plus fort et plus dense",
-    text: "Basses plus présentes et rendu plus massif.",
   },
   {
     id: "youtube",
     label: "Mix YouTube",
     title: "Upload propre à -14 LUFS max",
-    text: "Niveau stabilisé, peak prudent, grave et aigus IA contrôlés.",
   },
 ];
 
@@ -132,15 +132,15 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
   let autoIntensity: AutoIntensityId = "youtube";
   let antiFatigue = brightOrFizz;
   let label = "Mix YouTube";
-  let reason = "Sortie vidéo recommandée : niveau stabilisé, peak prudent et aigus IA contrôlés.";
+  let reason = "Sortie vidéo conseillée : niveau stabilisé, peak prudent et aigus IA contrôlés.";
 
   if (lowLufsWithLimitedHeadroom || quietAndDynamic) {
     autoIntensity = "impact";
     antiFatigue = false;
     label = "Impact";
     reason = lowLufsWithLimitedHeadroom
-      ? "Niveau perçu bas avec des crêtes déjà présentes : PAXLAB recommande un rendu Power plus dense."
-      : "Source basse et assez dynamique : PAXLAB recommande plus de densité avant validation A/B.";
+      ? "Niveau perçu bas avec des crêtes déjà présentes : PAXLAB conseille un rendu Power plus dense."
+      : "Source basse et assez dynamique : PAXLAB conseille plus de densité avant validation A/B.";
   } else if (alreadySmooth) {
     autoIntensity = "balanced";
     antiFatigue = false;
@@ -149,13 +149,13 @@ function buildRecommendedPreviewPlan(metrics: AdvancedAudioMetrics): Recommended
   } else if (brightOrFizz) {
     autoIntensity = "youtube";
     antiFatigue = true;
-    label = "Mix YouTube + AI Brightness Smoothing";
-    reason = "Brillance IA ou fizz détecté : PAXLAB recommande le lissage des aigus pour une écoute plus confortable.";
+    label = "Mix YouTube + Lissage brillance IA";
+    reason = "Brillance IA ou fizz détecté : PAXLAB conseille le lissage des aigus pour une écoute plus confortable.";
   } else if (clippedOrHot || compact) {
     autoIntensity = "youtube";
     antiFatigue = false;
     label = "Mix YouTube";
-    reason = "Source dense ou proche du plafond : rendu YouTube prudent recommandé avant export.";
+    reason = "Source dense ou proche du plafond : rendu YouTube prudent conseillé avant export.";
   }
 
   const recommendedPresetId = autoIntensity === "youtube" ? "youtube" : autoIntensity === "impact" ? "power" : "auto";
@@ -281,7 +281,7 @@ function areSettingsEqual(
 
 function vocalOptionLabel(settings: PreviewSettings): string {
   if (settings.antiFatigue) {
-    return "AI Brightness Smoothing actif";
+    return "Lissage brillance IA actif";
   }
 
   if (settings.vocalPresence) {
@@ -295,7 +295,7 @@ function activeOptionLabel(settings: PreviewSettings): string {
   const options: string[] = [];
 
   if (settings.antiFatigue) {
-    options.push("AI Brightness Smoothing");
+    options.push("Lissage brillance IA");
   }
 
   if (settings.vocalPresence) {
@@ -361,7 +361,7 @@ function AnalysisOverlay({
         <p className="eyebrow">Analyse locale</p>
         <h2>Analyse du morceau</h2>
         <p>
-          PAXLAB mesure le niveau, la brillance et la dynamique pour proposer une Preview adaptée.
+          PAXLAB mesure le niveau, la brillance et la dynamique pour proposer une rendu adapté.
           {isLargeFile && " Fichier volumineux : l'analyse peut prendre un peu plus de temps."}
         </p>
         <div
@@ -381,13 +381,6 @@ function AnalysisOverlay({
               <span key={step} className={stateClass}>
                 <b>{String(index + 1).padStart(2, "0")}</b>
                 <em>{step}</em>
-                <small>
-                  {index < activeIndex
-                    ? "Terminé"
-                    : index === activeIndex
-                      ? "En cours"
-                      : "En attente"}
-                </small>
               </span>
             );
           })}
@@ -423,7 +416,7 @@ function ProcessingOverlay({
       <div className="guided-processing-card processing-modal-premium">
         <div className="processing-logo-mark" aria-hidden="true">×</div>
         <p className="eyebrow">Traitement local</p>
-        <h2>Préparation de la Preview</h2>
+        <h2>Préparation du rendu</h2>
         <p>
           Le rendu est généré dans ton navigateur. Aucun serveur, aucun upload.
         </p>
@@ -444,13 +437,6 @@ function ProcessingOverlay({
               <span key={step} className={stateClass}>
                 <b>{String(index + 1).padStart(2, "0")}</b>
                 <em>{step}</em>
-                <small>
-                  {index < activeIndex
-                    ? "Terminé"
-                    : index === activeIndex
-                      ? "En cours"
-                      : "En attente"}
-                </small>
               </span>
             );
           })}
@@ -504,45 +490,6 @@ function WorkflowStepper({
 }
 
 
-function buildStaticWaveformBars(buffer: AudioBuffer | null, bins = 180): Array<{ height: number }> {
-  if (!buffer || buffer.length <= 0) {
-    return [];
-  }
-
-  const channelCount = buffer.numberOfChannels;
-  const step = Math.max(1, Math.floor(buffer.length / bins));
-  const raw: number[] = [];
-
-  for (let bin = 0; bin < bins; bin += 1) {
-    const start = bin * step;
-    const end = Math.min(buffer.length, start + step);
-    let sumSquares = 0;
-    let sampleCount = 0;
-
-    for (let channel = 0; channel < channelCount; channel += 1) {
-      const data = buffer.getChannelData(channel);
-      for (let index = start; index < end; index += 1) {
-        const sample = data[index] ?? 0;
-        sumSquares += sample * sample;
-        sampleCount += 1;
-      }
-    }
-
-    raw.push(sampleCount > 0 ? Math.sqrt(sumSquares / sampleCount) : 0);
-  }
-
-  const sorted = raw.filter((value) => value > 0.00001).sort((a, b) => a - b);
-  const reference = Math.max(0.0008, sorted[Math.floor(sorted.length * 0.92)] ?? 0.0008);
-
-  return raw.map((value, index) => {
-    const previous = raw[index - 1] ?? value;
-    const next = raw[index + 1] ?? value;
-    const smooth = previous * 0.18 + value * 0.64 + next * 0.18;
-    const normalized = Math.min(1, Math.pow(Math.min(3.2, smooth / reference), 0.72) * 0.72 + 0.08);
-    return { height: Math.max(8, normalized * 88) };
-  });
-}
-
 function formatChannelLabel(channelCount: number): string {
   if (channelCount === 1) {
     return "1 (Mono)";
@@ -553,6 +500,70 @@ function formatChannelLabel(channelCount: number): string {
   }
 
   return `${channelCount} canaux`;
+}
+
+function StaticSourceWaveform({
+  buffer,
+  fileName,
+}: {
+  buffer: AudioBuffer;
+  fileName: string;
+}) {
+  const waveformBins = useMemo(
+    () => getCachedWaveformBins(buffer, buffer),
+    [buffer],
+  );
+  const waveformRects = useMemo(
+    () =>
+      buildWaveformRects(
+        waveformBins,
+        DEFAULT_WAVEFORM_WIDTH,
+        DEFAULT_WAVEFORM_HEIGHT,
+        DEFAULT_WAVEFORM_SCALE_Y,
+      ),
+    [waveformBins],
+  );
+
+  return (
+    <div className="loaded-source-monitor monitor-waveform">
+      <div className="waveform-label-row">
+        <div className="waveform-label-left">
+          <span>Source chargée - Original</span>
+          <small>{fileName}</small>
+        </div>
+        <strong className="live-pill">Analyse</strong>
+      </div>
+      <div className="waveform-canvas bar-waveform-canvas static-bar-waveform-canvas">
+        <svg
+          className="bar-waveform-svg"
+          viewBox={`0 0 ${DEFAULT_WAVEFORM_WIDTH} ${DEFAULT_WAVEFORM_HEIGHT}`}
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <line
+            className="waveform-zero"
+            x1="0"
+            y1={DEFAULT_WAVEFORM_HEIGHT / 2}
+            x2={DEFAULT_WAVEFORM_WIDTH}
+            y2={DEFAULT_WAVEFORM_HEIGHT / 2}
+          />
+          <g className="waveform-layer waveform-layer-listened">
+            {waveformRects.map((bar, index) => (
+              <rect
+                key={index}
+                className="waveform-bar waveform-bar-listened"
+                x={bar.x.toFixed(2)}
+                y={bar.y.toFixed(2)}
+                width={bar.width.toFixed(2)}
+                height={bar.height.toFixed(2)}
+                rx="1.2"
+              />
+            ))}
+          </g>
+        </svg>
+      </div>
+    </div>
+  );
 }
 
 function SourceLoadedCard({
@@ -572,7 +583,6 @@ function SourceLoadedCard({
     onFileSelected(file);
   }
 
-  const sourceBars = buildStaticWaveformBars(decodedAudio.audioBuffer);
   const isFlacSource = decodedAudio.file.name.toLowerCase().endsWith(".flac");
 
   return (
@@ -606,7 +616,7 @@ function SourceLoadedCard({
         {analysisStatus === "running"
           ? "Analyse locale en cours..."
           : analysisStatus === "ready"
-            ? "Analyse locale terminée - Preview recommandée prête à générer à droite."
+            ? "Analyse locale terminée - rendu conseillé prêt à générer à droite."
             : analysisStatus === "error"
               ? "Analyse locale indisponible - vérifie le fichier ou recharge-le."
               : "Analyse locale automatique après chargement."}
@@ -624,27 +634,26 @@ function SourceLoadedCard({
         </p>
       )}
 
-      <div className="loaded-source-waveform" aria-hidden="true">
-        {sourceBars.map((bar, index) => (
-          <i key={index} style={{ height: `${bar.height}%` }} />
-        ))}
-      </div>
+      <StaticSourceWaveform
+        buffer={decodedAudio.audioBuffer}
+        fileName={decodedAudio.file.name}
+      />
 
       <div className="loaded-file-metadata">
         <span>
-          <small>Durée</small>
+          <small>Durée</small>{" "}
           <b>{formatDuration(decodedAudio.info.durationSeconds)}</b>
         </span>
         <span>
-          <small>Fréquence d’échantillonnage</small>
+          <small>Fréquence d’échantillonnage</small>{" "}
           <b>{decodedAudio.info.sampleRate.toLocaleString("fr-FR")} Hz</b>
         </span>
         <span>
-          <small>Canaux</small>
+          <small>Canaux</small>{" "}
           <b>{formatChannelLabel(decodedAudio.info.numberOfChannels)}</b>
         </span>
         <span>
-          <small>Format</small>
+          <small>Format</small>{" "}
           <b>{decodedAudio.file.type || "Audio navigateur"}</b>
         </span>
       </div>
@@ -681,15 +690,6 @@ function RenderChoiceCard({
 }) {
   const isRendering = previewStatus === "rendering";
   const canGenerate = hasAudio && analysisStatus === "ready" && Boolean(sourceAnalysis) && !isRendering;
-  const isRecommendedSelection = Boolean(
-    recommendedPlan &&
-      settings.autoIntensity === recommendedPlan.autoIntensity &&
-      settings.antiFatigue === recommendedPlan.antiFatigue &&
-      !settings.vocalPresence &&
-      !settings.stereoSpace &&
-      !settings.bassPunch,
-  );
-
   function rebuild(partial: Partial<PreviewSettings>) {
     const base = normalizePresenceOptions({
       ...settings,
@@ -737,11 +737,9 @@ function RenderChoiceCard({
         ? "Analyse locale en cours..."
         : hasPreview
         ? hasPendingChanges
-          ? "Régénérer la Preview"
-          : "Générer une autre Preview"
-        : isRecommendedSelection
-          ? "Générer la Preview recommandée"
-          : "Générer la Preview";
+          ? "Régénérer le rendu"
+          : "Générer un autre rendu"
+        : "Générer le rendu PAXLAB";
 
   return (
     <section id="paxlab-render-card" className="panel guided-render-card">
@@ -750,12 +748,11 @@ function RenderChoiceCard({
           <p className="eyebrow">Rendu</p>
           <h2>Choisis le rendu</h2>
         </div>
-        <span className="status-pill">{isRecommendedSelection ? "Recommandé" : recommendedPlan ? "Personnalisé" : "Analyse"}</span>
       </div>
 
       {recommendedPlan && (
         <div className="recommended-preview-note">
-          <strong>Preview recommandée : {recommendedPlan.label}</strong>
+          <strong>Conseil PAXLAB : {recommendedPlan.label}</strong>
           <span>{recommendedPlan.reason}</span>
         </div>
       )}
@@ -785,10 +782,13 @@ function RenderChoiceCard({
                 })
               }
             >
-              <strong>{render.label}</strong>
+              <strong>
+                {render.label}
+                {isRecommended && (
+                  <span className="recommendation-star" aria-label="Preset conseillé">★</span>
+                )}
+              </strong>
               <span>{render.title}</span>
-              {isRecommended && <em>Recommandé</em>}
-              <small>{render.text}</small>
             </button>
           );
         })}
@@ -797,6 +797,7 @@ function RenderChoiceCard({
       <label
         className={[
           "guided-fatigue",
+          "guided-ai-brightness",
           settings.antiFatigue ? "active" : "",
           settings.vocalPresence ? "mutually-disabled" : "",
           recommendedPlan?.antiFatigue ? "recommended" : "",
@@ -811,12 +812,14 @@ function RenderChoiceCard({
           checked={settings.antiFatigue}
           onChange={(event) => rebuild({ antiFatigue: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">✦</i>
         <span>
-          <strong>AI Brightness Smoothing</strong>
-          <small>
-            Calme les aigus métalliques, le fizz et la fatigue d’écoute.
-          </small>
-          {recommendedPlan?.antiFatigue && <em>Recommandé</em>}
+          <strong>
+            Lissage brillance IA
+            {recommendedPlan?.antiFatigue && (
+              <span className="recommendation-star" aria-label="Option conseillée">★</span>
+            )}
+          </strong>
         </span>
       </label>
 
@@ -829,7 +832,7 @@ function RenderChoiceCard({
         ]
           .filter(Boolean)
           .join(" ")}
-        title={settings.antiFatigue ? "AI Brightness Smoothing actif : désactive-le pour utiliser la présence vocale." : undefined}
+        title={settings.antiFatigue ? "Lissage brillance IA actif : désactive-le pour utiliser la présence vocale." : undefined}
       >
         <input
           type="checkbox"
@@ -837,9 +840,9 @@ function RenderChoiceCard({
           checked={settings.vocalPresence}
           onChange={(event) => rebuild({ vocalPresence: event.target.checked, antiFatigue: event.target.checked ? false : settings.antiFatigue })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">♪</i>
         <span>
           <strong>Présence vocale</strong>
-          <small>Fait ressortir légèrement le chant sans rendre les aigus agressifs.</small>
         </span>
       </label>
 
@@ -858,9 +861,9 @@ function RenderChoiceCard({
           checked={settings.stereoSpace}
           onChange={(event) => rebuild({ stereoSpace: event.target.checked })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">◎</i>
         <span>
           <strong>Espace stéréo</strong>
-          <small>Élargit légèrement l’image stéréo sans toucher aux graves.</small>
         </span>
       </label>
 
@@ -881,9 +884,9 @@ function RenderChoiceCard({
           checked={settings.bassPunch}
           onChange={(event) => rebuild({ bassPunch: event.target.checked, vocalPresence: event.target.checked ? false : settings.vocalPresence })}
         />
+        <i className="guided-switch-icon" aria-hidden="true">◍</i>
         <span>
           <strong>Basses punchy</strong>
-          <small>Renforce le kick et le grave utile sans gonfler le mix.</small>
         </span>
       </label>
 
@@ -894,71 +897,16 @@ function RenderChoiceCard({
         onClick={onRenderPreview}
       >
         {buttonLabel}
-        <small>
-          Analyse automatique, traitement local, validation à l’écoute
-        </small>
       </button>
 
       {hasPendingChanges && hasPreview && (
         <p className="message message-warning">
-          Les réglages ont changé. Régénère pour mettre la Preview à jour.
+          Les réglages ont changé. Régénère pour mettre le rendu à jour.
         </p>
       )}
       {previewStatus === "error" && previewErrorMessage && (
         <p className="message message-error">{previewErrorMessage}</p>
       )}
-    </section>
-  );
-}
-
-function PreviewReadyCard({
-  previewResult,
-  settings,
-  revision,
-  renderedAt,
-  hasPendingChanges,
-}: {
-  previewResult: PreviewRenderResult;
-  settings: PreviewSettings;
-  revision: number;
-  renderedAt: string | null;
-  hasPendingChanges: boolean;
-}) {
-  const headroom =
-    previewResult.report.loudness.headroomSummary?.finalHeadroomDb ??
-    previewResult.report.loudness.achievedHeadroomDb;
-  const label = intensityLabel(settings.autoIntensity);
-
-  return (
-    <section
-      className={
-        hasPendingChanges ? "guided-ready-card pending" : "guided-ready-card"
-      }
-    >
-      <div>
-        <p className="eyebrow">Preview prête</p>
-        <h2>
-          {hasPendingChanges
-            ? "Preview à régénérer"
-            : "Version de comparaison prête"}
-        </h2>
-        <p>
-          Preview #{revision}
-          {renderedAt ? ` · ${renderedAt}` : ""} · {label}
-          {settings.antiFatigue ? " · AI Brightness Smoothing" : settings.vocalPresence ? " · Présence vocale" : ""}{settings.stereoSpace ? " · Espace stéréo" : ""}{settings.bassPunch ? " · Basses punchy" : ""}
-        </p>
-      </div>
-      <div className="guided-ready-metrics">
-        <span>
-          <b>{previewResult.afterMetrics.estimatedLufs.toFixed(1)}</b> LUFS est.
-        </span>
-        <span>
-          <b>{headroom.toFixed(1)}</b> dB marge
-        </span>
-        <span>
-          <b>{hasPendingChanges ? "À jour ?" : "OK"}</b> statut
-        </span>
-      </div>
     </section>
   );
 }
@@ -1186,8 +1134,8 @@ function CompactPreviewSummary({
     >
       <strong>
         {hasPendingChanges
-          ? "Preview à régénérer"
-          : `Preview #${revision} prête`}
+          ? "Rendu à régénérer"
+          : `Rendu #${revision} prête`}
       </strong>
       <span>{label}</span>
       <span>
@@ -1222,7 +1170,7 @@ function ResultSideSummary({
     previewResult.report.loudness.achievedHeadroomDb;
   return (
     <section className="panel compact-side-summary">
-      <p className="eyebrow">Preview</p>
+      <p className="eyebrow">Rendu</p>
       <h2>{hasPendingChanges ? "À régénérer" : `#${revision} prête`}</h2>
       <div className="compact-summary-grid">
         <span>
@@ -1268,7 +1216,7 @@ function SimpleLanding({
     <>
       <header className="guided-landing-hero">
         <p className="version">
-          PAXLAB Browser Engine - DEV15.28.4
+          PAXLAB Browser Engine - v0.9.0-RC5
         </p>
         <h1>Améliore tes morceaux. Sans serveur, sans upload.</h1>
         <p>
@@ -1277,7 +1225,7 @@ function SimpleLanding({
         <div className="guided-trust-row">
           <span>Local</span>
           <span>Aucun upload</span>
-          <span>A/B Original / Preview</span>
+          <span>A/B Original / Rendu</span>
           <span>Export WAV / FLAC</span>
         </div>
       </header>
@@ -1303,11 +1251,11 @@ function SimpleLanding({
             </li>
             <li>
               <b>Mixer</b>
-              <span>Preview recommandée automatiquement.</span>
+              <span>Rendu auto selon analyse.</span>
             </li>
             <li>
               <b>Comparer</b>
-              <span>Écoute Original / Preview en A/B.</span>
+              <span>Écoute Original / Rendu en A/B.</span>
             </li>
             <li>
               <b>Exporter</b>
@@ -1666,7 +1614,7 @@ export default function App() {
         const message =
           error instanceof Error
             ? error.message
-            : "Erreur inconnue pendant la génération de la Preview Master.";
+            : "Erreur inconnue pendant la génération du rendu Master.";
         setPreviewErrorMessage(message);
         setPreviewStatus("error");
         setShouldSelectPreviewAfterRender(false);
@@ -1984,10 +1932,9 @@ export default function App() {
 
             <details id="paxlab-expert-settings" className="guided-accordion">
               <summary>
-                <span>Réglages experts</span>
+                <span>Réglages avancés</span>
                 <small>
-                  Préserver l’espace, intensité, plafond peak et nettoyage
-                  source
+Nettoyage, brillance, niveau et marge peak
                 </small>
               </summary>
               <PreviewControls
@@ -2010,27 +1957,15 @@ export default function App() {
               <summary>
                 <span>Détails techniques</span>
                 <small>
-                  Conseil automatique, rapport de traitement et mesures
+                  Mesures avant / après et journal de traitement local
                 </small>
               </summary>
-              <div className="guided-details-grid">
-                <SmartAdvisorPanel
-                  sourceAnalysis={sourceAnalysis}
-                  previewResult={previewResult}
-                  settings={previewSettings}
-                  isRendering={previewStatus === "rendering"}
-                  onApplySettings={handleApplyRecommended}
-                />
-                <MasterDashboard
-                  sourceAnalysis={sourceAnalysis}
-                  previewResult={previewResult}
-                  previewSettings={previewSettings}
-                />
-                <ProcessingReportPanel result={previewResult} />
+              <div className="guided-details-stack">
                 <MetricsPanel
                   result={previewResult}
                   sourceAnalysis={sourceAnalysis}
                 />
+                <ProcessingReportPanel result={previewResult} />
               </div>
             </details>
           </section>

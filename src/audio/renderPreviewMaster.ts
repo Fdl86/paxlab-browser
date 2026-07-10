@@ -925,7 +925,7 @@ async function renderPreviewMasterInternal(
     appliedMoves.push("de-hiss aigu léger");
   }
   if (antiFizzReductionDb > 0.8) {
-    appliedMoves.push(settings.antiFatigue ? "AI Brightness Smoothing / brillance IA" : "anti-fizz / contrôle des aigus");
+    appliedMoves.push(settings.antiFatigue ? "Lissage brillance IA / brillance IA" : "anti-fizz / contrôle des aigus");
   }
   if (vocalPresenceActive) {
     appliedMoves.push("présence vocale subtile");
