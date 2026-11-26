@@ -9,7 +9,8 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <WasmMainJSPath>main.js</WasmMainJSPath>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
-    <RunAOTCompilation>false</RunAOTCompilation>
+    <!-- Production DSP runs as ahead-of-time compiled WebAssembly. -->
+    <RunAOTCompilation>true</RunAOTCompilation>
   </PropertyGroup>
   <ItemGroup><TrimmerRootAssembly Include="Paxlab.Web" /></ItemGroup>
 </Project>

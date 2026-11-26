@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test:dsp": "node scripts/runDspTests.mjs",
     "test:exports": "node scripts/runExportTests.mjs",
-    "test": "npm run test:dsp && npm run test:exports && node scripts/testWeb.mjs",
+    "test": "npm run test:dsp && npm run test:exports && node scripts/testWeb.mjs && node scripts/testProgress.mjs",
     "build:engine": "node scripts/buildEngine.mjs"
   },
   "dependencies": {

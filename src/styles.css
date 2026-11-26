@@ -812,3 +812,14 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
 .web-warning{color:var(--amber);font-size:.86rem;}.web-diagnostic{color:var(--green);font-weight:600;}.web-file{font-weight:600;}
 .web-panel table{width:100%;border-collapse:collapse;font-size:.88rem;}.web-panel th,.web-panel td{padding:10px 4px;border-bottom:1px solid var(--line);text-align:right;}.web-panel th:first-child,.web-panel td:first-child{text-align:left;}.web-shell footer{font-size:.82rem;margin-top:20px;}
 @media(max-width:760px){.web-shell{padding:14px;}.web-layout{grid-template-columns:1fr;}.web-header{flex-wrap:wrap;}.web-panel{padding:14px;}}
+
+/* RC1 performance - actual DSP stage and elapsed time (no simulated percent). */
+.web-mastering-dialog{box-sizing:border-box;width:min(460px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:26px;color:var(--text);background:var(--s1);border:1px solid var(--gold-line);border-radius:16px;box-shadow:0 20px 70px #0008;}
+.web-mastering-dialog::backdrop{background:rgba(7,8,11,.76);}
+.web-mastering-dialog h2{margin:8px 0 16px;font-size:1.25rem;line-height:1.35;}
+.web-mastering-dialog p{margin:0;}
+.web-mastering-dialog .web-mastering-stage{color:var(--gold);min-height:2.8em;line-height:1.4;font-weight:600;}
+.web-mastering-progress{display:block;width:100%;height:8px;margin:12px 0 20px;accent-color:var(--gold);}
+.web-mastering-time{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:.9rem;margin-bottom:14px;color:var(--muted);}
+.web-mastering-time strong{color:var(--text);font-variant-numeric:tabular-nums;}
+.web-mastering-dialog #mastering-detail{font-size:.83rem;color:var(--muted);line-height:1.5;}

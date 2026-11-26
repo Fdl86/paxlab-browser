@@ -7,6 +7,14 @@ try{
   for(let i=0;i<100;i++){try{if((await fetch('http://127.0.0.1:4173/')).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
   browser=await chromium.launch({headless:true});const page=await browser.newPage();
   page.setDefaultTimeout(180000);page.on('pageerror',e=>console.error(e));page.on('console',m=>{if(m.type()==='error')console.error(m.text());});
+  // Observe the actual worker messages independently from the React UI.
+  await page.addInitScript(()=>{
+    window.paxlabStages=[];
+    const NativeWorker=window.Worker;
+    window.Worker=class extends NativeWorker {
+      constructor(...args){super(...args);this.addEventListener('message',e=>{if(e.data?.progress)window.paxlabStages.push(e.data.progress);});}
+    };
+  });
   await page.goto('http://127.0.0.1:4173/');
   await page.getByLabel('Langue').selectOption('en');await page.getByRole('heading',{name:'Mastering Edition'}).waitFor();
   await page.reload();await page.getByRole('heading',{name:'Mastering Edition'}).waitFor();
@@ -22,10 +30,23 @@ try{
   await page.locator('input[type=file]').setInputFiles({name:'smoke.wav',mimeType:'audio/wav',buffer:buf});
   await page.getByRole('status').filter({hasText:'Analysis complete'}).waitFor();
   const render=page.getByRole('button',{name:'Generate master',exact:true});assert.equal(await render.isDisabled(),true);
-  await page.getByRole('button',{name:'V5.5',exact:true}).click();await render.click();await page.getByText('Master ready',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'V5.5',exact:true}).click();
+  async function renderAndCheck(expected){
+    await page.evaluate(()=>{window.paxlabStages=[];});
+    const started=Date.now();await render.click();
+    const modal=page.getByRole('dialog',{name:'Mastering in progress…'});
+    await modal.waitFor({state:'visible'});
+    assert.equal(await modal.getByRole('progressbar').count(),1);
+    await page.getByText('Master ready',{exact:true}).waitFor();
+    await modal.waitFor({state:'hidden'});
+    const stages=await page.evaluate(()=>window.paxlabStages);
+    for(const stage of expected)assert.ok(stages.includes(stage),`Missing actual worker progress: ${stage}`);
+    console.log(`Browser render: ${(Date.now()-started)/1000}s, stages: ${stages.join(', ')}`);
+  }
+  await renderAndCheck(['stagePlan','stageAnalysis','stageSpectrum','stageDynamics','stageNormalize','stageSafety','stageFinalMetrics','stageTransfer']);
   const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Export',exact:true}).click()]);assert.ok(download.suggestedFilename().endsWith('.wav'));
-  await page.getByLabel('Section leveling').selectOption('doux');await render.click();await page.getByText('Master ready',{exact:true}).waitFor();
-  await page.getByRole('button',{name:'V6',exact:true}).click();await page.getByLabel('Section leveling').selectOption('progressif');await page.getByLabel('Finishing B - tonal correction and micro-leveling').check();await render.click();await page.getByText('Master ready',{exact:true}).waitFor();
+  await page.getByLabel('Section leveling').selectOption('doux');await renderAndCheck(['stageFinishing','stageTransfer']);
+  await page.getByRole('button',{name:'V6',exact:true}).click();await page.getByLabel('Section leveling').selectOption('progressif');await page.getByLabel('Finishing B - tonal correction and micro-leveling').check();await renderAndCheck(['stageV6Diagnostic','stageV6Analysis','stageV6Guard','stageFinishing','stageTransfer']);
   await page.getByLabel('Language').selectOption('fr');await page.getByText('Rendu prêt',{exact:true}).waitFor();
   console.log('Browser smoke: language persistence, detector JSON, mandatory manual choice, V5.5, R1, V6 + R2 + B, WAV export passed.');
 }finally{await browser?.close();server.kill();}

@@ -33,6 +33,32 @@ public static partial class Program
 
     public sealed record Settings(string Mode, string Preset, string Rider, string RiderProfile, string Level, bool MasterB, bool AntiFatigue, bool VocalPresence, bool StereoSpace, bool BassPunch, bool SpacePreserve);
 
+    // Synchronous progress reporting: Progress<T> would queue the callbacks until
+    // the WASM render returns. The worker forwards each event to the UI immediately.
+    [JSImport("globalThis.paxlabProgress")]
+    internal static partial void NotifyProgress(string stage);
+
+    private sealed class WebProgress : IProgress<string>
+    {
+        public void Report(string value) => NotifyProgress(value switch
+        {
+            "Analyse du morceau" => "stageAnalysis",
+            "Réparation source" => "stageCleanup",
+            "Correction du spectre" => "stageSpectrum",
+            "Optimisation dynamique" => "stageDynamics",
+            "Normalisation du niveau" => "stageNormalize",
+            "Sécurité peak" => "stageSafety",
+            "Diagnostic source Suno V6" => "stageV6Diagnostic",
+            "Restauration spatiale V6" => "stageV6Space",
+            "Compensation présence V6" => "stageV6Presence",
+            "Contrôle boxiness V6" => "stageV6Boxiness",
+            "Contrôle sifflantes V6" => "stageV6Sibilance",
+            "Suppression artefacts HF V6" => "stageV6HF",
+            "Réanalyse après restauration V6" => "stageV6Analysis",
+            _ => "stageProcessing"
+        });
+    }
+
     [JSExport]
     public static byte[] Render(string options)
     {
@@ -46,27 +72,34 @@ public static partial class Program
         var finishing = new AdaptiveFinishingOptions(o.MasterB, o.Level switch { "doux" => SectionLevelMode.Doux, "progressif" => SectionLevelMode.Progressif, _ => SectionLevelMode.Off });
         var rider = finishing.Enabled ? AutoLevelRiderMode.Off : o.Rider switch { "auto" => AutoLevelRiderMode.Auto, "forced" => AutoLevelRiderMode.Forced, _ => AutoLevelRiderMode.Off };
         bool riderApplied = false; double riderReduction = 0;
+        var progress = new WebProgress();
+        NotifyProgress("stagePlan");
         var current = input; var currentMetrics = before;
         if (rider != AutoLevelRiderMode.Off)
         {
+            NotifyProgress("stageRider");
             var plan = AutoLevelRider.Analyze(input, AutoLevelRiderOptions.ForProfile(o.RiderProfile), rider == AutoLevelRiderMode.Forced);
-            if (AutoLevelRider.ShouldApply(rider, plan)) { current = AutoLevelRider.Apply(input, plan); currentMetrics = AudioMetricsAnalyzer.Analyze(current); riderApplied = true; riderReduction = plan.MaximumReductionDb; }
+            if (AutoLevelRider.ShouldApply(rider, plan)) { NotifyProgress("stageRiderApply"); current = AutoLevelRider.Apply(input, plan); currentMetrics = AudioMetricsAnalyzer.Analyze(current); riderApplied = true; riderReduction = plan.MaximumReductionDb; }
         }
         var settings = Build(currentMetrics);
         MasteringRenderResult result;
         if (o.Mode == "v6")
         {
-            var prepared = V6MasteringPipeline.Prepare(current, currentMetrics, new V6RestorationOptions(o.StereoSpace, o.VocalPresence && !o.AntiFatigue && !o.BassPunch), captureRemoved: true);
+            var prepared = V6MasteringPipeline.Prepare(current, currentMetrics, new V6RestorationOptions(o.StereoSpace, o.VocalPresence && !o.AntiFatigue && !o.BassPunch), progress: progress, captureRemoved: true);
             removed = prepared.Restoration.RemovedAudio;
             var protectedSettings = V6RestorationEngine.ProtectLegacyV6Path(Build(prepared.RestoredMetrics));
-            result = V6MasteringPipeline.FinalizeRender(MasteringEngine.Render(prepared.Restoration.Audio, protectedSettings), before, settings, prepared.Restoration, Math.Min(-1.5, protectedSettings.MaxPeakDb));
+            var legacy = MasteringEngine.Render(prepared.Restoration.Audio, protectedSettings, progress);
+            NotifyProgress("stageV6Guard");
+            result = V6MasteringPipeline.FinalizeRender(legacy, before, settings, prepared.Restoration, Math.Min(-1.5, protectedSettings.MaxPeakDb));
         }
-        else result = MasteringEngine.Render(current, settings);
+        else result = MasteringEngine.Render(current, settings, progress);
         if (rider != AutoLevelRiderMode.Off) result = result with { Before = before, Report = result.Report with { GainAppliedDb = result.After.EstimatedLufs - before.EstimatedLufs } };
-        if (finishing.Enabled) result = AdaptiveFinishingProcessor.Apply(result, finishing);
+        if (finishing.Enabled) { NotifyProgress("stageFinishing"); result = AdaptiveFinishingProcessor.Apply(result, finishing); }
+        NotifyProgress("stageFinalMetrics");
         rendered = result.Audio;
         if (rendered.Samples.Any(s => !float.IsFinite(s))) { rendered = null; throw new InvalidOperationException("Non-finite render"); }
         report = JsonSerializer.Serialize(new WebRenderReport(before, result.After, riderApplied, riderReduction, finishing.Enabled && o.Rider != "off", removed != null, result.Report.LimiterMaxReductionDb, V6TruePeakGuard.Measure4x(rendered)), WebJsonContext.Default.WebRenderReport);
+        NotifyProgress("stageTransfer");
         return Bytes(rendered);
     }
     [JSExport] public static string Report() => report;

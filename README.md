@@ -56,3 +56,13 @@ Unzip into the existing repository root, remove the replaced `src/components/` d
 This release candidate reuses the original Windows C# mastering and restoration algorithms via a browser WebAssembly worker. It supports V5.5/V6, experimental generation detection (with manual confirmation when undetermined), Finishing B, Gentle (R1), Progressive (R2), Auto Level Rider, waveform and A/B comparison, and WAV/FLAC export. No subtitles or standalone media library. The language switch is immediate and persistent. Audio remains on the device.
 
 The previous detailed dashboard, session history and full expert controls are not included in this focused RC. Supported PCM WAV files retain their sample rate; other formats are decoded at 48 kHz. The Windows Vulkan analysis backend is not used in the browser. The C# WebAssembly build, browser integration and audio parity must be validated before claiming production readiness. The supplied GitHub workflow checks compilation and browser smoke tests; synthetic tests do not establish parity on real music.
+
+## RC1 PERF1 - browser performance and live progress
+
+Production builds now enable WebAssembly AOT (ahead-of-time compilation) with the same C# DSP algorithms. This should reduce CPU-bound mastering time, at the cost of a longer deployment build and potentially a larger first download. Actual speed and numerical parity must be measured on real files after publishing. No reduced-quality or fast-audio mode is introduced.
+
+The mastering dialog shows actual engine stages (including optional Rider, V6 restoration and experimental finishing), an indeterminate progress bar and elapsed time, in FR/EN. It closes on completion or reported failure. It does not estimate a percentage or remaining time. Worker-side render duration is logged in the browser console as `PAXLAB DSP + transfer preparation`.
+
+Cloudflare Pages: keep the existing build command that installs .NET 8 and `wasm-tools` before `npm run build`. If the AOT build exceeds Cloudflare's 20-minute build or 25 MiB per-asset limit, explicitly set `PAXLAB_WASM_AOT=0` as a build environment variable to restore the previous interpreted build (the progress dialog remains available). Remove the variable to re-enable AOT. GitHub Actions continues to use Ubuntu 24.04, .NET 8, and its mandatory browser smoke tests. No silent fallback is used.
+
+After publishing, compare the same original and options against the previous Web or Windows export, and record the console duration on the same browser/device. `npm test` also checks progress message dispatch and translation coverage; `scripts/browserSmoke.mjs` verifies the real WASM events and modal in Chromium.
