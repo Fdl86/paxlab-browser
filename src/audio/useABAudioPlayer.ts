@@ -79,6 +79,7 @@ function linearToDb(value: number): number {
 }
 
 function dbToLinear(value: number): number {
+  if (value === -Infinity) return 0;
   if (!Number.isFinite(value)) {
     return 1;
   }
@@ -183,7 +184,7 @@ export function useABAudioPlayer({
   const [meter, setMeter] = useState<RealtimeMeterState>(initialMeter);
 
   const currentVoiceRef = useRef<PlaybackVoice | null>(null);
-  const activeVoicesRef = useRef<Set<PlaybackVoice>>(new Set());
+  const activeVoicesRef = useRef<Set<PlaybackVoice>>(new Set<PlaybackVoice>());
   const analyserRef = useRef<AnalyserNode | null>(null);
   const analyserDataRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const startContextTimeRef = useRef(0);
@@ -229,6 +230,12 @@ export function useABAudioPlayer({
 
   useEffect(() => {
     monitorGainDbBySourceRef.current = monitorGainDbBySource ?? {};
+    const voice = currentVoiceRef.current;
+    if (voice && isPlayingRef.current) {
+      const now = getAudioContext().currentTime;
+      voice.gainNode.gain.cancelScheduledValues(now);
+      voice.gainNode.gain.setTargetAtTime(dbToLinear(monitorGainDbBySourceRef.current[activeSourceRef.current] ?? 0), now, 0.015);
+    }
   }, [monitorGainDbBySource]);
 
   const resetMeter = useCallback(() => {
@@ -658,9 +665,11 @@ export function useABAudioPlayer({
 
   useEffect(() => {
     if (!previewBuffer && activeSourceRef.current === "preview") {
-      void switchSource("original");
+      stop();
+      activeSourceRef.current = "original";
+      setActiveSourceState("original");
     }
-  }, [previewBuffer, switchSource]);
+  }, [previewBuffer, stop]);
 
   useEffect(() => {
     return () => {

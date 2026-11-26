@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "3.3.0-rc1",
+  "version": "3.3.0-rc2",
   "type": "module",
   "scripts": {
     "dev": "npm run build:engine && vite",
@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "test:dsp": "node scripts/runDspTests.mjs",
     "test:exports": "node scripts/runExportTests.mjs",
-    "test": "npm run test:dsp && npm run test:exports && node scripts/testWeb.mjs && node scripts/testProgress.mjs",
+    "test": "npm run test:dsp && npm run test:exports && node scripts/testWeb.mjs && node scripts/testProgress.mjs && node scripts/testMonitorGain.mjs",
     "build:engine": "node scripts/buildEngine.mjs"
   },
   "dependencies": {

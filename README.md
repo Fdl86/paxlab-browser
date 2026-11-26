@@ -1,4 +1,4 @@
-# PAXLAB Web 3.3 - Mastering Edition RC1
+# PAXLAB Web Studio 3.3 - RC2
 
 FR / EN. Application de mastering local dans le navigateur, dérivée de PAXLAB Browser 0.9.0-RC6 et des sources DSP de PAXLAB Studio DEV3.3 RC4/RC4.1.
 
@@ -66,3 +66,15 @@ The mastering dialog shows actual engine stages (including optional Rider, V6 re
 Cloudflare Pages: keep the existing build command that installs .NET 8 and `wasm-tools` before `npm run build`. If the AOT build exceeds Cloudflare's 20-minute build or 25 MiB per-asset limit, explicitly set `PAXLAB_WASM_AOT=0` as a build environment variable to restore the previous interpreted build (the progress dialog remains available). Remove the variable to re-enable AOT. GitHub Actions continues to use Ubuntu 24.04, .NET 8, and its mandatory browser smoke tests. No silent fallback is used.
 
 After publishing, compare the same original and options against the previous Web or Windows export, and record the console duration on the same browser/device. `npm test` also checks progress message dispatch and translation coverage; `scripts/browserSmoke.mjs` verifies the real WASM events and modal in Chromium.
+
+## RC2 - STUDIO UI
+
+Refonte de l’interface de mastering, inspirée de PAXLAB Studio Windows : aucun menu latéral, aucun module SRT, Media Player ou traitement par lot. Une seule waveform pour Original / Rendu PAXLAB / Résidu, réglages à droite et mesures avant/après sous la lecture. Le résidu correspond au signal retiré de V6 quand disponible, ou à la différence globale alignée et compensée. Les deux modes restent accessibles si le signal retiré est disponible. La position de lecture est conservée lors des changements de source.
+
+Le volume d’écoute et l’option Volume égal ne modifient que le gain du lecteur. Volume égal atténue le plus fort des deux signaux en utilisant les LUFS intégrés estimés, sans amplification, sans modification du PCM et sans normalisation du résidu. Toutes les options de traitement RC1 PERF1 et les quatre combinaisons d’export WAV/FLAC 16/24 bits sont conservées. Les presets supplémentaires et la préservation de l’espace sont dans les réglages avancés. La modale de progression réelle et l’AOT restent inchangés.
+
+Application du patch RC2 : décompresser par-dessus RC1 PERF1 à la racine du dépôt. Aucun changement de configuration Cloudflare ou GitHub Actions requis.
+
+Validation locale : tests historiques DSP 7/7, export WAV 3/3, parseur WAV 8/8, clés FR/EN, progression et gain d’écoute 10/10. Les sources DSP, le worker, le projet .NET et le script AOT restent identiques à RC1 PERF1. Le build complet avec React/Vite/.NET et le test Chromium réel restent à exécuter en CI.
+
+English: Windows-inspired mastering-only interface, one waveform with Original / Master / Residual, equal loudness monitoring by attenuation, persistent listening volume, compact controls and before/after metrics. No subtitle, library or batch module. All RC1 PERF1 mastering options, export formats, progress events and AOT settings are preserved. Apply the patch on top of RC1 PERF1; no deployment configuration changes are required.
