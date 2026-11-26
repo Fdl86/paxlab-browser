@@ -1,8 +1,17 @@
 const fr = {
+  processing: "Traitements PAXLAB",
+  finishingShort: "Finition B",
+  finishingDesc: "Correction tonale et micro-nivellement",
+  riderShort: "Auto Level Rider",
+  riderMode: "Mode",
+  riderDesc: "Nivellement automatique avant mastering.",
+  extraOptions: "Options complémentaires",
+
   dropTitle: "Dépose ton morceau",
   dropSubtitle: "WAV, FLAC ou MP3 - traitement 100 % local",
   browse: "Parcourir",
   residue: "Résidu",
+  noResidual: "Aucun signal retiré disponible.",
   residueType: "Type de résidu",
   equalVolume: "Volume égal",
   equalNote: "Comparaison à LUFS intégrés estimés égaux, par atténuation uniquement. Sans effet sur le résidu ni sur l’export.",
@@ -63,10 +72,18 @@ const fr = {
   edition:'Édition Mastering', stereo:'Stéréo', mono:'Mono', intro:'Mastering local pour les créations musicales IA. Aucun fichier audio n’est envoyé sur un serveur.', language:'Langue', file:'Fichier audio', select:'Choisir un fichier', drop:'Déposer un WAV, FLAC ou MP3 ici', noFile:'Aucun fichier chargé', local:'Traitement local dans le navigateur', generation:'Génération Suno', probable55:'V5.5 probable', probable6:'V6 probable', unknown:'Indéterminé - sélection manuelle obligatoire', formatUnknown:'Détection réservée aux WAV PCM16 stéréo 48 kHz d’origine, au moins 20 s.', warning:'Indice acoustique expérimental : une égalisation des aigus peut modifier le résultat. Ne pas utiliser comme preuve de provenance.', slope:'Pente haute fréquence', excerpts:'Extraits concordants', choose:'Choisir la génération', manual:'Choix manuel', automatic:'Diagnostic automatique', auto:'Automatique', preset:'Preset', recommendation:'Appliquer la recommandation', livePeak:'Crête instantanée', liveLufs:'LUFS court terme estimé', safe:'Nettoyage léger', balanced:'Traitement naturel', impact:'Impact', youtube:'Mix YouTube', smooth:'Anti-fatigue', open:'Plus ouvert', antiFatigue:'Lissage brillance IA', vocalPresence:'Présence vocale', stereoSpace:'Espace stéréo', bassPunch:'Basses punchy', spacePreserve:'Préserver la dynamique et l’espace', experiments:'Traitements expérimentaux', masterB:'Finition B - correction tonale et micro-nivellement', level:'Nivellement des sections', off:'Désactivé', doux:'R1 - Doux', progressif:'R2 - Progressif', rider:'Auto Level Rider (avant mastering)', forced:'Forcé', riderProfile:'Profil Rider', conservateur:'Conservateur', equilibre:'Équilibré', correctif:'Correctif', bypass:'Le Rider est neutralisé si la finition B ou R1/R2 est active, comme dans la version Windows.', generate:'Générer le rendu', load:'Analyse du morceau en cours…', render:'Mastering en cours…', monitorBusy:'Préparation de l’écoute…', exporting:'Export en cours…', loadError:'Impossible de charger ou d’analyser ce fichier. Vérifie le format, la taille et la disponibilité du moteur Web.', renderError:'Le rendu a échoué. Vérifie les réglages ou recharge le fichier.', monitorError:'Écoute de comparaison indisponible.', exportError:'Échec de l’export audio.', playbackError:'Lecture audio impossible dans ce navigateur.', ready:'Analyse terminée', rendered:'Rendu prêt', changed:'Réglages modifiés - régénérer le rendu', comparison:'Comparaison', original:'Original', result:'Rendu', difference:'Différence globale', removed:'Signal retiré par la restauration V6', differenceNote:'La différence globale est alignée et compensée en niveau ; ce n’est pas un stem de bruit. Écoute uniquement.', removedNote:'Signal retiré par les trois étages d’atténuation V6, à son niveau natif. Écoute uniquement.', play:'Lire', pause:'Pause', stop:'Arrêter', seek:'Position de lecture', metrics:'Mesures audio', lufs:'LUFS intégré estimé', peak:'Crête échantillon (dBFS)', truePeak:'True peak 4x (dBTP)', range:'Plage dynamique (LU)', corr:'Corrélation stéréo', limiter:'Réduction max. du limiteur (dB)', riderApplied:'Rider appliqué', riderSkipped:'Rider non appliqué', riderReduction:'Atténuation max. Rider (dB)', export:'Export du rendu', depth:'Résolution', download:'Exporter', reset:'Effacer le fichier', privacy:'Préférences et corrections manuelles enregistrées localement si le navigateur le permet.', compressed:'Pour les formats compressés, le navigateur décode à 48 kHz. Les WAV PCM pris en charge conservent leur fréquence native.', release:'Version expérimentale - parité Windows/Web à valider sur des rendus réels.'
 };
 const en:Record<keyof typeof fr,string> = {
+  processing: "PAXLAB processing",
+  finishingShort: "Finishing B",
+  finishingDesc: "Tonal correction and micro-leveling",
+  riderShort: "Auto Level Rider",
+  riderMode: "Mode",
+  riderDesc: "Automatic leveling before mastering.",
+  extraOptions: "Additional options",
   dropTitle: "Drop your track",
   dropSubtitle: "WAV, FLAC or MP3 - 100% local processing",
   browse: "Browse",
   residue: "Residual",
+  noResidual: "No removed audio available.",
   residueType: "Residual type",
   equalVolume: "Equal loudness",
   equalNote: "Estimated integrated LUFS matched by attenuation only. Does not affect the residual or export.",

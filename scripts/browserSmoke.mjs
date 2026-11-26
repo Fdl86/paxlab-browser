@@ -9,10 +9,10 @@ try{
   page.setDefaultTimeout(180000);page.on('pageerror',e=>console.error(e));page.on('console',m=>{if(m.type()==='error')console.error(m.text());});
   // Observe the actual worker messages independently from the React UI.
   await page.addInitScript(()=>{
-    window.paxlabStages=[];
+    window.paxlabStages=[];window.paxlabHasRemoved=null;
     const NativeWorker=window.Worker;
     window.Worker=class extends NativeWorker {
-      constructor(...args){super(...args);this.addEventListener('message',e=>{if(e.data?.progress)window.paxlabStages.push(e.data.progress);});}
+      constructor(...args){super(...args);this.addEventListener('message',e=>{if(e.data?.progress)window.paxlabStages.push(e.data.progress);if(e.data?.report)window.paxlabHasRemoved=e.data.report.hasRemoved;});}
     };
   });
   await page.goto('http://127.0.0.1:4173/');
@@ -29,6 +29,16 @@ try{
   assert.equal(await page.getByRole('button',{name:'Generate master',exact:true}).isDisabled(),true);
   await page.locator('input[type=file]').setInputFiles({name:'smoke.wav',mimeType:'audio/wav',buffer:buf});
   await page.getByRole('status').filter({hasText:'Analysis complete'}).waitFor();
+  async function checkCompactLayout(){
+    for(const viewport of [{width:1920,height:940},{width:1600,height:900}]){
+      await page.setViewportSize(viewport);
+      const layout=await page.evaluate(()=>({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth,exportBottom:document.querySelector('.studio-download').getBoundingClientRect().bottom,waveHeight:document.querySelector('.studio-wave').getBoundingClientRect().height}));
+      assert.ok(layout.height<=viewport.height+1 && layout.width<=viewport.width+1,`Unexpected desktop scrolling: ${JSON.stringify(layout)}`);
+      assert.ok(layout.exportBottom<=viewport.height+1,'Export button outside viewport');
+      assert.ok(layout.waveHeight>=100 && layout.waveHeight<=110,'Waveform height outside compact range');
+    }
+  }
+  await checkCompactLayout();
   const render=page.getByRole('button',{name:'Generate master',exact:true});assert.equal(await render.isDisabled(),true);
   await page.getByRole('button',{name:'V5.5',exact:true}).click();
   async function renderAndCheck(expected){
@@ -55,17 +65,36 @@ try{
   assert.ok(Math.abs(Number(await seek.inputValue())-2)<0.05);
   await page.getByRole('switch',{name:'Equal loudness'}).check();
   await page.getByRole('slider',{name:'Listening volume'}).fill('37');
-  await residual.click();await residual.and(page.locator('[aria-pressed=true]')).waitFor();
-  assert.ok(Math.abs(Number(await seek.inputValue())-2)<0.05);
+  assert.equal(await residual.isDisabled(),true,'V5.5 must not expose overall difference as residual');
+  assert.equal(await page.evaluate(()=>window.paxlabHasRemoved),false);
   await original.click();await original.and(page.locator('[aria-pressed=true]')).waitFor();
   await master.click();await master.and(page.locator('[aria-pressed=true]')).waitFor();
   assert.ok(Math.abs(Number(await seek.inputValue())-2)<0.05);
-  await page.setViewportSize({width:390,height:844});
-  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Mobile horizontal overflow');
+  await checkCompactLayout();
+  for(const viewport of [{width:390,height:844},{width:320,height:640}]){
+    await page.setViewportSize(viewport);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'Mobile horizontal overflow');
+  }
   await page.setViewportSize({width:1600,height:900});
   const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Export',exact:true}).click()]);assert.ok(download.suggestedFilename().endsWith('.wav'));
-  await page.getByLabel('Section leveling').selectOption('doux');await renderAndCheck(['stageFinishing','stageTransfer']);
+  const rider=page.locator('.studio-rider select').first();
+  assert.equal(await rider.isDisabled(),false);
+  const riderBefore=await rider.inputValue();
+  await page.getByLabel('Section leveling').selectOption('doux');
+  assert.equal(await rider.isDisabled(),true);assert.equal(await rider.inputValue(),'off');
+  await page.getByLabel('Section leveling').selectOption('off');
+  assert.equal(await rider.isDisabled(),false);assert.equal(await rider.inputValue(),riderBefore);
+  await page.getByLabel('Section leveling').selectOption('doux');await renderAndCheck(['stageFinishing','stageTransfer']);assert.equal(await residual.isDisabled(),true);
   await page.getByRole('button',{name:'V6',exact:true}).click();await page.getByLabel('Section leveling').selectOption('progressif');await page.getByLabel('Finishing B - tonal correction and micro-leveling').check();await renderAndCheck(['stageV6Diagnostic','stageV6Analysis','stageV6Guard','stageFinishing','stageTransfer']);
+  const hasRemoved=await page.evaluate(()=>window.paxlabHasRemoved);
+  assert.equal(typeof hasRemoved,'boolean');
+  assert.equal(await residual.isDisabled(),!hasRemoved,'Residual availability must follow engine report');
+  if(hasRemoved){await seek.fill('2');await residual.click();await residual.and(page.locator('[aria-pressed=true]')).waitFor();assert.ok(Math.abs(Number(await seek.inputValue())-2)<0.05);}
   await page.getByLabel('Language').selectOption('fr');await page.getByRole('status').filter({hasText:'Rendu prêt'}).waitFor();
+  await checkCompactLayout();
+  await page.locator('input[type=file]').setInputFiles({name:'new.wav',mimeType:'audio/wav',buffer:buf});
+  await page.getByRole('status').filter({hasText:'Analyse terminée'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Résidu',exact:true}).isDisabled(),true);
+  assert.equal(await page.getByRole('button',{name:'Original',exact:true}).getAttribute('aria-pressed'),'true');
   console.log('Browser smoke: language persistence, detector JSON, mandatory manual choice, V5.5, R1, V6 + R2 + B, WAV export passed.');
 }finally{await browser?.close();server.kill();}

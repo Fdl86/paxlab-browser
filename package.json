@@ -1,7 +1,7 @@
 {
   "name": "paxlab-browser",
   "private": true,
-  "version": "3.3.0-rc2",
+  "version": "3.3.0-rc2.1",
   "type": "module",
   "scripts": {
     "dev": "npm run build:engine && vite",

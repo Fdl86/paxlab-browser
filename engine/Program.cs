@@ -87,6 +87,8 @@ public static partial class Program
         {
             var prepared = V6MasteringPipeline.Prepare(current, currentMetrics, new V6RestorationOptions(o.StereoSpace, o.VocalPresence && !o.AntiFatigue && !o.BassPunch), progress: progress, captureRemoved: true);
             removed = prepared.Restoration.RemovedAudio;
+            // A captured but entirely silent buffer is not an available residual.
+            if (removed is not null && !Array.Exists(removed.Samples, s => float.IsFinite(s) && s != 0f)) removed = null;
             var protectedSettings = V6RestorationEngine.ProtectLegacyV6Path(Build(prepared.RestoredMetrics));
             var legacy = MasteringEngine.Render(prepared.Restoration.Audio, protectedSettings, progress);
             NotifyProgress("stageV6Guard");
