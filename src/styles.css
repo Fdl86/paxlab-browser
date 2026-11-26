@@ -794,3 +794,21 @@ input[type="range"]{width:100%;accent-color:var(--gold);}
   .technical-result small{text-align:left;}
   .standalone-message{margin:12px 18px;}
 }
+
+/* Mastering Edition: same visual tokens, single mastering workspace. */
+.web-shell{max-width:1240px;margin:auto;padding:28px;}
+.web-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:24px;}
+.web-header p,.web-shell footer{color:var(--muted);}
+.web-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:18px;align-items:start;}
+.web-layout main,.web-layout aside{display:grid;gap:16px;min-width:0;}
+.web-panel{display:grid;gap:12px;padding:20px;min-width:0;}
+.web-panel p{margin:0;overflow-wrap:anywhere;}.web-panel small{color:var(--muted);}
+.web-shell button,.web-shell select{background:var(--s2);border:1px solid var(--line-2);border-radius:8px;padding:10px 14px;min-height:42px;}
+.web-shell select{max-width:100%;}.web-shell label:not(.check){display:grid;gap:6px;}
+.web-shell button.selected{border-color:var(--gold);color:var(--gold);}.web-shell button.web-primary{background:var(--gold);color:var(--gold-ink);font-weight:700;}
+.web-shell .check{display:flex;align-items:center;gap:10px;line-height:1.4;}.web-shell input[type=checkbox]{accent-color:var(--gold);width:18px;height:18px;flex:none;}
+.web-drop{display:flex;flex-direction:column;gap:12px;align-items:center;border:1px dashed var(--line-2);padding:24px;border-radius:12px;color:var(--muted);text-align:center;}
+.web-inline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}.web-wave{background:var(--s2);border-radius:8px;width:100%;min-height:90px;}.web-seek{width:100%;accent-color:var(--gold);}
+.web-warning{color:var(--amber);font-size:.86rem;}.web-diagnostic{color:var(--green);font-weight:600;}.web-file{font-weight:600;}
+.web-panel table{width:100%;border-collapse:collapse;font-size:.88rem;}.web-panel th,.web-panel td{padding:10px 4px;border-bottom:1px solid var(--line);text-align:right;}.web-panel th:first-child,.web-panel td:first-child{text-align:left;}.web-shell footer{font-size:.82rem;margin-top:20px;}
+@media(max-width:760px){.web-shell{padding:14px;}.web-layout{grid-template-columns:1fr;}.web-header{flex-wrap:wrap;}.web-panel{padding:14px;}}

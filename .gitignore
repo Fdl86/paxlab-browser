@@ -8,3 +8,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+engine/bin/
+engine/obj/
+public/engine/
+.web-test-build/

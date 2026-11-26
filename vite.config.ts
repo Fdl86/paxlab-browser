@@ -10,6 +10,7 @@ const securityHeaders = {
 
 export default defineConfig({
   plugins: [react()],
+  base: "./",
   assetsInclude: ["**/*.wasm"],
   build: {
     target: "es2020",

@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {chromium} from 'playwright';
+const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','4173','--strictPort'],{stdio:'inherit'});
+let browser;
+try{
+  for(let i=0;i<100;i++){try{if((await fetch('http://127.0.0.1:4173/')).ok)break;}catch{}await new Promise(r=>setTimeout(r,200));}
+  browser=await chromium.launch({headless:true});const page=await browser.newPage();
+  page.setDefaultTimeout(180000);page.on('pageerror',e=>console.error(e));page.on('console',m=>{if(m.type()==='error')console.error(m.text());});
+  await page.goto('http://127.0.0.1:4173/');
+  await page.getByLabel('Langue').selectOption('en');await page.getByRole('heading',{name:'Mastering Edition'}).waitFor();
+  await page.reload();await page.getByRole('heading',{name:'Mastering Edition'}).waitFor();
+  const rate=48000,seconds=8,n=rate*seconds*2*2,buf=Buffer.alloc(44+n);
+  buf.write('RIFF');buf.writeUInt32LE(36+n,4);buf.write('WAVE',8);buf.write('fmt ',12);buf.writeUInt32LE(16,16);buf.writeUInt16LE(1,20);buf.writeUInt16LE(2,22);buf.writeUInt32LE(rate,24);buf.writeUInt32LE(rate*4,28);buf.writeUInt16LE(4,32);buf.writeUInt16LE(16,34);buf.write('data',36);buf.writeUInt32LE(n,40);
+  for(let i=0;i<rate*seconds;i++){let t=i/rate,amp=t<4?.12:.30;buf.writeInt16LE(Math.round(32767*amp*(Math.sin(2*Math.PI*997*t)+.2*Math.sin(2*Math.PI*13000*t))),44+i*4);buf.writeInt16LE(Math.round(32767*amp*(Math.sin(2*Math.PI*997*t+.1)+.2*Math.sin(2*Math.PI*15000*t))),46+i*4);}
+  await page.locator('input[type=file]').setInputFiles({name:'smoke.wav',mimeType:'audio/wav',buffer:buf});
+  await page.getByText('Analysis complete',{exact:true}).waitFor();
+  const render=page.getByRole('button',{name:'Generate master',exact:true});assert.equal(await render.isDisabled(),true);
+  await page.getByRole('button',{name:'V5.5',exact:true}).click();await render.click();await page.getByText('Master ready',{exact:true}).waitFor();
+  const [download]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'Export',exact:true}).click()]);assert.ok(download.suggestedFilename().endsWith('.wav'));
+  await page.getByLabel('Section leveling').selectOption('doux');await render.click();await page.getByText('Master ready',{exact:true}).waitFor();
+  await page.getByRole('button',{name:'V6',exact:true}).click();await page.getByLabel('Section leveling').selectOption('progressif');await page.getByLabel('Finishing B - tonal correction and micro-leveling').check();await render.click();await page.getByText('Master ready',{exact:true}).waitFor();
+  await page.getByLabel('Language').selectOption('fr');await page.getByText('Rendu prêt',{exact:true}).waitFor();
+  console.log('Browser smoke: language persistence, mandatory manual choice, V5.5, R1, V6 + R2 + B, WAV export passed.');
+}finally{await browser?.close();server.kill();}
