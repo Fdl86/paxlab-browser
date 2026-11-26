@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <InvariantGlobalization>true</InvariantGlobalization>
     <WasmMainJSPath>main.js</WasmMainJSPath>
-    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <RunAOTCompilation>false</RunAOTCompilation>
   </PropertyGroup>
   <ItemGroup><TrimmerRootAssembly Include="Paxlab.Web" /></ItemGroup>

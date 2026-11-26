@@ -6,7 +6,6 @@ using Paxlab.Studio.App.Services;
 
 public static partial class Program
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals };
     private static WaveAudioData? source, rendered, removed, difference;
     private static MasteringMetrics? metrics;
     private static string report = "{}";
@@ -16,7 +15,7 @@ public static partial class Program
     public static string Detect(byte[] pcm)
     {
         var d = SunoWaveGenerationDetector.Analyze(pcm);
-        return JsonSerializer.Serialize(new { mode = d.Verdict == SunoWaveGenerationVerdict.V55Probable ? "v55" : d.Verdict == SunoWaveGenerationVerdict.V6Probable ? "v6" : "", slope = d.HighFrequencySlopeDb, supporting = d.SupportingExcerpts, count = d.ExcerptCount }, Json);
+        return JsonSerializer.Serialize(new WebDetection(d.Verdict == SunoWaveGenerationVerdict.V55Probable ? "v55" : d.Verdict == SunoWaveGenerationVerdict.V6Probable ? "v6" : "", d.HighFrequencySlopeDb, d.SupportingExcerpts, d.ExcerptCount), WebJsonContext.Default.WebDetection);
     }
 
     [JSExport]
@@ -29,7 +28,7 @@ public static partial class Program
         source = new WaveAudioData(rate, channels, 32, samples, "Web PCM");
         metrics = AudioMetricsAnalyzer.Analyze(source);
         var recommended = AutoMasteringPlanner.BuildRecommendedPreviewPlan(metrics);
-        return JsonSerializer.Serialize(new { metrics, recommended = new { preset = recommended.AutoIntensity, antiFatigue = recommended.AntiFatigue } }, Json);
+        return JsonSerializer.Serialize(new WebAnalysis(metrics, new WebRecommendation(recommended.AutoIntensity, recommended.AntiFatigue)), WebJsonContext.Default.WebAnalysis);
     }
 
     public sealed record Settings(string Mode, string Preset, string Rider, string RiderProfile, string Level, bool MasterB, bool AntiFatigue, bool VocalPresence, bool StereoSpace, bool BassPunch, bool SpacePreserve);
@@ -40,7 +39,7 @@ public static partial class Program
         rendered = removed = difference = null; report = "{}";
         var input = source ?? throw new InvalidOperationException("No audio");
         var before = metrics ?? throw new InvalidOperationException("No metrics");
-        var o = JsonSerializer.Deserialize<Settings>(options, Json) ?? throw new ArgumentException("No settings");
+        var o = JsonSerializer.Deserialize(options, WebJsonContext.Default.Settings) ?? throw new ArgumentException("No settings");
         if (o.Mode is not ("v55" or "v6")) throw new ArgumentException("Generation required");
         var (preset, intensity) = o.Preset switch { "safe" => ("auto", "safe"), "impact" => ("power", "impact"), "youtube" => ("youtube", "youtube"), "smooth" => ("smooth", "safe"), "open" => ("open", "balanced"), "balanced" => ("auto", "balanced"), _ => throw new ArgumentException("Invalid preset") };
         MasteringSettings Build(MasteringMetrics m) => AutoMasteringPlanner.BuildSettingsFromAnalysis(m, preset, intensity, o.AntiFatigue, o.VocalPresence, o.StereoSpace, o.BassPunch, intensity != "youtube" && o.SpacePreserve);
@@ -67,7 +66,7 @@ public static partial class Program
         if (finishing.Enabled) result = AdaptiveFinishingProcessor.Apply(result, finishing);
         rendered = result.Audio;
         if (rendered.Samples.Any(s => !float.IsFinite(s))) { rendered = null; throw new InvalidOperationException("Non-finite render"); }
-        report = JsonSerializer.Serialize(new { before, after = result.After, riderApplied, riderReduction, riderBypassed = finishing.Enabled && o.Rider != "off", hasRemoved = removed != null, limiterReduction = result.Report.LimiterMaxReductionDb, truePeak4x = V6TruePeakGuard.Measure4x(rendered) }, Json);
+        report = JsonSerializer.Serialize(new WebRenderReport(before, result.After, riderApplied, riderReduction, finishing.Enabled && o.Rider != "off", removed != null, result.Report.LimiterMaxReductionDb, V6TruePeakGuard.Measure4x(rendered)), WebJsonContext.Default.WebRenderReport);
         return Bytes(rendered);
     }
     [JSExport] public static string Report() => report;
@@ -80,3 +79,19 @@ public static partial class Program
     }
     private static byte[] Bytes(WaveAudioData audio) { var bytes = new byte[audio.Samples.Length * 4]; Buffer.BlockCopy(audio.Samples, 0, bytes, 0, bytes.Length); return bytes; }
 }
+
+// Explicit JSON contracts preserve the worker protocol under WebAssembly trimming.
+internal sealed record WebDetection(string Mode, double? Slope, int Supporting, int Count);
+internal sealed record WebRecommendation(string Preset, bool AntiFatigue);
+internal sealed record WebAnalysis(MasteringMetrics Metrics, WebRecommendation Recommended);
+internal sealed record WebRenderReport(MasteringMetrics Before, MasteringMetrics After,
+    bool RiderApplied, double RiderReduction, bool RiderBypassed, bool HasRemoved,
+    double LimiterReduction, double TruePeak4x);
+
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    PropertyNameCaseInsensitive = true, NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals)]
+[JsonSerializable(typeof(Program.Settings), TypeInfoPropertyName = "Settings")]
+[JsonSerializable(typeof(WebDetection))]
+[JsonSerializable(typeof(WebAnalysis))]
+[JsonSerializable(typeof(WebRenderReport))]
+internal partial class WebJsonContext : JsonSerializerContext { }
