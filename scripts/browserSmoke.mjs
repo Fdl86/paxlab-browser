@@ -49,6 +49,8 @@ try{
     assert.equal(await modal.getByRole('progressbar').count(),1);
     await page.getByRole('status').filter({hasText:'Master ready'}).waitFor();
     await modal.waitFor({state:'hidden'});
+    await page.getByRole('button',{name:'Master',exact:true}).and(page.locator('[aria-pressed=true]')).waitFor();
+    await page.getByRole('button',{name:'Play',exact:true}).and(page.locator(':enabled')).waitFor();
     const stages=await page.evaluate(()=>window.paxlabStages);
     for(const stage of expected)assert.ok(stages.includes(stage),`Missing actual worker progress: ${stage}`);
     console.log(`Browser render: ${(Date.now()-started)/1000}s, stages: ${stages.join(', ')}`);
@@ -60,6 +62,25 @@ try{
   const master=page.getByRole('button',{name:'Master',exact:true});
   const residual=page.getByRole('button',{name:'Residual',exact:true});
   const seek=page.getByRole('slider',{name:'Playback position'});
+  // Compare SVG playhead to the exact center of the custom slider thumb travel.
+  for(const viewport of [{width:1920,height:940},{width:1600,height:900},{width:390,height:844}]){
+    await page.setViewportSize(viewport);
+    for(const fraction of [0,.25,.5,.75,1]){
+      await seek.fill(String(8*fraction));
+      const alignment=await page.evaluate(()=>{
+        const svg=document.querySelector('.studio-wave svg');
+        const input=document.querySelector('.studio-seek input');
+        const line=document.querySelector('.studio-playhead');
+        const track=document.querySelector('.studio-seek-track');
+        const b=svg.getBoundingClientRect(),r=input.getBoundingClientRect(),t=track.getBoundingClientRect();
+        const f=Number(input.value)/Number(input.max);
+        return {wave:b.left+b.width*Number(line.getAttribute('x1'))/860,thumb:r.left+7+(r.width-14)*f,track:t.left+t.width*f};
+      });
+      assert.ok(Math.abs(alignment.wave-alignment.thumb)<1,JSON.stringify(alignment));
+      assert.ok(Math.abs(alignment.wave-alignment.track)<1,JSON.stringify(alignment));
+    }
+  }
+  await page.setViewportSize({width:1600,height:900});
   await seek.fill('2');
   await master.click();await master.and(page.locator('[aria-pressed=true]')).waitFor();
   assert.ok(Math.abs(Number(await seek.inputValue())-2)<0.05);
@@ -81,6 +102,7 @@ try{
   assert.equal(await rider.isDisabled(),false);
   const riderBefore=await rider.inputValue();
   await page.getByLabel('Section leveling').selectOption('doux');
+  assert.equal(await original.getAttribute('aria-pressed'),'true');
   assert.equal(await rider.isDisabled(),true);assert.equal(await rider.inputValue(),'off');
   await page.getByLabel('Section leveling').selectOption('off');
   assert.equal(await rider.isDisabled(),false);assert.equal(await rider.inputValue(),riderBefore);

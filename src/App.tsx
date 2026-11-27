@@ -5,7 +5,7 @@ import {audioFromPcm,decodeNative,detectorPcm,interleave} from './audio/webPcm';
 import {encodeWavFromAudioBuffer,buildSafeAudioFilename} from './audio/exportWav';
 import {encodeFlacFromAudioBuffer} from './audio/exportFlac';
 import {useABAudioPlayer} from './audio/useABAudioPlayer';
-import {buildWaveformRects,getCachedWaveformBins} from './audio/waveformView';
+import {buildWaveformRects,getCachedWaveformBins,DEFAULT_WAVEFORM_WIDTH,DEFAULT_WAVEFORM_HEIGHT,DEFAULT_WAVEFORM_SCALE_Y} from './audio/waveformView';
 import {monitorGains} from './audio/monitorGain';
 
 type Key=keyof typeof messages.fr;
@@ -65,18 +65,24 @@ export default function App(){
       finally{setBusy(null);lock.current=false;}
     })();
   },[monitorTransition,playback.switchSource,playback.playPause]);
-  const waveform=useMemo(()=>buildWaveformRects(getCachedWaveformBins(playback.activeSource==='original'?original:monitor==='result'?master:monitorAudio,original)),[original,master,monitorAudio,monitor,playback.activeSource]);
+  const isResidualView=playback.activeSource==='preview'&&monitor==='removed';
+  const waveform=useMemo(()=>{
+    const view=isResidualView?'residual':'structure';
+    return buildWaveformRects(getCachedWaveformBins(playback.activeSource==='original'?original:monitor==='result'?master:monitorAudio,original,view),DEFAULT_WAVEFORM_WIDTH,DEFAULT_WAVEFORM_HEIGHT,DEFAULT_WAVEFORM_SCALE_Y,view);
+  },[original,master,monitorAudio,monitor,playback.activeSource,isResidualView]);
+  const playbackFraction=playback.duration>0?Math.max(0,Math.min(1,playback.currentTime/playback.duration)):0;
   useEffect(()=>()=>client.dispose(),[client]);useEffect(()=>{document.documentElement.lang=lang;document.title=`PAXLAB Web Studio 3.3 | ${t.edition}`;document.querySelector('meta[name="description"]')?.setAttribute('content',t.intro);write('lang',lang);},[lang,t]);useEffect(()=>write('prefs',prefs),[prefs]);
   const number=(v:number|string|undefined,d=2)=>typeof v==='number'&&Number.isFinite(v)?v.toLocaleString(lang,{minimumFractionDigits:d,maximumFractionDigits:d}):'-';
-  function clear(){setRenderDuration(null);playback.stop();client.dispose();setOriginal(null);setMaster(null);setMonitorAudio(null);setMonitor('result');setFilename('');setFingerprint('');setMetrics(null);setRecommended(null);setReport(null);setDiag(null);setMode('');setManual(false);setChanged(false);setError(null);if(fileInput.current)fileInput.current.value='';}
+  function clear(){setRenderDuration(null);playback.resetToOriginal();client.dispose();setOriginal(null);setMaster(null);setMonitorAudio(null);setMonitor('result');setFilename('');setFingerprint('');setMetrics(null);setRecommended(null);setReport(null);setDiag(null);setMode('');setManual(false);setChanged(false);setError(null);if(fileInput.current)fileInput.current.value='';}
   async function load(file:File){if(lock.current)return;lock.current=true;clear();setBusy('load');try{if(file.size>200*1024*1024)throw new Error('size');const raw=await file.arrayBuffer();const hash=await identity(raw);const buffer=await decodeNative(raw);const pcm=interleave(buffer);const detect=detectorPcm(raw,file.name);const transfer=[pcm,...(detect?[detect]:[])];const response=await client.request('load',{pcm,detect,rate:buffer.sampleRate,channels:buffer.numberOfChannels},transfer);if(!response.metrics||!response.diagnostic)throw new Error('response');const d=response.diagnostic;const saved=hash?read<Mode>(`manual:${hash}`,''):'';setFilename(file.name);setFingerprint(hash);setOriginal(buffer);setMetrics(response.metrics);setRecommended(response.recommended??null);setDiag(d);setMode(saved==='v55'||saved==='v6'?saved:d.mode);setManual(saved==='v55'||saved==='v6');}catch{client.dispose();setError('loadError');}finally{setBusy(null);lock.current=false;}}
-  function invalidate(){setRenderDuration(null);playback.stop();setMaster(null);setMonitorAudio(null);setMonitor('result');setReport(null);setChanged(true);setError(null);}
+  function invalidate(){setRenderDuration(null);playback.resetToOriginal();setMaster(null);setMonitorAudio(null);setMonitor('result');setReport(null);setChanged(true);setError(null);}
   function preference<K extends keyof Prefs>(k:K,v:Prefs[K]){setPrefs(p=>{const n={...p,[k]:v};if(k==='vocalPresence'&&v===true){n.antiFatigue=false;n.bassPunch=false;}if((k==='antiFatigue'||k==='bassPunch')&&v===true)n.vocalPresence=false;return n;});invalidate();}
   function selectMode(m:Mode){setMode(m);setManual(!!m);if(fingerprint)write(`manual:${fingerprint}`,m);invalidate();}
   function autoMode(){setMode(diag?.mode??'');setManual(false);if(fingerprint)write(`manual:${fingerprint}`,'');invalidate();}
   async function render(){
     if(lock.current||!original||!mode)return;
     lock.current=true;invalidate();const started=performance.now();setRenderStage('stageEngine');setRenderStarted(started);setBusy('render');
+    let completed=false;
     try{
       const r=await client.request('render',{settings:{...prefs,mode}},[],setRenderStage);
       if(!r.pcm||!r.report)throw new Error('response');
@@ -84,8 +90,9 @@ export default function App(){
       // Yield for a paint before copying the large interleaved buffer into Web Audio.
       await new Promise<void>(resolve=>setTimeout(resolve,0));
       setMaster(audioFromPcm(r.pcm,original.sampleRate,original.numberOfChannels));setReport(r.report);setChanged(false);setRenderDuration((performance.now()-started)/1000);
+      setMonitorTransition({resume:false});completed=true;
       if(typeof r.elapsedMs==='number')console.info(`PAXLAB DSP + transfer preparation: ${(r.elapsedMs/1000).toFixed(2)} s`);
-    }catch{setError('renderError');}finally{setBusy(null);lock.current=false;}
+    }catch{setError('renderError');}finally{if(!completed){setBusy(null);lock.current=false;}}
   }
   async function chooseMonitor(m:Monitor){
     if(lock.current||playback.isSwitching||!master||!original||(m==='removed'&&!hasResidual))return;
@@ -116,7 +123,7 @@ export default function App(){
   const exportChoices=[['flac',24],['wav',24],['wav',16],['flac',16]] as const;
   return <div className="web-shell studio-shell">
     {busy==='render'&&<MasteringDialog t={t} stage={renderStage} started={renderStarted}/>}
-    <header className="studio-header"><div className="studio-brand"><span className="studio-logo" aria-hidden="true">P</span><div><h1>PAXLAB Web Studio</h1><p>v3.3 RC2.1 <span className="studio-head-divider">|</span> {t.edition}</p></div></div><div className="studio-head-actions"><span className="studio-local"><span aria-hidden="true"/>{t.local}</span><label className="studio-lang"><span className="sr-only">{t.language}</span><select aria-label={t.language} value={lang} onChange={e=>setLang(e.target.value as Language)}><option value="fr">FR</option><option value="en">EN</option></select></label></div></header>
+    <header className="studio-header"><div className="studio-brand"><span className="studio-logo" aria-hidden="true">P</span><div><h1>PAXLAB Web Studio</h1><p>v3.3 RC2.2 <span className="studio-head-divider">|</span> {t.edition}</p></div></div><div className="studio-head-actions"><span className="studio-local"><span aria-hidden="true"/>{t.local}</span><label className="studio-lang"><span className="sr-only">{t.language}</span><select aria-label={t.language} value={lang} onChange={e=>setLang(e.target.value as Language)}><option value="fr">FR</option><option value="en">EN</option></select></label></div></header>
     <div className="studio-layout"><main className="studio-main">
       <section className="studio-panel studio-file" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(e.dataTransfer.files[0]&&!busy)void load(e.dataTransfer.files[0]);}}>
         <span className="studio-file-icon" aria-hidden="true">♪</span><div className="studio-file-copy"><h2>{filename||t.dropTitle}</h2><p>{original?`${time(original.duration)} · ${original.sampleRate.toLocaleString(lang)} Hz · ${original.numberOfChannels===2?t.stereo:t.mono}`:t.dropSubtitle}</p></div><input ref={fileInput} type="file" accept=".wav,.flac,.mp3,.aiff,.ogg,.m4a,audio/*" hidden onChange={e=>{if(e.target.files?.[0])void load(e.target.files[0]);}}/><button disabled={!!busy} onClick={()=>fileInput.current?.click()}>{t.browse}</button>{original&&<button className="studio-icon-btn" title={t.reset} aria-label={t.reset} disabled={!!busy} onClick={clear}>×</button>}
@@ -124,8 +131,8 @@ export default function App(){
       <section className="studio-panel studio-listening" aria-label={t.comparison}>
         <div className="studio-transport"><div className="studio-segment" role="group" aria-label={t.comparison}><button aria-pressed={selectedSource==='original'} disabled={!original||playbackDisabled} onClick={()=>playAction(()=>playback.switchSource('original'))}>{t.original}</button><button aria-pressed={selectedSource==='result'} disabled={!master||playbackDisabled} onClick={()=>void chooseMonitor('result')}>{t.result}</button><button aria-pressed={selectedSource==='residue'} disabled={!hasResidual||playbackDisabled} title={!hasResidual?t.noResidual:t.removedNote} onClick={()=>void chooseMonitor('removed')}>{t.residue}</button></div><label className="studio-equal" title={t.equalNote}><span>{t.equalVolume}</span><input type="checkbox" role="switch" checked={equal} disabled={!master||playbackDisabled||selectedSource==='residue'} onChange={e=>setEqual(e.target.checked)}/></label><div className="studio-play-buttons"><button className="studio-primary studio-icon-btn" disabled={!original||playbackDisabled} title={playback.isPlaying?t.pause:t.play} aria-label={playback.isPlaying?t.pause:t.play} onClick={()=>playAction(playback.playPause)}>{playback.isPlaying?'Ⅱ':'▶'}</button><button className="studio-icon-btn" disabled={!original||playbackDisabled} title={t.stop} aria-label={t.stop} onClick={playback.stop}>■</button></div></div>
         <div className="studio-volume-row"><label className="studio-volume"><span>{t.volume}</span><input type="range" min="0" max="100" value={volume} disabled={!!busy} onChange={e=>setVolume(+e.target.value)}/><output>{volume} %</output></label><div className="studio-track-status"><small>{selectedSource==='residue'?t.removedNote:original?t[selectedSource]:t.noFile}</small><span className="studio-chip" role="status">{status}</span></div></div>
-        <div className="studio-wave" onClick={e=>{if(!original||playbackDisabled)return;const rect=e.currentTarget.getBoundingClientRect();playback.seek(Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width))*playback.duration);}}><svg viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="860" y1="55" y2="55" stroke="currentColor" opacity=".15"/>{waveform.map((r,i)=><rect key={i} {...r} fill={selectedSource==='residue'?'#9DAAC0':'#D9B36C'}/>)}{playback.duration>0&&<line x1={860*playback.currentTime/playback.duration} x2={860*playback.currentTime/playback.duration} y1="0" y2="110" stroke="#fff" vectorEffect="non-scaling-stroke"/>}</svg></div>
-        <div className="studio-timeline"><span>{time(playback.currentTime)}</span><input type="range" aria-label={t.seek} min="0" max={playback.duration||1} step="0.01" value={Math.min(playback.currentTime,playback.duration||1)} disabled={!original||playbackDisabled} onChange={e=>playback.seek(+e.target.value)}/><span>{time(playback.duration)}</span></div>
+        <div className="studio-wave" data-residual={isResidualView} onClick={e=>{if(!original||playbackDisabled)return;const rect=e.currentTarget.querySelector('svg')!.getBoundingClientRect();playback.seek(Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width))*playback.duration);}}><svg viewBox="0 0 860 110" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="860" y1="55" y2="55" stroke="currentColor" opacity=".15"/>{isResidualView&&[25,40,70,85].map(y=><line key={y} x1="0" x2="860" y1={y} y2={y} stroke="currentColor" opacity=".08" strokeDasharray="3 5"/>)}{waveform.map((r,i)=><rect key={i} {...r} fill={isResidualView?'#9DAAC0':'#D9B36C'}/>)}{playback.duration>0&&<line className="studio-playhead" x1={860*playbackFraction} x2={860*playbackFraction} y1="0" y2="110" stroke="#D9B36C" vectorEffect="non-scaling-stroke"/>}</svg></div>
+        <div className="studio-timeline"><div className="studio-seek"><div className="studio-seek-track" aria-hidden="true"><div className="studio-seek-fill" style={{width:`${playbackFraction*100}%`}}/></div><input type="range" aria-label={t.seek} min="0" max={playback.duration||1} step="any" value={Math.min(playback.currentTime,playback.duration||1)} disabled={!original||playbackDisabled} onChange={e=>playback.seek(+e.target.value)}/></div><div className="studio-time-labels"><span>{time(playback.currentTime)}</span>{isResidualView&&<span className="studio-residual-scale" title={t.residualScaleHint}>{t.residualScale}</span>}<span>{time(playback.duration)}</span></div></div>
         <section className="studio-experiments" aria-label={t.processing}>
           <h2 className="studio-kicker">{t.processing}</h2>
           <div className="studio-experiment-grid">

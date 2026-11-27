@@ -128,3 +128,20 @@
 .studio-volume-row .studio-track-status{min-width:0}
 .studio-volume-row .studio-track-status .studio-chip{max-width:none;flex-shrink:0}
 @media(max-width:480px){.studio-volume-row .studio-track-status{flex:1 1 100%;max-width:100%}.studio-volume-row .studio-track-status .studio-chip{max-width:55%;flex-shrink:1}.studio-volume-row .studio-track-status small{min-width:0;overflow-wrap:anywhere}.studio-volume{max-width:100%;min-width:0}.studio-volume input{min-width:0}}
+
+/* RC2.2: shared horizontal axis. A 14px thumb travels between centers 7px
+   from the input edges; the SVG uses those exact endpoints as well. */
+.studio-wave{padding-inline:7px;box-sizing:border-box}
+.studio-timeline{display:grid;gap:1px;margin-inline:1px}
+.studio-seek{position:relative;min-width:0;height:14px;display:flex;align-items:center}
+.studio-seek-track{position:absolute;left:7px;right:7px;height:4px;border-radius:4px;background:var(--line-2);pointer-events:none;overflow:hidden}
+.studio-seek-fill{height:100%;background:var(--gold);border-radius:4px}
+.studio-timeline .studio-seek input{appearance:none;-webkit-appearance:none;position:relative;display:block;width:100%;height:14px;flex:none;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-sizing:border-box;cursor:pointer}
+.studio-seek input::-webkit-slider-runnable-track{height:14px;background:transparent;border:0}
+.studio-seek input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border:1px solid #f0d7a2;border-radius:50%;background:var(--gold);box-sizing:border-box}
+.studio-seek input::-moz-range-track{height:14px;background:transparent;border:0}
+.studio-seek input::-moz-range-progress{background:transparent}
+.studio-seek input::-moz-range-thumb{width:14px;height:14px;border:1px solid #f0d7a2;border-radius:50%;background:var(--gold);box-sizing:border-box}
+.studio-seek input:disabled{opacity:.45;cursor:default}
+.studio-time-labels{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;padding-inline:7px;line-height:1.15}
+.studio-residual-scale{font-size:10px;text-align:center;color:#a6b0c1}

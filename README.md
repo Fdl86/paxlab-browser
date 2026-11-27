@@ -1,8 +1,16 @@
-# PAXLAB Web Studio 3.3 - RC2
+# PAXLAB Web Studio 3.3 - RC2.2
 
 FR / EN. Application de mastering local dans le navigateur, dérivée de PAXLAB Browser 0.9.0-RC6 et des sources DSP de PAXLAB Studio DEV3.3 RC4/RC4.1.
 
 **Statut : source candidate à compiler et à valider.** Le moteur C# est inclus, mais la compilation WebAssembly et la parité numérique des rendus Windows/Web n'ont pas été exécutées dans l'environnement de préparation. Le workflow GitHub bloque le déploiement en cas d'échec de compilation ou de test navigateur.
+
+## RC2.2 - Playback Fix
+
+- Sélection automatique du master après un rendu réussi, sans lecture automatique. Retour sur Original lors du chargement ou de l’invalidation.
+- Résidu : enveloppe de crêtes logarithmique fixe de -90 à -20 dBFS, sans barres minimales, lissage ou normalisation du signal. Le seuil ne concerne que l’affichage.
+- Axe de lecture partagé entre le SVG et le curseur accessible, avec indications temporelles sous la barre.
+- Aucun changement des algorithmes DSP, du moteur WASM ni du gain d’écoute.
+- `npm test` inclut les tests de waveform. Le smoke test navigateur couvre la sélection automatique et l’alignement.
 
 ## Déploiement GitHub Pages
 

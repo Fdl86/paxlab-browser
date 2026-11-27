@@ -20,6 +20,7 @@ interface UseABAudioPlayerResult {
   playPause: () => Promise<void>;
   pause: () => void;
   stop: () => void;
+  resetToOriginal: () => void;
   seek: (nextTime: number) => void;
   switchSource: (nextSource: PlaybackSource) => Promise<void>;
 }
@@ -408,6 +409,19 @@ export function useABAudioPlayer({
     resetMeter();
   }, [resetMeter, stopEverySource]);
 
+  // Invalidate a render even if a previous A/B switch was still settling.
+  const resetToOriginal = useCallback(() => {
+    stop();
+    if (switchUnlockTimerRef.current !== null) {
+      window.clearTimeout(switchUnlockTimerRef.current);
+      switchUnlockTimerRef.current = null;
+    }
+    isSwitchingRef.current = false;
+    setIsSwitching(false);
+    activeSourceRef.current = "original";
+    setActiveSourceState("original");
+  }, [stop]);
+
   const playPause = useCallback(async () => {
     if (isPlayingRef.current) {
       pause();
@@ -689,6 +703,7 @@ export function useABAudioPlayer({
     playPause,
     pause,
     stop,
+    resetToOriginal,
     seek,
     switchSource
   };

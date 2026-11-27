@@ -18,6 +18,15 @@ export interface WaveformRect {
 export const DEFAULT_WAVEFORM_WIDTH = 860;
 export const DEFAULT_WAVEFORM_HEIGHT = 110;
 export const DEFAULT_WAVEFORM_SCALE_Y = 50;
+// Display only. The removed PCM and its monitoring gain are never altered.
+export const RESIDUAL_FLOOR_DB = -90;
+export const RESIDUAL_TOP_DB = -20;
+export type WaveformMode = "structure" | "residual";
+export function residualDisplayAmplitude(peak: number): number {
+  if (!Number.isFinite(peak) || peak <= 0) return 0;
+  const db = 20 * Math.log10(peak);
+  return Math.max(0, Math.min(1, (db - RESIDUAL_FLOOR_DB) / (RESIDUAL_TOP_DB - RESIDUAL_FLOOR_DB)));
+}
 
 const bufferIds = new WeakMap<AudioBuffer, number>();
 const waveformCache = new WeakMap<AudioBuffer, Map<string, WaveformBin[]>>();
@@ -83,12 +92,12 @@ function buildWaveformStats(
   }
 
   const channelCount = buffer.numberOfChannels;
-  const step = Math.max(1, Math.floor(buffer.length / bins));
+  const count = Math.max(1, Math.min(buffer.length, Math.floor(bins)));
   const waveformStats: WaveformStatsBin[] = [];
 
-  for (let bin = 0; bin < bins; bin += 1) {
-    const start = bin * step;
-    const end = Math.min(buffer.length, start + step);
+  for (let bin = 0; bin < count; bin += 1) {
+    const start = Math.floor(bin * buffer.length / count);
+    const end = Math.floor((bin + 1) * buffer.length / count);
     let peak = 0;
     let sumSquares = 0;
     let sampleCount = 0;
@@ -127,6 +136,7 @@ export function buildWaveformBins(
   buffer: AudioBuffer | null,
   referenceBuffer: AudioBuffer | null,
   bins = 420,
+  mode: WaveformMode = "structure",
 ): WaveformBin[] {
   const activeStats = buildWaveformStats(buffer, bins);
 
@@ -134,7 +144,15 @@ export function buildWaveformBins(
     return [];
   }
 
-  const referenceStats = buildWaveformStats(referenceBuffer ?? buffer, bins);
+  if (mode === "residual") {
+    // Peak envelope: capture short removed events, with no neighbour smoothing.
+    return activeStats.map(({peak}) => {
+      const amplitude = residualDisplayAmplitude(peak);
+      return {min: -amplitude, max: amplitude};
+    });
+  }
+  const referenceStats = referenceBuffer === buffer || !referenceBuffer
+    ? activeStats : buildWaveformStats(referenceBuffer, bins);
   const referenceRms = getReferenceRms(
     referenceStats.length ? referenceStats : activeStats,
   );
@@ -171,14 +189,15 @@ export function buildWaveformBins(
 export function getCachedWaveformBins(
   buffer: AudioBuffer | null,
   referenceBuffer: AudioBuffer | null,
+  mode: WaveformMode = "structure",
 ): WaveformBin[] {
   if (!buffer) {
     return [];
   }
 
-  const bins = getAdaptiveBinCount(buffer);
-  const referenceId = getBufferId(referenceBuffer ?? buffer);
-  const cacheKey = `structure:${bins}:${referenceId}`;
+  const bins = mode === "residual" ? Math.max(420, getAdaptiveBinCount(buffer) * 2) : getAdaptiveBinCount(buffer);
+  const referenceId = mode === "residual" ? 0 : getBufferId(referenceBuffer ?? buffer);
+  const cacheKey = `${mode}:${bins}:${referenceId}`;
   const existingCache = waveformCache.get(buffer);
   const cached = existingCache?.get(cacheKey);
 
@@ -186,7 +205,7 @@ export function getCachedWaveformBins(
     return cached;
   }
 
-  const built = buildWaveformBins(buffer, referenceBuffer ?? buffer, bins);
+  const built = buildWaveformBins(buffer, referenceBuffer ?? buffer, bins, mode);
   const cache = existingCache ?? new Map<string, WaveformBin[]>();
   cache.set(cacheKey, built);
   waveformCache.set(buffer, cache);
@@ -198,17 +217,18 @@ export function buildWaveformRects(
   width = DEFAULT_WAVEFORM_WIDTH,
   height = DEFAULT_WAVEFORM_HEIGHT,
   scaleY = DEFAULT_WAVEFORM_SCALE_Y,
+  mode: WaveformMode = "structure",
 ): WaveformRect[] {
   const step = width / Math.max(1, waveformBins.length);
   const centerY = height / 2;
 
   return waveformBins.map((bin, index) => {
-    const barWidth = Math.max(1.2, Math.min(3.2, step * 0.52));
+    const barWidth = mode === "residual" ? Math.min(2, step * 0.75) : Math.max(1.2, Math.min(3.2, step * 0.52));
     const amplitude = Math.max(Math.abs(bin.max), Math.abs(bin.min));
-    const barHeight = Math.max(6, amplitude * scaleY * 2);
+    const barHeight = mode === "residual" ? amplitude * scaleY * 2 : Math.max(6, amplitude * scaleY * 2);
     const x = index * step + Math.max(0, (step - barWidth) / 2);
     const y = centerY - barHeight / 2;
 
     return { x, y, width: barWidth, height: barHeight };
-  });
+  }).filter(rect => mode !== "residual" || rect.height > 0);
 }
